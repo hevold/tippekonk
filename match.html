@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kamp — Tippekonk</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="nav-bar">
+      <a href="dashboard.html">Hjem</a>
+      <a href="matches.html" class="active">Kamper</a>
+      <a href="tournament.html">Turnering</a>
+      <a href="admin.html" id="admin-link" class="hidden">Admin</a>
+    </nav>
+    <div class="nav-meta">
+      <span id="hello">Hei</span>
+      <button class="btn-link" id="logout">Logg ut</button>
+    </div>
+
+    <div id="match-header" class="mb-2">
+      <span class="spinner"></span>
+    </div>
+
+    <div id="alert-area"></div>
+
+    <div id="match-form-area">
+      <span class="spinner"></span>
+    </div>
+
+    <div id="match-result-area"></div>
+
+    <h2>Andres tipp</h2>
+    <div id="others-area">
+      <span class="spinner"></span>
+    </div>
+  </main>
+  <script type="module" src="js/match.js"></script>
+</body>
+</html>
