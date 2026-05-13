@@ -28,6 +28,11 @@
           <label for="pin">PIN (4–8 sifre)</label>
           <input id="pin" name="pin" type="password" inputmode="numeric" pattern="\d{4,8}" required />
         </div>
+        <div class="field hidden" id="invite-field">
+          <label for="invite-code">Invitasjonskode</label>
+          <input id="invite-code" name="invite_code" type="text" autocapitalize="off" autocomplete="off" />
+          <small class="muted">Spør Henrik om koden hvis du ikke har den.</small>
+        </div>
         <button class="btn" id="submit" type="submit">Logg inn</button>
       </form>
     </div>

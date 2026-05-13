@@ -15,6 +15,7 @@ function setMode(m) {
   tabLogin.classList.toggle("active", m === "login");
   tabReg.classList.toggle("active", m === "register");
   submit.textContent = m === "login" ? "Logg inn" : "Registrer";
+  document.getElementById("invite-field").classList.toggle("hidden", m !== "register");
   alertArea.innerHTML = "";
 }
 
@@ -31,9 +32,10 @@ form.addEventListener("submit", async (e) => {
   submit.disabled = true;
   const name = document.getElementById("name").value;
   const pin = document.getElementById("pin").value;
+  const inviteCode = document.getElementById("invite-code").value;
   try {
     if (mode === "login") await login(name, pin);
-    else await register(name, pin);
+    else await register(name, pin, inviteCode);
     window.location.href = "dashboard.html";
   } catch (err) {
     showError(err.message || "Noe gikk galt");

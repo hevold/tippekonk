@@ -1,5 +1,5 @@
 // Admin: legge inn resultater, slette spillere, nullstille PIN.
-import { requireAuth, clearSession } from "./auth.js";
+import { requireAuth, clearSession, updateInviteCode } from "./auth.js";
 import { supabase } from "./client.js";
 import { getMatches, formatKickoff, clearCache, manualSync } from "./football.js";
 import { teamNo } from "./teams-no.js";
@@ -274,6 +274,36 @@ async function renderPlayers() {
   });
 }
 
+// ============ Innstillinger ============
+async function renderSettings() {
+  const sec = document.getElementById("section-settings");
+  sec.innerHTML = `
+    <div class="card">
+      <h3 class="mt-0 mb-1">Invitasjonskode</h3>
+      <p class="muted">Nye brukere må skrive inn denne koden for å registrere seg. Koden lagres som SHA-256-hash i Supabase. Nåværende kode kan ikke leses fra DB — du må enten huske den eller sette en ny her.</p>
+      <form id="invite-form" class="form-body" autocomplete="off">
+        <div class="field">
+          <label for="new-code">Ny invitasjonskode (minst 4 tegn)</label>
+          <input id="new-code" type="text" autocapitalize="off" required minlength="4" />
+        </div>
+        <button class="btn" type="submit">Oppdater kode</button>
+      </form>
+    </div>
+  `;
+  document.getElementById("invite-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const newCode = document.getElementById("new-code").value;
+    try {
+      await updateInviteCode(newCode);
+      showAlert("success", "Invitasjonskode oppdatert. Del den nye koden med vennene dine.");
+      document.getElementById("new-code").value = "";
+    } catch (err) {
+      showAlert("error", err.message || "Kunne ikke oppdatere kode");
+    }
+  });
+}
+
 renderMatches();
 renderTournament();
 renderPlayers();
+renderSettings();
