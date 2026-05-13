@@ -4,6 +4,7 @@ import { supabase } from "./client.js";
 import { getMatches, formatKickoff, clearCache, manualSync } from "./football.js";
 import { teamNo } from "./teams-no.js";
 import { TOURNAMENT_FIELDS, MATCH_FIELDS, scoreMatchBet, scoreTournamentBet, buildLeaderboard } from "./scoring.js";
+import { exportToExcel } from "./export.js";
 
 const me = requireAuth();
 if (!me) throw new Error("no auth");
@@ -280,8 +281,8 @@ async function renderSettings() {
   sec.innerHTML = `
     <div class="card">
       <h3 class="mt-0 mb-1">Backup / eksport</h3>
-      <p class="muted">Last ned alt av tippinger, resultater og stilling som Excel-fil. Bra som plan B hvis appen ryker, eller for å regne poeng manuelt.</p>
-      <button class="btn" id="export-xlsx" type="button">Last ned Excel-backup</button>
+      <p class="muted">Last ned alt av tippinger, resultater og stilling som Excel-fil — inkludert <strong>alle</strong> spillernes bets uavhengig av kamp-status. Spillere kan også laste ned fra Hjem-siden, men da blir andres bets filtrert ut på åpne kamper.</p>
+      <button class="btn" id="export-xlsx" type="button">Last ned Excel-backup (admin)</button>
     </div>
 
     <div class="card">
@@ -313,140 +314,14 @@ async function renderSettings() {
     btn.disabled = true;
     btn.textContent = "Henter data…";
     try {
-      await exportToExcel();
+      await exportToExcel({ asUser: null }); // admin: alt synlig
       showAlert("success", "Excel-fil lastet ned.");
     } catch (err) {
       showAlert("error", "Eksport feilet: " + err.message);
     }
     btn.disabled = false;
-    btn.textContent = "Last ned Excel-backup";
+    btn.textContent = "Last ned Excel-backup (admin)";
   });
-}
-
-async function exportToExcel() {
-  if (!window.XLSX) throw new Error("XLSX-biblioteket lastet ikke");
-
-  const [matches, players, matchBets, matchResults, tournamentBets, tournamentResult] = await Promise.all([
-    getMatches(),
-    supabase.from("tk_players").select("*"),
-    supabase.from("tk_match_bets").select("*"),
-    supabase.from("tk_match_results").select("*"),
-    supabase.from("tk_tournament_bets").select("*"),
-    supabase.from("tk_tournament_results").select("*").limit(1).maybeSingle(),
-  ]);
-
-  const matchById = new Map(matches.map((m) => [m.id, m]));
-  const playerById = new Map((players.data || []).map((p) => [p.id, p]));
-  const resultByMatch = new Map((matchResults.data || []).map((r) => [r.match_id, r]));
-
-  // 1. Stilling
-  const lb = buildLeaderboard(
-    players.data || [],
-    matchBets.data || [],
-    matchResults.data || [],
-    tournamentBets.data || [],
-    tournamentResult.data
-  );
-  const standingsRows = lb.map((r, i) => ({
-    "#": i + 1,
-    "Spiller": r.player.name,
-    "Kamp-poeng": r.match_points,
-    "Turnerings-poeng": r.tournament_points,
-    "Totalt": r.total,
-  }));
-
-  // 2. Kamp-tipp (alle spillere, alle kamper)
-  const matchBetsRows = (matchBets.data || []).map((b) => {
-    const m = matchById.get(b.match_id);
-    const p = playerById.get(b.player_id);
-    const r = resultByMatch.get(b.match_id);
-    const score = r ? scoreMatchBet(b, r) : { total: null, breakdown: [] };
-    const stageNo = {
-      GROUP_STAGE: "Gruppespill",
-      LAST_32: "Sekstendelsfinale",
-      LAST_16: "Åttendedelsfinale",
-      QUARTER_FINALS: "Kvartfinale",
-      SEMI_FINALS: "Semifinale",
-      THIRD_PLACE: "Bronsefinale",
-      FINAL: "Finale",
-    };
-    return {
-      "Spiller": p?.name || "?",
-      "Match-ID": b.match_id,
-      "Runde": stageNo[m?.stage] || m?.stage || "?",
-      "Gruppe": m?.group?.replace("GROUP_", "") || "",
-      "Dato": m ? new Date(m.utcDate).toLocaleString("nb-NO") : "",
-      "Hjemmelag": m ? teamNo(m.homeTeam) : "?",
-      "Bortelag": m ? teamNo(m.awayTeam) : "?",
-      "Tippet hjemme": b.home_goals,
-      "Tippet borte": b.away_goals,
-      "Tippet vinner": b.winner || "",
-      "Resultat hjemme": r?.home_goals ?? "",
-      "Resultat borte": r?.away_goals ?? "",
-      "Resultat vinner": r?.winner ?? "",
-      "Poeng": score.total,
-      "P utfall": score.breakdown[0]?.points ?? "",
-      "P hjemme": score.breakdown[1]?.points ?? "",
-      "P borte": score.breakdown[2]?.points ?? "",
-      "Status": m?.status || "?",
-    };
-  });
-  // Sorter: spiller → runde → dato
-  matchBetsRows.sort((a, b) => {
-    if (a.Spiller !== b.Spiller) return a.Spiller.localeCompare(b.Spiller);
-    if (a["Match-ID"] !== b["Match-ID"]) return a["Match-ID"] - b["Match-ID"];
-    return 0;
-  });
-
-  // 3. Turnerings-tipp
-  const tournamentRows = (tournamentBets.data || []).map((b) => {
-    const p = playerById.get(b.player_id);
-    const score = tournamentResult.data ? scoreTournamentBet(b, tournamentResult.data) : { total: null };
-    const row = { "Spiller": p?.name || "?" };
-    for (const f of TOURNAMENT_FIELDS) {
-      row[f.label] = b[f.key] === null || b[f.key] === undefined ? "" :
-                     typeof b[f.key] === "boolean" ? (b[f.key] ? "Ja" : "Nei") : b[f.key];
-    }
-    row["Poeng"] = score.total ?? "";
-    return row;
-  });
-
-  // 4. Resultater
-  const resultsRows = (matchResults.data || []).map((r) => {
-    const m = matchById.get(r.match_id);
-    return {
-      "Match-ID": r.match_id,
-      "Dato": m ? new Date(m.utcDate).toLocaleString("nb-NO") : "",
-      "Hjemmelag": m ? teamNo(m.homeTeam) : "?",
-      "Bortelag": m ? teamNo(m.awayTeam) : "?",
-      "Hjemme mål": r.home_goals,
-      "Borte mål": r.away_goals,
-      "Vinner": r.winner || "",
-      "Status": m?.status || "?",
-    };
-  });
-
-  // 5. Spillere
-  const playerRows = (players.data || []).map((p) => ({
-    "Navn": p.name,
-    "Admin": p.is_admin ? "Ja" : "Nei",
-    "Registrert": new Date(p.created_at).toLocaleString("nb-NO"),
-  }));
-
-  // Bygg workbook
-  const wb = window.XLSX.utils.book_new();
-  const addSheet = (name, rows) => {
-    const ws = window.XLSX.utils.json_to_sheet(rows.length ? rows : [{ "Ingen data": "" }]);
-    window.XLSX.utils.book_append_sheet(wb, ws, name);
-  };
-  addSheet("Stilling", standingsRows);
-  addSheet("Kamp-tipp", matchBetsRows);
-  addSheet("Turnerings-tipp", tournamentRows);
-  addSheet("Resultater", resultsRows);
-  addSheet("Spillere", playerRows);
-
-  const stamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
-  window.XLSX.writeFile(wb, `tippekonk-${stamp}.xlsx`);
 }
 
 renderMatches();

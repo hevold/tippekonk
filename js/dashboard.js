@@ -4,6 +4,7 @@ import { supabase } from "./client.js";
 import { getMatches, formatKickoff, isOpenForBetting, isLive, currentScore, statusBadge, autoSync } from "./football.js";
 import { teamNo } from "./teams-no.js";
 import { buildLeaderboard } from "./scoring.js";
+import { exportToExcel } from "./export.js";
 
 // Trigger sync i bakgrunnen ved page-load
 autoSync();
@@ -114,6 +115,19 @@ function escapeHtml(s) {
     "'": "&#39;",
   })[c]);
 }
+
+document.getElementById("export-btn").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = "Henter data…";
+  try {
+    await exportToExcel({ asUser: me.id });
+  } catch (err) {
+    alert("Eksport feilet: " + err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = "Last ned Excel";
+});
 
 loadLeaderboard();
 loadUpcoming();
