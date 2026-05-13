@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sluttspill — Tippekonk</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="nav-bar">
+      <a href="dashboard.html">Hjem</a>
+      <a href="gruppespill.html">Gruppespill</a>
+      <a href="sluttspill.html" class="active">Sluttspill</a>
+      <a href="matches.html">Kamper</a>
+      <a href="tournament.html">Turnering</a>
+      <a href="admin.html" id="admin-link" class="hidden">Admin</a>
+    </nav>
+    <div class="nav-meta">
+      <span id="hello">Hei</span>
+      <button class="btn-link" id="logout">Logg ut</button>
+    </div>
+
+    <h1>Sluttspill</h1>
+    <p class="muted">Lagene fylles ut fra ditt eget gruppespilltipp. For hver kamp: tipp resultat etter ord. tid, og velg hvem som går videre. Vinnerne fyller ut neste runde automatisk.</p>
+
+    <div id="alert-area"></div>
+
+    <div class="gs-toolbar">
+      <button class="btn btn-secondary" id="autofill-home" type="button">Autofyll 1–0 hjemme</button>
+    </div>
+
+    <div id="bracket-area">
+      <span class="spinner"></span>
+    </div>
+
+    <div class="gs-savebar hidden" id="savebar">
+      <span class="status" id="status-text">Ingen endringer</span>
+      <button class="btn" id="save-btn" disabled>Lagre tipp</button>
+    </div>
+  </main>
+  <script type="module" src="js/sluttspill.js"></script>
+</body>
+</html>

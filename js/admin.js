@@ -1,7 +1,8 @@
 // Admin: legge inn resultater, slette spillere, nullstille PIN.
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
-import { getMatches, formatKickoff, clearCache } from "./football.js";
+import { getMatches, formatKickoff, clearCache, manualSync } from "./football.js";
+import { teamNo } from "./teams-no.js";
 import { TOURNAMENT_FIELDS, MATCH_FIELDS } from "./scoring.js";
 
 const me = requireAuth();
@@ -62,6 +63,7 @@ async function renderMatches() {
 
   sec.innerHTML = `
     <div class="btn-row mb-2">
+      <button id="sync-now" class="btn" type="button">Sync resultater nå</button>
       <button id="refresh" class="btn btn-secondary" type="button">Tøm football-cache</button>
     </div>
     <div class="match-list" id="adm-match-list">
@@ -73,47 +75,32 @@ async function renderMatches() {
             <summary class="match-row" style="display:block;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                  <div class="teams">${escapeHtml(m.homeTeam.name)} – ${escapeHtml(m.awayTeam.name)}</div>
-                  <div class="muted" style="font-size:0.82rem;">${formatKickoff(m.utcDate)} · ${escapeHtml(m.status)}</div>
+                  <div class="teams">${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}</div>
+                  <div class="muted" style="font-size:0.82rem;">${formatKickoff(m.utcDate)} · ${escapeHtml(m.status)}${m.group ? " · gruppe " + m.group.replace("GROUP_", "") : ""}</div>
                 </div>
                 <span class="status ${r ? "status-done" : (m.status === "FINISHED" ? "status-live" : "status-open")}">${r ? "Lagt inn" : (m.status === "FINISHED" ? "Mangler" : "Venter")}</span>
               </div>
             </summary>
-            <form class="form-body card" data-match-id="${m.id}" style="margin-top:8px;">
+            <form class="form-body card" data-match-id="${m.id}" data-stage="${escapeHtml(m.stage)}" style="margin-top:8px;">
               <div class="field-row">
                 <div class="field">
-                  <label>Hjemme mål</label>
+                  <label>Hjemme mål${m.stage !== "GROUP_STAGE" ? " (90 min)" : ""}</label>
                   <input name="home_goals" type="number" min="0" value="${r?.home_goals ?? fs?.home ?? ""}" />
                 </div>
                 <div class="field">
-                  <label>Borte mål</label>
+                  <label>Borte mål${m.stage !== "GROUP_STAGE" ? " (90 min)" : ""}</label>
                   <input name="away_goals" type="number" min="0" value="${r?.away_goals ?? fs?.away ?? ""}" />
                 </div>
               </div>
+              ${m.stage !== "GROUP_STAGE" ? `
               <div class="field">
-                <label>Første målscorer</label>
-                <input name="first_scorer" type="text" value="${escapeHtml(r?.first_scorer ?? "")}" />
-              </div>
-              <div class="field-row">
-                <div class="field">
-                  <label>Gule hjemme</label>
-                  <input name="home_yellow" type="number" min="0" value="${r?.home_yellow ?? ""}" />
-                </div>
-                <div class="field">
-                  <label>Gule borte</label>
-                  <input name="away_yellow" type="number" min="0" value="${r?.away_yellow ?? ""}" />
-                </div>
-              </div>
-              <div class="field-row">
-                <div class="field">
-                  <label>Røde hjemme</label>
-                  <input name="home_red" type="number" min="0" value="${r?.home_red ?? ""}" />
-                </div>
-                <div class="field">
-                  <label>Røde borte</label>
-                  <input name="away_red" type="number" min="0" value="${r?.away_red ?? ""}" />
-                </div>
-              </div>
+                <label>Hvem gikk videre</label>
+                <select name="winner">
+                  <option value="">—</option>
+                  <option value="HOME" ${r?.winner === "HOME" ? "selected" : ""}>Hjemme</option>
+                  <option value="AWAY" ${r?.winner === "AWAY" ? "selected" : ""}>Borte</option>
+                </select>
+              </div>` : ""}
               <button class="btn" type="submit">Lagre resultat</button>
             </form>
           </details>`;
@@ -126,18 +113,40 @@ async function renderMatches() {
     renderMatches();
   });
 
+  document.getElementById("sync-now").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "Synker…";
+    const res = await manualSync();
+    btn.disabled = false;
+    btn.textContent = "Sync resultater nå";
+    if (!res) {
+      showAlert("warning", "Synket nylig — vent et øyeblikk før neste sync.");
+      return;
+    }
+    if (res.error) {
+      showAlert("error", "Sync feilet: " + res.error);
+      return;
+    }
+    showAlert("success", `Oppdaterte ${res.updated} resultater (${res.total_finished} ferdige kamper totalt).`);
+    if (res.updated > 0) {
+      clearCache();
+      renderMatches();
+    }
+  });
+
   sec.querySelectorAll("form[data-match-id]").forEach((f) => {
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
       const mid = Number(f.dataset.matchId);
       const fd = new FormData(f);
       const payload = { match_id: mid };
-      for (const key of ["home_goals", "away_goals", "home_yellow", "away_yellow", "home_red", "away_red"]) {
+      for (const key of ["home_goals", "away_goals"]) {
         const v = fd.get(key);
         payload[key] = v === "" || v === null ? null : Number(v);
       }
-      const fs = fd.get("first_scorer");
-      payload.first_scorer = fs && fs.toString().trim() ? fs.toString().trim() : null;
+      const w = fd.get("winner");
+      if (w !== null) payload.winner = w || null;
 
       const { error } = await supabase
         .from("tk_match_results")

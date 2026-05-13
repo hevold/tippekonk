@@ -1,8 +1,12 @@
 // Dashbord: stilling og kommende kamper.
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
-import { getMatches, formatKickoff, isOpenForBetting } from "./football.js";
+import { getMatches, formatKickoff, isOpenForBetting, isLive, currentScore, statusBadge, autoSync } from "./football.js";
+import { teamNo } from "./teams-no.js";
 import { buildLeaderboard } from "./scoring.js";
+
+// Trigger sync i bakgrunnen ved page-load
+autoSync();
 
 const me = requireAuth();
 if (!me) throw new Error("no auth");
@@ -67,22 +71,34 @@ async function loadUpcoming() {
   const area = document.getElementById("upcoming-area");
   try {
     const matches = await getMatches();
+    // Prioriter live → åpne → ferdige siste 24t
+    const live = matches.filter(isLive);
     const open = matches.filter(isOpenForBetting).slice(0, 5);
-    if (!open.length) {
-      area.innerHTML = `<p class="muted">Ingen kommende kamper.</p>`;
+    const recentDone = matches
+      .filter((m) => m.status === "FINISHED")
+      .filter((m) => Date.now() - new Date(m.utcDate).getTime() < 24 * 3600 * 1000)
+      .slice(0, 3);
+    const list = [...live, ...open, ...recentDone];
+    if (!list.length) {
+      area.innerHTML = `<p class="muted">Ingen kommende eller pågående kamper.</p>`;
       return;
     }
-    area.innerHTML = `<div class="match-list">${open
-      .map(
-        (m) => `
+    area.innerHTML = `<div class="match-list">${list
+      .map((m) => {
+        const hf = m.homeTeam.crest ? `<img class="flag" src="${m.homeTeam.crest}" alt="" />` : "";
+        const af = m.awayTeam.crest ? `<img class="flag" src="${m.awayTeam.crest}" alt="" />` : "";
+        const badge = statusBadge(m);
+        const cs = currentScore(m);
+        const score = cs ? ` <strong>${cs.home}–${cs.away}</strong>` : "";
+        return `
       <a href="match.html?id=${m.id}" class="match-row">
-        <div class="teams">${escapeHtml(m.homeTeam.name)} – ${escapeHtml(m.awayTeam.name)}</div>
+        <div class="teams">${hf}${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}${af}${score}</div>
         <div class="meta">
           <span>${formatKickoff(m.utcDate)}</span>
-          <span class="status status-open">Tipp åpen</span>
+          <span class="status ${badge.cls}">${badge.text}</span>
         </div>
-      </a>`
-      )
+      </a>`;
+      })
       .join("")}</div>`;
   } catch (err) {
     area.innerHTML = `<div class="alert alert-warning">Kunne ikke hente kamper: ${escapeHtml(err.message)}</div>`;

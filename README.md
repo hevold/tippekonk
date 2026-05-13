@@ -30,7 +30,7 @@ Stack: vanilla HTML/CSS/JS (ES modules), Supabase som backend, football-data.org
 
 ## Poeng
 
-Kamptipp: hvert tallfelt gir 3p ved eksakt treff, 1p ved ±1. Første målscorer: 3p ved eksakt navn, case-insensitiv.
+Kamptipp: maks 3p per kamp. 1p for riktig utfall (hjemmeseier/uavgjort/bortseier), 1p for eksakt hjemme mål, 1p for eksakt borte mål.
 
 Turneringstipp: hvert felt gir 5p ved eksakt treff. `total_goals` gir 5p ved ±5.
 

@@ -1,7 +1,8 @@
 // Liste over kamper med filter.
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
-import { getMatches, formatKickoff, isOpenForBetting } from "./football.js";
+import { getMatches, formatKickoff, isOpenForBetting, isLive, currentScore, statusBadge, autoSync } from "./football.js";
+import { teamNo } from "./teams-no.js";
 
 const me = requireAuth();
 if (!me) throw new Error("no auth");
@@ -53,20 +54,29 @@ function render() {
   area.innerHTML = `<div class="match-list">${list
     .map((m) => {
       const open = isOpenForBetting(m);
+      const live = isLive(m);
       const done = m.status === "FINISHED";
-      let statusEl = "";
-      if (open) statusEl = `<span class="status status-open">${myBets.has(m.id) ? "Tippet" : "Tipp åpen"}</span>`;
-      else if (done) statusEl = `<span class="status status-done">Ferdig</span>`;
-      else statusEl = `<span class="status status-live">Live/stengt</span>`;
+
+      let statusEl;
+      const badge = statusBadge(m);
+      if (open && myBets.has(m.id)) {
+        statusEl = `<span class="status status-open">Tippet</span>`;
+      } else {
+        statusEl = `<span class="status ${badge.cls}">${badge.text}</span>`;
+      }
 
       let score = "";
-      if (done && m.score?.fullTime) {
-        score = ` <strong>${m.score.fullTime.home ?? "-"} – ${m.score.fullTime.away ?? "-"}</strong>`;
+      const cs = currentScore(m);
+      if (cs) {
+        score = ` <strong>${cs.home ?? "-"} – ${cs.away ?? "-"}</strong>`;
       }
+
+      const hf = m.homeTeam.crest ? `<img class="flag" src="${m.homeTeam.crest}" alt="" />` : "";
+      const af = m.awayTeam.crest ? `<img class="flag" src="${m.awayTeam.crest}" alt="" />` : "";
 
       return `
         <a href="match.html?id=${m.id}" class="match-row">
-          <div class="teams">${escapeHtml(m.homeTeam.name)} – ${escapeHtml(m.awayTeam.name)}${score}</div>
+          <div class="teams">${hf}${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}${af}${score}</div>
           <div class="meta">
             <span>${formatKickoff(m.utcDate)}</span>
             ${statusEl}
@@ -77,6 +87,9 @@ function render() {
 }
 
 async function load() {
+  // Sync resultater i bakgrunnen
+  autoSync();
+
   try {
     const [matches, bets] = await Promise.all([
       getMatches(),

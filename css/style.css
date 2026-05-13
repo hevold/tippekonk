@@ -398,6 +398,234 @@ small, .muted {
   border-right: 1px solid var(--border);
 }
 
+/* lagnavn med flagg */
+.flag {
+  display: inline-block;
+  width: 22px;
+  height: 16px;
+  object-fit: cover;
+  border-radius: 2px;
+  vertical-align: -3px;
+  margin-right: 6px;
+  background: var(--border);
+}
+
+.flag-lg {
+  width: 28px;
+  height: 20px;
+  vertical-align: -4px;
+}
+
+/* gruppespill og sluttspill — felles row-design */
+.gs-group {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.gs-group-head {
+  background: var(--accent-soft);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gs-group-head .meta {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--fg-muted);
+  font-size: 0.78rem;
+}
+
+.gs-match {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+}
+
+.gs-match:last-child { border-bottom: none; }
+
+.gs-match.changed { background: #c98a2b0d; }
+
+.gs-match.locked { opacity: 0.6; }
+
+.gs-match-meta {
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  padding-bottom: 4px;
+}
+
+.gs-team-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.gs-team-row .time {
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-team-row .team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+
+.gs-team-row .team .name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gs-team-row .team.tbd {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.gs-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg);
+  border-radius: 99px;
+  padding: 3px;
+}
+
+.gs-step-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-size: 1.05rem;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--fg-muted);
+  padding: 0;
+  line-height: 1;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gs-step-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.gs-step-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.gs-step-val {
+  min-width: 24px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-step-val.empty {
+  color: var(--fg-muted);
+  font-weight: 400;
+}
+
+/* Vinner-toggle (sluttspill) */
+.gs-winner-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 4px;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+}
+
+.gs-winner-row .label {
+  text-align: right;
+}
+
+.gs-winner {
+  display: flex;
+  gap: 4px;
+}
+
+.gs-winner button {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.gs-winner button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.gs-winner button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gs-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.gs-toolbar .btn-secondary {
+  font-size: 0.85rem;
+  padding: 6px 12px;
+}
+
+.gs-savebar {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding: 12px 0;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+}
+
+.gs-savebar .status {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+}
+
+.gs-savebar .status.dirty {
+  color: var(--warning);
+  font-weight: 500;
+}
+
 /* poeng-badge */
 .pts-badge {
   display: inline-block;
@@ -463,10 +691,17 @@ small, .muted {
   }
 
   .nav-bar a {
-    font-size: 0.85rem;
-    padding: 7px 8px;
+    font-size: 0.82rem;
+    padding: 7px 6px;
   }
 
   h1 { font-size: 1.5rem; }
   h2 { font-size: 1.15rem; }
+
+  .gs-team-row { grid-template-columns: 44px 1fr auto; gap: 8px; }
+  .gs-team-row .team { font-size: 0.9rem; }
+  .gs-team-row .time { font-size: 0.72rem; }
+  .gs-step-btn { width: 26px; height: 26px; font-size: 1rem; }
+  .gs-step-val { min-width: 20px; font-size: 0.9rem; }
+  .gs-winner-row { grid-template-columns: 44px 1fr; }
 }

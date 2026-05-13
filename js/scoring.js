@@ -1,45 +1,61 @@
 // Poengberegning. Holdes ren — ingen DB-kall, ingen DOM. Lett å unit-teste.
+//
+// Kamp: 1p for riktig utfall (hjemmeseier/uavgjort/bortseier), 1p for eksakt
+// hjemme mål, 1p for eksakt borte mål. Maks 3p per kamp.
+//
+// Turnering: hvert tekst- og boolean-felt gir 5p eksakt. total_goals 5p ved ±5.
 
-// Tall-felt for kamper. Eksakt = 3p, ±1 = 1p.
-function scoreNumberField(bet, actual) {
-  if (bet === null || bet === undefined || actual === null || actual === undefined) return 0;
-  const diff = Math.abs(Number(bet) - Number(actual));
-  if (diff === 0) return 3;
-  if (diff === 1) return 1;
-  return 0;
+function outcomeOf(h, a) {
+  if (h === null || h === undefined || a === null || a === undefined) return null;
+  if (h > a) return "H";
+  if (h < a) return "A";
+  return "U";
 }
 
-// First scorer — eksakt match, case-insensitiv, trim. 3p.
-function scoreFirstScorer(bet, actual) {
-  if (!bet || !actual) return 0;
-  const a = String(bet).trim().toLowerCase();
-  const b = String(actual).trim().toLowerCase();
-  return a === b ? 3 : 0;
+function scoreOutcome(bet, result) {
+  const bo = outcomeOf(bet.home_goals, bet.away_goals);
+  const ro = outcomeOf(result.home_goals, result.away_goals);
+  if (!bo || !ro) return 0;
+  return bo === ro ? 1 : 0;
+}
+
+function scoreExactGoals(field) {
+  return (bet, result) => {
+    const b = bet[field], r = result[field];
+    if (b === null || b === undefined || r === null || r === undefined) return 0;
+    return Number(b) === Number(r) ? 1 : 0;
+  };
 }
 
 export const MATCH_FIELDS = [
-  { key: "home_goals", label: "Hjemme mål", scorer: scoreNumberField },
-  { key: "away_goals", label: "Borte mål", scorer: scoreNumberField },
-  { key: "first_scorer", label: "Første målscorer", scorer: scoreFirstScorer },
-  { key: "home_yellow", label: "Gule kort hjemme", scorer: scoreNumberField },
-  { key: "away_yellow", label: "Gule kort borte", scorer: scoreNumberField },
-  { key: "home_red", label: "Røde kort hjemme", scorer: scoreNumberField },
-  { key: "away_red", label: "Røde kort borte", scorer: scoreNumberField },
+  { key: "outcome",    label: "Riktig utfall (H/U/B)", computed: true,           scorer: scoreOutcome },
+  { key: "home_goals", label: "Hjemme mål eksakt",     scorer: scoreExactGoals("home_goals") },
+  { key: "away_goals", label: "Borte mål eksakt",      scorer: scoreExactGoals("away_goals") },
 ];
 
 export function scoreMatchBet(bet, result) {
   if (!bet || !result) return { total: 0, breakdown: [] };
-  const breakdown = MATCH_FIELDS.map((f) => ({
-    key: f.key,
-    label: f.label,
-    bet: bet[f.key],
-    actual: result[f.key],
-    points: f.scorer(bet[f.key], result[f.key]),
-  }));
+  const breakdown = MATCH_FIELDS.map((f) => {
+    const pts = f.scorer(bet, result);
+    return {
+      key: f.key,
+      label: f.label,
+      bet: f.computed ? outcomeLabel(outcomeOf(bet.home_goals, bet.away_goals)) : bet[f.key],
+      actual: f.computed ? outcomeLabel(outcomeOf(result.home_goals, result.away_goals)) : result[f.key],
+      points: pts,
+    };
+  });
   return {
     total: breakdown.reduce((s, b) => s + b.points, 0),
     breakdown,
   };
+}
+
+function outcomeLabel(o) {
+  if (o === "H") return "Hjemmeseier";
+  if (o === "U") return "Uavgjort";
+  if (o === "A") return "Bortseier";
+  return "—";
 }
 
 // Turnering — alle eksakte tekstfelt gir 5p. total_goals: ±5 gir 5p.

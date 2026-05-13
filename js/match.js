@@ -2,6 +2,7 @@
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
 import { getMatch, formatKickoff, isOpenForBetting } from "./football.js";
+import { teamNo } from "./teams-no.js";
 import { scoreMatchBet, MATCH_FIELDS } from "./scoring.js";
 
 const me = requireAuth();
@@ -48,8 +49,10 @@ async function load() {
     return;
   }
 
+  const hf = match.homeTeam.crest ? `<img class="flag flag-lg" src="${match.homeTeam.crest}" alt="" />` : "";
+  const af = match.awayTeam.crest ? `<img class="flag flag-lg" src="${match.awayTeam.crest}" alt="" />` : "";
   document.getElementById("match-header").innerHTML = `
-    <h1>${escapeHtml(match.homeTeam.name)} – ${escapeHtml(match.awayTeam.name)}</h1>
+    <h1>${hf}${escapeHtml(teamNo(match.homeTeam))} – ${escapeHtml(teamNo(match.awayTeam))}${af}</h1>
     <p class="muted">${formatKickoff(match.utcDate)} · ${escapeHtml(match.competition?.name || "VM")} · ${escapeHtml(match.status)}</p>
   `;
 
@@ -68,7 +71,7 @@ async function load() {
   // Skjema
   const formArea = document.getElementById("match-form-area");
   if (open) {
-    renderForm(formArea, bet);
+    renderForm(formArea, bet, match);
   } else {
     formArea.innerHTML = bet
       ? renderBetReadonly(bet)
@@ -82,14 +85,20 @@ async function load() {
     resArea.innerHTML = `
       <h2>Resultat</h2>
       <div class="card">
-        ${MATCH_FIELDS.map((f) => `
-          <div class="pts-row">
-            <span class="label">${f.label}</span>
-            <span>${escapeHtml(result.data[f.key] ?? "—")}</span>
-          </div>`).join("")}
+        <div class="pts-row">
+          <span class="label">Sluttresultat</span>
+          <strong>${result.data.home_goals ?? "—"} – ${result.data.away_goals ?? "—"}</strong>
+        </div>
         ${score ? `
           <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
-          <div class="pts-row"><span class="label">Dine poeng</span><strong>${score.total}</strong></div>
+          ${score.breakdown.map(b => `
+            <div class="pts-row">
+              <span class="label">${escapeHtml(b.label)}</span>
+              <span><span class="pts-badge${b.points === 0 ? " zero" : ""}">${b.points}p</span></span>
+            </div>`).join("")}
+          <div class="pts-row" style="margin-top:6px;border-top:1px solid var(--border);padding-top:8px;">
+            <strong>Totalt</strong><strong>${score.total}p</strong>
+          </div>
         ` : ""}
       </div>
     `;
@@ -109,7 +118,7 @@ async function load() {
           const pts = result.data ? scoreMatchBet(b, result.data).total : null;
           return `
             <div class="pts-row">
-              <span><strong>${escapeHtml(p?.name || "?")}</strong> ${b.home_goals ?? "-"}–${b.away_goals ?? "-"} · ${escapeHtml(b.first_scorer || "—")}</span>
+              <span><strong>${escapeHtml(p?.name || "?")}</strong> ${b.home_goals ?? "-"}–${b.away_goals ?? "-"}</span>
               ${pts !== null ? `<span class="pts-badge${pts === 0 ? " zero" : ""}">${pts}p</span>` : ""}
             </div>`;
         }).join("")}
@@ -120,55 +129,56 @@ async function load() {
 
 function renderBetReadonly(bet) {
   return `<div class="card">
-    ${MATCH_FIELDS.map((f) => `
+    <div class="pts-row">
+      <span class="label">Ditt tipp</span>
+      <strong>${bet.home_goals ?? "—"} – ${bet.away_goals ?? "—"}</strong>
+    </div>
+    ${bet.winner ? `
       <div class="pts-row">
-        <span class="label">${f.label}</span>
-        <span>${escapeHtml(bet[f.key] ?? "—")}</span>
-      </div>`).join("")}
+        <span class="label">Du tippet videre</span>
+        <span>${bet.winner === "HOME" ? "Hjemme" : "Borte"}</span>
+      </div>
+    ` : ""}
   </div>`;
 }
 
-function renderForm(area, bet) {
+function renderForm(area, bet, match) {
+  const isKnockout = match && match.stage && match.stage !== "GROUP_STAGE";
   area.innerHTML = `
     <form id="bet-form" class="form-body card">
+      <p class="muted mb-1">1p for riktig utfall, 1p for hver eksakt målscore. Maks 3p.</p>
       <div class="field-row">
         <div class="field">
-          <label for="home_goals">Hjemme mål</label>
+          <label for="home_goals">Hjemme mål${isKnockout ? " (etter ord. tid)" : ""}</label>
           <input id="home_goals" type="number" min="0" value="${bet?.home_goals ?? ""}" />
         </div>
         <div class="field">
-          <label for="away_goals">Borte mål</label>
+          <label for="away_goals">Borte mål${isKnockout ? " (etter ord. tid)" : ""}</label>
           <input id="away_goals" type="number" min="0" value="${bet?.away_goals ?? ""}" />
         </div>
       </div>
+      ${isKnockout ? `
       <div class="field">
-        <label for="first_scorer">Første målscorer (eksakt navn)</label>
-        <input id="first_scorer" type="text" value="${escapeHtml(bet?.first_scorer ?? "")}" />
-        <small class="muted">Skriv full spillerlinje slik den står hos football-data.org, f.eks. «Erling Haaland».</small>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="home_yellow">Gule kort hjemme</label>
-          <input id="home_yellow" type="number" min="0" value="${bet?.home_yellow ?? ""}" />
+        <label>Hvem går videre <span class="muted">(kun for bracket — gir ingen poeng)</span></label>
+        <div class="toggle-group">
+          <button type="button" data-winner="HOME" ${bet?.winner === "HOME" ? 'class="active"' : ""}>Hjemme</button>
+          <button type="button" data-winner="AWAY" ${bet?.winner === "AWAY" ? 'class="active"' : ""}>Borte</button>
         </div>
-        <div class="field">
-          <label for="away_yellow">Gule kort borte</label>
-          <input id="away_yellow" type="number" min="0" value="${bet?.away_yellow ?? ""}" />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="home_red">Røde kort hjemme</label>
-          <input id="home_red" type="number" min="0" value="${bet?.home_red ?? ""}" />
-        </div>
-        <div class="field">
-          <label for="away_red">Røde kort borte</label>
-          <input id="away_red" type="number" min="0" value="${bet?.away_red ?? ""}" />
-        </div>
-      </div>
+        <input type="hidden" id="winner" value="${escapeHtml(bet?.winner ?? "")}" />
+      </div>` : ""}
       <button class="btn" type="submit">${bet ? "Oppdater tipp" : "Lagre tipp"}</button>
     </form>
   `;
+
+  // Toggle for vinner i sluttspill
+  area.querySelectorAll("[data-winner]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      area.querySelectorAll("[data-winner]").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const w = document.getElementById("winner");
+      if (w) w.value = btn.dataset.winner;
+    });
+  });
 
   document.getElementById("bet-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -177,13 +187,12 @@ function renderForm(area, bet) {
       match_id: matchId,
       home_goals: numOrNull("home_goals"),
       away_goals: numOrNull("away_goals"),
-      first_scorer: strOrNull("first_scorer"),
-      home_yellow: numOrNull("home_yellow"),
-      away_yellow: numOrNull("away_yellow"),
-      home_red: numOrNull("home_red"),
-      away_red: numOrNull("away_red"),
       updated_at: new Date().toISOString(),
     };
+    const winnerEl = document.getElementById("winner");
+    if (winnerEl) {
+      payload.winner = winnerEl.value || null;
+    }
     const { error } = await supabase
       .from("tk_match_bets")
       .upsert(payload, { onConflict: "player_id,match_id" });
