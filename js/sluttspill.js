@@ -233,6 +233,160 @@ function renderRounds() {
     ${roundSection(ROUND_LABEL.THIRD_PLACE, allRounds.bronze)}
     ${roundSection(ROUND_LABEL.FINAL, allRounds.final)}
   `;
+  renderBracket();
+}
+
+// ============ Bracket-visualisering ============
+function bracketTeamRow(team, side, s, isWinner, isLoser) {
+  const isTbd = !team;
+  const flag = team?.crest ? `<img class="flag" src="${team.crest}" alt="" />` : "";
+  const name = team ? teamNo(team) : "Avgjøres";
+  const goals = s[`${side}_goals`];
+  const cls = isWinner ? "winner" : isLoser ? "loser" : "";
+  return `
+    <div class="bracket-team ${cls}${isTbd ? " tbd" : ""}">
+      ${flag}<span class="name">${escapeHtml(name)}</span>
+      <span class="goals">${goals ?? ""}</span>
+    </div>
+  `;
+}
+
+function bracketMatchHtml(b, y) {
+  const s = state.get(b.id);
+  if (!s) return "";
+  const winner = s.winner;
+  const homeWin = winner === "HOME";
+  const awayWin = winner === "AWAY";
+  return `
+    <div class="bracket-match${isDirty(s) ? " dirty" : ""}" style="top:${y}px;" data-slot-id="${b.id}">
+      ${bracketTeamRow(b.home, "home", s, homeWin, awayWin)}
+      <div class="bracket-separator"></div>
+      ${bracketTeamRow(b.away, "away", s, awayWin, homeWin)}
+    </div>
+  `;
+}
+
+function renderBracket() {
+  const area = document.getElementById("bracket-svg-area");
+  if (!allRounds) { area.innerHTML = ""; return; }
+
+  const matchH = 64;
+  const gap = 8;
+  const slotH = matchH + gap;
+  const totalH = 16 * slotH;
+
+  // Posisjoner: L32 i fast rytme, deretter midtpunkt mellom kilder
+  const yPos = {};
+  allRounds.last32.forEach((m, i) => { yPos[m.id] = i * slotH; });
+  for (const round of [allRounds.last16, allRounds.quarters, allRounds.semis, allRounds.final]) {
+    for (const m of round) {
+      const s1 = yPos[m.sourceMatches?.[0]];
+      const s2 = yPos[m.sourceMatches?.[1]];
+      yPos[m.id] = (s1 !== undefined && s2 !== undefined) ? (s1 + s2) / 2 : 0;
+    }
+  }
+
+  // Connector-paths (SVG) — L-formede linjer mellom kilder og destinasjon
+  const colW = 170 + 16; // col-bredde + gap
+  const paths = [];
+  function addConnector(srcRound, dstRound, colIdx) {
+    for (const dst of dstRound) {
+      const dstY = yPos[dst.id] + matchH / 2;
+      const dstX = colIdx * colW;
+      for (const srcId of dst.sourceMatches || []) {
+        const srcY = yPos[srcId] + matchH / 2;
+        const srcX = colIdx * colW - 16; // gap til venstre for dst-kolonne
+        const midX = srcX + 8;
+        paths.push(`M ${srcX} ${srcY} L ${midX} ${srcY} L ${midX} ${dstY} L ${dstX} ${dstY}`);
+      }
+    }
+  }
+  addConnector(allRounds.last32, allRounds.last16, 1);
+  addConnector(allRounds.last16, allRounds.quarters, 2);
+  addConnector(allRounds.quarters, allRounds.semis, 3);
+  addConnector(allRounds.semis, allRounds.final, 4);
+
+  const totalW = 5 * 170 + 4 * 16;
+
+  const colLabels = [
+    "Åttendedel · 16",
+    "8-del · 8",
+    "Kvart · 4",
+    "Semi · 2",
+    "Finale",
+  ];
+
+  area.innerHTML = `
+    <div class="bracket-scroll">
+      <div style="display:flex; gap:16px; padding-bottom:6px;">
+        ${colLabels.map((l) => `<div class="bracket-col-header" style="width:170px;">${escapeHtml(l)}</div>`).join("")}
+      </div>
+      <div class="bracket" style="height:${totalH}px;">
+        <svg class="bracket-connector" width="${totalW}" height="${totalH}" style="position:absolute; top:0; left:0; pointer-events:none;">
+          ${paths.map((p) => `<path d="${p}" />`).join("")}
+        </svg>
+        <div class="bracket-col">
+          ${allRounds.last32.map((b) => bracketMatchHtml(b, yPos[b.id])).join("")}
+        </div>
+        <div class="bracket-col">
+          ${allRounds.last16.map((b) => bracketMatchHtml(b, yPos[b.id])).join("")}
+        </div>
+        <div class="bracket-col">
+          ${allRounds.quarters.map((b) => bracketMatchHtml(b, yPos[b.id])).join("")}
+        </div>
+        <div class="bracket-col">
+          ${allRounds.semis.map((b) => bracketMatchHtml(b, yPos[b.id])).join("")}
+        </div>
+        <div class="bracket-col">
+          ${allRounds.final.map((b) => bracketMatchHtml(b, yPos[b.id])).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="bracket-bronze">
+      <span class="bracket-bronze-label">Bronsefinale</span>
+      ${allRounds.bronze.map((b) => {
+        const s = state.get(b.id);
+        const winner = s?.winner;
+        return `
+          <div class="bracket-match" style="position:static; min-height:auto;" data-slot-id="${b.id}">
+            ${bracketTeamRow(b.home, "home", s || {}, winner === "HOME", winner === "AWAY")}
+            <div class="bracket-separator"></div>
+            ${bracketTeamRow(b.away, "away", s || {}, winner === "AWAY", winner === "HOME")}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  // Klikk → scroll til match i liste-visning
+  area.addEventListener("click", (e) => {
+    const card = e.target.closest("[data-slot-id]");
+    if (!card) return;
+    const slotId = card.dataset.slotId;
+    // Bytt til liste-view, scroll til matchen
+    setView("list");
+    setTimeout(() => {
+      const target = document.querySelector(`#bracket-area [data-slot-id="${slotId}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.style.transition = "background 0.5s";
+        target.style.background = "var(--accent-soft)";
+        setTimeout(() => { target.style.background = ""; }, 1500);
+      }
+    }, 100);
+  });
+}
+
+function setView(view) {
+  const toggle = document.getElementById("view-toggle");
+  toggle.querySelectorAll("button").forEach((b) => {
+    b.classList.toggle("active", b.dataset.view === view);
+  });
+  const bracketArea = document.getElementById("bracket-svg-area");
+  const listArea = document.getElementById("bracket-area");
+  bracketArea.classList.toggle("hidden", view !== "bracket");
+  listArea.classList.toggle("hidden", view !== "list");
+  try { localStorage.setItem("tk_sluttspill_view", view); } catch {}
 }
 
 async function load() {
@@ -427,6 +581,19 @@ async function save() {
 }
 
 document.getElementById("save-btn").addEventListener("click", save);
+
+// View-toggle
+document.getElementById("view-toggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-view]");
+  if (btn) setView(btn.dataset.view);
+});
+
+// Gjenopprett siste view-valg
+const savedView = (() => {
+  try { return localStorage.getItem("tk_sluttspill_view"); } catch { return null; }
+})();
+if (savedView === "list") setView("list");
+
 document.getElementById("autofill-home").addEventListener("click", () => {
   let n = 0;
   for (const [id, s] of state) {

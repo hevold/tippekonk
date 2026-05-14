@@ -27,10 +27,15 @@
     <div id="alert-area"></div>
 
     <div class="gs-toolbar">
+      <div class="bracket-view-toggle" id="view-toggle">
+        <button data-view="bracket" class="active" type="button">Bracket</button>
+        <button data-view="list" type="button">Liste</button>
+      </div>
       <button class="btn btn-secondary" id="autofill-home" type="button">Autofyll 1–0 hjemme</button>
     </div>
 
-    <div id="bracket-area">
+    <div id="bracket-svg-area"></div>
+    <div id="bracket-area" class="hidden">
       <span class="spinner"></span>
     </div>
 
