@@ -16,14 +16,17 @@ const L32_SEEDS = [
 ];
 
 // Returns: array of 16 matches { id: 'L32-1', round: 'LAST_32', home, away, slot }
-// `home` og `away` er enten et qualifier-objekt eller null hvis seed mangler.
+// `home` og `away` er team-objekter (med .tla, .name, .crest) eller null.
+// Qualifier-metadata (seed, group, position) brukes bare til seeding — droppes etter.
 export function buildLast32(seededQualifiers) {
   const bySeed = new Map(seededQualifiers.map((q) => [q.seed, q]));
   return L32_SEEDS.map(([h, a], i) => ({
     id: `L32-${i + 1}`,
     round: "LAST_32",
-    home: bySeed.get(h) || null,
-    away: bySeed.get(a) || null,
+    home: bySeed.get(h)?.team || null,
+    away: bySeed.get(a)?.team || null,
+    homeSeed: h,
+    awaySeed: a,
     slot: i,
   }));
 }
