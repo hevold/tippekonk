@@ -1,129 +1,72 @@
-// Poengberegning. Holdes ren — ingen DB-kall, ingen DOM. Lett å unit-teste.
-//
-// Kamp: 1p for riktig utfall (hjemmeseier/uavgjort/bortseier), 1p for eksakt
-// hjemme mål, 1p for eksakt borte mål. Maks 3p per kamp.
-//
-// Turnering: hvert tekst- og boolean-felt gir 5p eksakt. total_goals 5p ved ±5.
-
-function outcomeOf(h, a) {
-  if (h === null || h === undefined || a === null || a === undefined) return null;
-  if (h > a) return "H";
-  if (h < a) return "A";
-  return "U";
+function norm(str) {
+  return (str || '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-function scoreOutcome(bet, result) {
-  const bo = outcomeOf(bet.home_goals, bet.away_goals);
-  const ro = outcomeOf(result.home_goals, result.away_goals);
-  if (!bo || !ro) return 0;
-  return bo === ro ? 1 : 0;
-}
-
-function scoreExactGoals(field) {
-  return (bet, result) => {
-    const b = bet[field], r = result[field];
-    if (b === null || b === undefined || r === null || r === undefined) return 0;
-    return Number(b) === Number(r) ? 1 : 0;
-  };
-}
-
-export const MATCH_FIELDS = [
-  { key: "outcome",    label: "Riktig utfall (H/U/B)", computed: true,           scorer: scoreOutcome },
-  { key: "home_goals", label: "Hjemme mål eksakt",     scorer: scoreExactGoals("home_goals") },
-  { key: "away_goals", label: "Borte mål eksakt",      scorer: scoreExactGoals("away_goals") },
-];
-
-export function scoreMatchBet(bet, result) {
-  if (!bet || !result) return { total: 0, breakdown: [] };
-  const breakdown = MATCH_FIELDS.map((f) => {
-    const pts = f.scorer(bet, result);
-    return {
-      key: f.key,
-      label: f.label,
-      bet: f.computed ? outcomeLabel(outcomeOf(bet.home_goals, bet.away_goals)) : bet[f.key],
-      actual: f.computed ? outcomeLabel(outcomeOf(result.home_goals, result.away_goals)) : result[f.key],
-      points: pts,
-    };
-  });
-  return {
-    total: breakdown.reduce((s, b) => s + b.points, 0),
-    breakdown,
-  };
-}
-
-function outcomeLabel(o) {
-  if (o === "H") return "Hjemmeseier";
-  if (o === "U") return "Uavgjort";
-  if (o === "A") return "Bortseier";
-  return "—";
-}
-
-// Turnering — alle eksakte tekstfelt gir 5p. total_goals: ±5 gir 5p.
-function scoreExactText(bet, actual) {
-  if (!bet || !actual) return 0;
-  return String(bet).trim().toLowerCase() === String(actual).trim().toLowerCase() ? 5 : 0;
-}
-
-function scoreBoolean(bet, actual) {
+function numScore(bet, actual) {
   if (bet === null || bet === undefined || actual === null || actual === undefined) return 0;
-  return bet === actual ? 5 : 0;
+  const diff = Math.abs(Number(bet) - Number(actual));
+  if (diff === 0) return 3;
+  if (diff === 1) return 1;
+  return 0;
 }
 
-function scoreTotalGoals(bet, actual) {
-  if (bet === null || bet === undefined || actual === null || actual === undefined) return 0;
-  return Math.abs(Number(bet) - Number(actual)) <= 5 ? 5 : 0;
+export function scoreMatch(bet, result) {
+  if (!result || !bet) return 0;
+  let pts = 0;
+  pts += numScore(bet.home_goals, result.home_goals);
+  pts += numScore(bet.away_goals, result.away_goals);
+  if (bet.first_scorer && result.first_scorer) {
+    if (norm(bet.first_scorer) === norm(result.first_scorer)) pts += 3;
+  }
+  pts += numScore(bet.home_yellow, result.home_yellow);
+  pts += numScore(bet.away_yellow, result.away_yellow);
+  pts += numScore(bet.home_red, result.home_red);
+  pts += numScore(bet.away_red, result.away_red);
+  return pts;
 }
 
-export const TOURNAMENT_FIELDS = [
-  { key: "winner", label: "Vinner", scorer: scoreExactText, type: "text" },
-  { key: "top_scorer", label: "Toppscorer", scorer: scoreExactText, type: "text" },
-  { key: "golden_glove", label: "Beste keeper", scorer: scoreExactText, type: "text" },
-  { key: "most_goals_team", label: "Lag med flest mål", scorer: scoreExactText, type: "team" },
-  { key: "most_yellow_cards_team", label: "Lag med flest gule", scorer: scoreExactText, type: "team" },
-  { key: "most_red_cards_team", label: "Lag med flest røde", scorer: scoreExactText, type: "team" },
-  { key: "total_goals", label: "Totalt antall mål (±5)", scorer: scoreTotalGoals, type: "number" },
-  { key: "final_extra_time", label: "Finalen til ekstraomganger", scorer: scoreBoolean, type: "boolean" },
-];
-
-export function scoreTournamentBet(bet, result) {
-  if (!bet || !result) return { total: 0, breakdown: [] };
-  const breakdown = TOURNAMENT_FIELDS.map((f) => ({
-    key: f.key,
-    label: f.label,
-    bet: bet[f.key],
-    actual: result[f.key],
-    points: f.scorer(bet[f.key], result[f.key]),
-  }));
-  return {
-    total: breakdown.reduce((s, b) => s + b.points, 0),
-    breakdown,
-  };
+export function scoreTournament(bet, result) {
+  if (!result || !bet) return 0;
+  let pts = 0;
+  const textFields = ['winner', 'top_scorer', 'most_yellow_cards_team', 'most_red_cards_team', 'golden_glove', 'most_goals_team'];
+  for (const f of textFields) {
+    if (bet[f] && result[f] && norm(bet[f]) === norm(result[f])) pts += 5;
+  }
+  if (bet.total_goals != null && result.total_goals != null) {
+    if (Math.abs(Number(bet.total_goals) - Number(result.total_goals)) <= 5) pts += 5;
+  }
+  if (bet.final_extra_time != null && result.final_extra_time != null) {
+    if (bet.final_extra_time === result.final_extra_time) pts += 5;
+  }
+  return pts;
 }
 
-// Aggreger totalpoeng for alle spillere
-export function buildLeaderboard(players, matchBets, matchResults, tournamentBets, tournamentResult) {
-  const resultByMatch = new Map();
-  for (const r of matchResults) resultByMatch.set(r.match_id, r);
-  const tBetByPlayer = new Map();
-  for (const b of tournamentBets) tBetByPlayer.set(b.player_id, b);
+export async function calcLeaderboard(db) {
+  const [
+    { data: players },
+    { data: matchBets },
+    { data: matchResults },
+    { data: tBets },
+    { data: tResults }
+  ] = await Promise.all([
+    db.from('tk_players').select('id, name'),
+    db.from('tk_match_bets').select('*'),
+    db.from('tk_match_results').select('*'),
+    db.from('tk_tournament_bets').select('*'),
+    db.from('tk_tournament_results').select('*').limit(1).maybeSingle()
+  ]);
 
-  return players
-    .map((p) => {
-      const pMatchBets = matchBets.filter((b) => b.player_id === p.id);
-      let matchPts = 0;
-      for (const mb of pMatchBets) {
-        const r = resultByMatch.get(mb.match_id);
-        if (!r) continue;
-        matchPts += scoreMatchBet(mb, r).total;
-      }
-      const tBet = tBetByPlayer.get(p.id);
-      const tournamentPts = tournamentResult && tBet ? scoreTournamentBet(tBet, tournamentResult).total : 0;
-      return {
-        player: p,
-        match_points: matchPts,
-        tournament_points: tournamentPts,
-        total: matchPts + tournamentPts,
-      };
-    })
-    .sort((a, b) => b.total - a.total);
+  const resultByMatch = {};
+  for (const r of matchResults || []) resultByMatch[r.match_id] = r;
+
+  const tournamentResult = tResults || null;
+
+  return (players || []).map(p => {
+    const myMatchBets = (matchBets || []).filter(b => b.player_id === p.id);
+    const myTBet = (tBets || []).find(b => b.player_id === p.id);
+    let pts = 0;
+    for (const bet of myMatchBets) pts += scoreMatch(bet, resultByMatch[bet.match_id]);
+    pts += scoreTournament(myTBet, tournamentResult);
+    return { ...p, pts, hasMatchBets: myMatchBets.length > 0, hasTournamentBet: !!myTBet };
+  }).sort((a, b) => b.pts - a.pts);
 }

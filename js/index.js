@@ -1,44 +1,53 @@
-// Login og registrer-side.
-import { login, register, getSession } from "./auth.js";
+import { register, login, setSession, getSession } from './auth.js';
 
-if (getSession()) window.location.href = "dashboard.html";
+if (getSession()) window.location.href = 'dashboard.html';
 
-const tabLogin = document.getElementById("tab-login");
-const tabReg = document.getElementById("tab-register");
-const submit = document.getElementById("submit");
-const alertArea = document.getElementById("alert-area");
-const form = document.getElementById("auth-form");
-let mode = "login";
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn, .tab-pane').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
 
-function setMode(m) {
-  mode = m;
-  tabLogin.classList.toggle("active", m === "login");
-  tabReg.classList.toggle("active", m === "register");
-  submit.textContent = m === "login" ? "Logg inn" : "Registrer";
-  document.getElementById("invite-field").classList.toggle("hidden", m !== "register");
-  alertArea.innerHTML = "";
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.remove('hidden');
 }
 
-tabLogin.addEventListener("click", () => setMode("login"));
-tabReg.addEventListener("click", () => setMode("register"));
+function hideAlert(id) { document.getElementById(id).classList.add('hidden'); }
 
-function showError(msg) {
-  alertArea.innerHTML = `<div class="alert alert-error">${msg}</div>`;
-}
-
-form.addEventListener("submit", async (e) => {
+document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
-  alertArea.innerHTML = "";
-  submit.disabled = true;
-  const name = document.getElementById("name").value;
-  const pin = document.getElementById("pin").value;
-  const inviteCode = document.getElementById("invite-code").value;
+  hideAlert('login-alert');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Logger inn…';
   try {
-    if (mode === "login") await login(name, pin);
-    else await register(name, pin, inviteCode);
-    window.location.href = "dashboard.html";
+    const player = await login(document.getElementById('login-name').value, document.getElementById('login-pin').value);
+    setSession(player);
+    window.location.href = 'dashboard.html';
   } catch (err) {
-    showError(err.message || "Noe gikk galt");
-    submit.disabled = false;
+    showAlert('login-alert', err.message);
+    btn.disabled = false; btn.textContent = 'Logg inn';
+  }
+});
+
+document.getElementById('register-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  hideAlert('reg-alert');
+  const pin = document.getElementById('reg-pin').value;
+  const pin2 = document.getElementById('reg-pin2').value;
+  if (!/^\d{4,8}$/.test(pin)) { showAlert('reg-alert', 'PIN må være 4–8 siffer'); return; }
+  if (pin !== pin2) { showAlert('reg-alert', 'PIN-kodene stemmer ikke overens'); return; }
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Registrerer…';
+  try {
+    const player = await register(document.getElementById('reg-name').value, pin);
+    setSession(player);
+    window.location.href = 'dashboard.html';
+  } catch (err) {
+    showAlert('reg-alert', err.message);
+    btn.disabled = false; btn.textContent = 'Opprett konto';
   }
 });

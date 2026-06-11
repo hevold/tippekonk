@@ -1,51 +1,77 @@
-<!doctype html>
-<html lang="nb">
+<!DOCTYPE html>
+<html lang="no">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Turnering — Tippekonk</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#060b16" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Tippekonk" />
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
-  <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tippekonk — Turneringstipper</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main class="page">
-    <nav class="nav-bar">
-      <a href="dashboard.html">Hjem</a>
-      <a href="gruppespill.html">Gruppespill</a>
-      <a href="sluttspill.html">Sluttspill</a>
-      <a href="matches.html">Kamper</a>
-      <a href="tournament.html" class="active">Turnering</a>
-      <a href="admin.html" id="admin-link" class="hidden">Admin</a>
-    </nav>
-    <div class="nav-meta">
-      <span id="hello">Hei</span>
-      <button class="btn-link" id="logout">Logg ut</button>
+  <div class="page">
+    <div class="topbar">
+      <a class="topbar-logo" href="dashboard.html">Tippekonk ⚽</a>
+      <span class="topbar-user" id="user-name"></span>
     </div>
 
-    <h1>Turnerings­tipp</h1>
-    <p class="muted">Eksakt treff gir 5 poeng per felt. Totalt antall mål gir 5 poeng ved ±5.</p>
-
-    <div id="alert-area"></div>
-
-    <div id="form-area">
-      <span class="spinner"></span>
+    <div class="nav-bar">
+      <a class="nav-item" href="dashboard.html">Toppliste</a>
+      <a class="nav-item" href="matches.html">Kamptipper</a>
+      <a class="nav-item active" href="tournament.html">Turnerings­tipper</a>
     </div>
 
-    <div id="result-area"></div>
-
-    <h2>Andres tipp</h2>
-    <div id="others-area">
-      <span class="spinner"></span>
+    <div class="card">
+      <div class="card-header">Turneringstipper — 5 poeng per korrekt svar</div>
+      <form class="form-body" id="tournament-form">
+        <div class="section-label">Vinnere og priser</div>
+        <div class="field">
+          <label for="winner">Turneringsvinner <span class="pts-badge">5p</span></label>
+          <input id="winner" type="text" placeholder="F.eks. Brasil" list="teams-list" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="top-scorer">Toppscorer <span class="pts-badge">5p</span></label>
+          <input id="top-scorer" type="text" placeholder="F.eks. Erling Haaland">
+        </div>
+        <div class="field">
+          <label for="golden-glove">Gullhanske (beste keeper) <span class="pts-badge">5p</span></label>
+          <input id="golden-glove" type="text" placeholder="F.eks. Alisson">
+        </div>
+        <div class="section-label">Statistikk</div>
+        <div class="field">
+          <label for="most-goals-team">Lag med flest mål totalt <span class="pts-badge">5p</span></label>
+          <input id="most-goals-team" type="text" placeholder="F.eks. Frankrike" list="teams-list" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="most-yellow-team">Lag med flest gule kort <span class="pts-badge">5p</span></label>
+          <input id="most-yellow-team" type="text" placeholder="F.eks. Argentina" list="teams-list" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="most-red-team">Lag med flest røde kort <span class="pts-badge">5p</span></label>
+          <input id="most-red-team" type="text" placeholder="F.eks. Colombia" list="teams-list" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="total-goals">Totalt antall mål i turneringen <span class="pts-badge">5p</span></label>
+          <input id="total-goals" type="number" min="0" max="500" placeholder="F.eks. 170">
+          <span class="field-hint">Innen ±5 mål fra fasit gir poeng</span>
+        </div>
+        <div class="section-label">Finalen</div>
+        <div class="field">
+          <label>Vil finalen gå til ekstraomganger? <span class="pts-badge">5p</span></label>
+          <div class="toggle-group" id="extra-time-toggle">
+            <button type="button" class="toggle-btn" data-val="true">Ja</button>
+            <button type="button" class="toggle-btn" data-val="false">Nei</button>
+          </div>
+          <input type="hidden" id="extra-time-val" value="">
+        </div>
+        <datalist id="teams-list"></datalist>
+        <div id="tournament-alert" class="alert alert-error hidden"></div>
+        <div id="tournament-success" class="alert alert-success hidden">Tipset er lagret ✓</div>
+        <button type="submit" class="btn btn-primary" id="submit-btn">Lagre turneringstipper</button>
+      </form>
     </div>
-  </main>
+    <p class="text-muted text-center mt-2" style="font-size:0.8rem">Kun eksakt treff gir poeng (unntatt totale mål: ±5)</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script type="module" src="js/tournament.js"></script>
 </body>
 </html>

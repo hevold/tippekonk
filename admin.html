@@ -1,52 +1,76 @@
-<!doctype html>
-<html lang="nb">
+<!DOCTYPE html>
+<html lang="no">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin — Tippekonk</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#060b16" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Tippekonk" />
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
-  <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tippekonk — Admin</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main class="page">
-    <nav class="nav-bar">
-      <a href="dashboard.html">Hjem</a>
-      <a href="gruppespill.html">Gruppespill</a>
-      <a href="sluttspill.html">Sluttspill</a>
-      <a href="matches.html">Kamper</a>
-      <a href="tournament.html">Turnering</a>
-      <a href="admin.html" class="active">Admin</a>
-    </nav>
-    <div class="nav-meta">
-      <span id="hello">Hei</span>
-      <button class="btn-link" id="logout">Logg ut</button>
+  <div class="page">
+    <div class="topbar">
+      <a class="topbar-logo" href="dashboard.html">Tippekonk ⚽</a>
+      <a href="dashboard.html" class="btn btn-ghost btn-sm">← Tilbake</a>
     </div>
 
-    <h1>Admin</h1>
+    <div id="admin-wrap">
+      <div class="card">
+        <div class="card-header">Registrer kampresultat</div>
+        <div class="card-body">
+          <div class="field">
+            <label for="match-select">Velg kamp</label>
+            <select id="match-select"><option value="">— laster kamper —</option></select>
+          </div>
+        </div>
+        <form class="form-body" id="result-form" style="border-top:1px solid var(--border)">
+          <div class="section-label">Mål</div>
+          <div class="grid-2">
+            <div class="field"><label id="res-home-label">Hjemmelag mål</label><input id="res-home-goals" type="number" min="0" max="30"></div>
+            <div class="field"><label id="res-away-label">Bortelag mål</label><input id="res-away-goals" type="number" min="0" max="30"></div>
+          </div>
+          <div class="field"><label for="res-first-scorer">Første målscorer</label><input id="res-first-scorer" type="text" placeholder="Fullt navn"></div>
+          <div class="section-label">Gule kort</div>
+          <div class="grid-2">
+            <div class="field"><label>Hjemmelag</label><input id="res-home-yellow" type="number" min="0" max="11"></div>
+            <div class="field"><label>Bortelag</label><input id="res-away-yellow" type="number" min="0" max="11"></div>
+          </div>
+          <div class="section-label">Røde kort</div>
+          <div class="grid-2">
+            <div class="field"><label>Hjemmelag</label><input id="res-home-red" type="number" min="0" max="11"></div>
+            <div class="field"><label>Bortelag</label><input id="res-away-red" type="number" min="0" max="11"></div>
+          </div>
+          <div id="result-alert" class="alert alert-error hidden"></div>
+          <div id="result-success" class="alert alert-success hidden">Resultat lagret ✓</div>
+          <button type="submit" class="btn btn-primary" id="result-btn">Lagre resultat</button>
+        </form>
+      </div>
 
-    <div class="tabs">
-      <button class="active" data-section="matches">Kamper</button>
-      <button data-section="tournament">Turnering</button>
-      <button data-section="players">Spillere</button>
-      <button data-section="settings">Innstillinger</button>
+      <div class="card">
+        <div class="card-header">Turneringsresultat (fyll inn etter turneringen)</div>
+        <form class="form-body" id="tournament-result-form">
+          <div class="field"><label>Turneringsvinner</label><input id="tr-winner" type="text" placeholder="F.eks. Brasil"></div>
+          <div class="field"><label>Toppscorer</label><input id="tr-top-scorer" type="text"></div>
+          <div class="field"><label>Gullhanske</label><input id="tr-golden-glove" type="text"></div>
+          <div class="field"><label>Lag med flest mål</label><input id="tr-most-goals-team" type="text"></div>
+          <div class="field"><label>Lag med flest gule kort</label><input id="tr-most-yellow-team" type="text"></div>
+          <div class="field"><label>Lag med flest røde kort</label><input id="tr-most-red-team" type="text"></div>
+          <div class="field"><label>Totale mål i turneringen</label><input id="tr-total-goals" type="number" min="0"></div>
+          <div class="field">
+            <label>Finalen gikk til ekstraomganger?</label>
+            <div class="toggle-group" id="tr-extra-toggle">
+              <button type="button" class="toggle-btn" data-val="true">Ja</button>
+              <button type="button" class="toggle-btn" data-val="false">Nei</button>
+            </div>
+          </div>
+          <div id="tr-alert" class="alert alert-error hidden"></div>
+          <div id="tr-success" class="alert alert-success hidden">Turneringsresultat lagret ✓</div>
+          <button type="submit" class="btn btn-primary">Lagre turneringsresultat</button>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <div id="alert-area"></div>
-
-    <section id="section-matches"></section>
-    <section id="section-tournament" class="hidden"></section>
-    <section id="section-players" class="hidden"></section>
-    <section id="section-settings" class="hidden"></section>
-  </main>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>

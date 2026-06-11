@@ -1,106 +1,70 @@
-// Liste over kamper med filter.
-import { requireAuth, clearSession } from "./auth.js";
-import { supabase } from "./client.js";
-import { getMatches, formatKickoff, isOpenForBetting, isLive, currentScore, statusBadge, autoSync } from "./football.js";
-import { teamNo } from "./teams-no.js";
+import { requireAuth } from './auth.js';
+import { db, FOOTBALL_API_KEY } from './client.js';
+import { getMatches, formatDate, matchIsOpen, scoreLabel } from './football.js';
 
-const me = requireAuth();
-if (!me) throw new Error("no auth");
+const player = requireAuth();
+if (!player) throw new Error('not auth');
 
-document.getElementById("hello").textContent = "Hei, " + me.name;
-document.getElementById("logout").addEventListener("click", () => {
-  clearSession();
-  window.location.href = "index.html";
-});
-if (me.is_admin) document.getElementById("admin-link").classList.remove("hidden");
+document.getElementById('user-name').textContent = player.name;
 
-const tabs = document.querySelectorAll(".tabs button");
-let filter = "open";
-let allMatches = [];
-let myBets = new Set();
+function esc(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-tabs.forEach((b) =>
-  b.addEventListener("click", () => {
-    tabs.forEach((x) => x.classList.remove("active"));
-    b.classList.add("active");
-    filter = b.dataset.filter;
-    render();
-  })
-);
+function buildMatchItem(match, hasBet) {
+  const open = matchIsOpen(match);
+  const finished = match.status === 'FINISHED';
+  const home = match.homeTeam?.shortName || match.homeTeam?.name || '?';
+  const away = match.awayTeam?.shortName || match.awayTeam?.name || '?';
+  const score = finished ? scoreLabel(match) : '–';
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[c]);
-}
+  let chipClass, chipText;
+  if (!open && !finished) { chipClass = 'chip-closed'; chipText = 'Stengt'; }
+  else if (hasBet) { chipClass = 'chip-placed'; chipText = 'Tippet'; }
+  else { chipClass = 'chip-open'; chipText = 'Tip nå'; }
 
-function render() {
-  const area = document.getElementById("match-list-area");
-  let list = allMatches;
-  if (filter === "open") list = list.filter(isOpenForBetting);
-  else if (filter === "done") list = list.filter((m) => m.status === "FINISHED");
-
-  list.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
-
-  if (!list.length) {
-    area.innerHTML = `<p class="muted">Ingen kamper i denne kategorien.</p>`;
-    return;
+  const li = document.createElement('li');
+  if (open) {
+    li.innerHTML = `<a class="match-item" href="match.html?id=${match.id}">
+      <div class="match-teams"><div class="teams-label">${esc(home)} – ${esc(away)}</div><div class="match-meta">${esc(formatDate(match.utcDate))} · ${esc(match.stage?.replace(/_/g, ' ') || '')}</div></div>
+      <div class="match-score-col">${score}</div>
+      <span class="match-status-chip ${chipClass}">${chipText}</span>
+    </a>`;
+  } else {
+    li.innerHTML = `<div class="match-item" style="${!open && !finished ? 'opacity:0.7;cursor:default' : ''}">
+      <div class="match-teams"><div class="teams-label">${esc(home)} – ${esc(away)}</div><div class="match-meta">${esc(formatDate(match.utcDate))} · ${esc(match.stage?.replace(/_/g, ' ') || '')}</div></div>
+      <div class="match-score-col">${score}</div>
+      <span class="match-status-chip ${chipClass}">${chipText}</span>
+    </div>`;
   }
-
-  area.innerHTML = `<div class="match-list">${list
-    .map((m) => {
-      const open = isOpenForBetting(m);
-      const live = isLive(m);
-      const done = m.status === "FINISHED";
-
-      let statusEl;
-      const badge = statusBadge(m);
-      if (open && myBets.has(m.id)) {
-        statusEl = `<span class="status status-open">Tippet</span>`;
-      } else {
-        statusEl = `<span class="status ${badge.cls}">${badge.text}</span>`;
-      }
-
-      let score = "";
-      const cs = currentScore(m);
-      if (cs) {
-        score = ` <strong>${cs.home ?? "-"} – ${cs.away ?? "-"}</strong>`;
-      }
-
-      const hf = m.homeTeam.crest ? `<img class="flag" src="${m.homeTeam.crest}" alt="" />` : "";
-      const af = m.awayTeam.crest ? `<img class="flag" src="${m.awayTeam.crest}" alt="" />` : "";
-
-      return `
-        <a href="match.html?id=${m.id}" class="match-row">
-          <div class="teams">${hf}${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}${af}${score}</div>
-          <div class="meta">
-            <span>${formatKickoff(m.utcDate)}</span>
-            ${statusEl}
-          </div>
-        </a>`;
-    })
-    .join("")}</div>`;
+  return li;
 }
 
 async function load() {
-  // Sync resultater i bakgrunnen
-  autoSync();
+  const list = document.getElementById('matches-list');
+  const finishedList = document.getElementById('finished-list');
+
+  if (!FOOTBALL_API_KEY) {
+    document.getElementById('no-key-alert').classList.remove('hidden');
+    list.innerHTML = '<li class="loading-state">Ingen API-nøkkel konfigurert.</li>';
+    return;
+  }
 
   try {
-    const [matches, bets] = await Promise.all([
+    const [matches, { data: myBets }] = await Promise.all([
       getMatches(),
-      supabase.from("tk_match_bets").select("match_id").eq("player_id", me.id),
+      db.from('tk_match_bets').select('match_id').eq('player_id', player.id)
     ]);
-    allMatches = matches;
-    myBets = new Set((bets.data || []).map((b) => b.match_id));
-    render();
+    const betSet = new Set((myBets || []).map(b => b.match_id));
+    const upcoming = matches.filter(m => matchIsOpen(m) || m.status === 'IN_PLAY' || m.status === 'PAUSED');
+    const finished = matches.filter(m => m.status === 'FINISHED');
+    list.innerHTML = '';
+    if (!upcoming.length) { list.innerHTML = '<li class="loading-state">Ingen kommende kamper funnet.</li>'; }
+    else { for (const m of upcoming) list.appendChild(buildMatchItem(m, betSet.has(m.id))); }
+    if (finished.length) {
+      document.getElementById('finished-card').style.display = '';
+      for (const m of finished.reverse()) finishedList.appendChild(buildMatchItem(m, betSet.has(m.id)));
+    }
   } catch (err) {
-    document.getElementById("match-list-area").innerHTML =
-      `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    list.innerHTML = `<li class="loading-state">Feil: ${esc(err.message)}</li>`;
   }
 }
 

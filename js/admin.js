@@ -1,330 +1,116 @@
-// Admin: legge inn resultater, slette spillere, nullstille PIN.
-import { requireAuth, clearSession, updateInviteCode } from "./auth.js";
-import { supabase } from "./client.js";
-import { getMatches, formatKickoff, clearCache, manualSync } from "./football.js";
-import { teamNo } from "./teams-no.js";
-import { TOURNAMENT_FIELDS, MATCH_FIELDS, scoreMatchBet, scoreTournamentBet, buildLeaderboard } from "./scoring.js";
-import { exportToExcel } from "./export.js";
+import { requireAuth } from './auth.js';
+import { db, FOOTBALL_API_KEY } from './client.js';
+import { getMatches, formatDate } from './football.js';
 
-const me = requireAuth();
-if (!me) throw new Error("no auth");
+const player = requireAuth();
+if (!player) throw new Error('not auth');
 
-if (!me.is_admin) {
-  window.location.href = "dashboard.html";
-  throw new Error("not admin");
+if (!player.is_admin) { window.location.href = 'dashboard.html'; throw new Error('not admin'); }
+
+const matchSelect = document.getElementById('match-select');
+
+async function loadMatchOptions() {
+  if (!FOOTBALL_API_KEY) { matchSelect.innerHTML = '<option value="">Ingen API-nøkkel konfigurert</option>'; return; }
+  try {
+    const matches = await getMatches();
+    const { data: existing } = await db.from('tk_match_results').select('match_id');
+    const doneSet = new Set((existing || []).map(r => r.match_id));
+    matchSelect.innerHTML = '<option value="">— Velg kamp —</option>';
+    for (const m of matches) {
+      const home = m.homeTeam?.shortName || m.homeTeam?.name || '?';
+      const away = m.awayTeam?.shortName || m.awayTeam?.name || '?';
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = `${home} – ${away}  (${formatDate(m.utcDate)})${doneSet.has(m.id) ? ' ✓' : ''}`;
+      opt.dataset.home = m.homeTeam?.name || home;
+      opt.dataset.away = m.awayTeam?.name || away;
+      matchSelect.appendChild(opt);
+    }
+  } catch (err) { matchSelect.innerHTML = `<option>Feil: ${err.message}</option>`; }
 }
 
-document.getElementById("hello").textContent = "Hei, " + me.name;
-document.getElementById("logout").addEventListener("click", () => {
-  clearSession();
-  window.location.href = "index.html";
+matchSelect.addEventListener('change', async () => {
+  const id = parseInt(matchSelect.value, 10);
+  if (!id) return;
+  const opt = matchSelect.selectedOptions[0];
+  document.getElementById('res-home-label').textContent = (opt.dataset.home || 'Hjemmelag') + ' mål';
+  document.getElementById('res-away-label').textContent = (opt.dataset.away || 'Bortelag') + ' mål';
+  const { data } = await db.from('tk_match_results').select('*').eq('match_id', id).maybeSingle();
+  if (data) {
+    const fill = (el, v) => { if (v != null) document.getElementById(el).value = v; };
+    fill('res-home-goals', data.home_goals); fill('res-away-goals', data.away_goals);
+    fill('res-first-scorer', data.first_scorer); fill('res-home-yellow', data.home_yellow);
+    fill('res-away-yellow', data.away_yellow); fill('res-home-red', data.home_red); fill('res-away-red', data.away_red);
+  } else {
+    ['res-home-goals','res-away-goals','res-first-scorer','res-home-yellow','res-away-yellow','res-home-red','res-away-red']
+      .forEach(id => document.getElementById(id).value = '');
+  }
 });
 
-const tabs = document.querySelectorAll(".tabs button");
-tabs.forEach((b) =>
-  b.addEventListener("click", () => {
-    tabs.forEach((x) => x.classList.remove("active"));
-    b.classList.add("active");
-    document.querySelectorAll("section").forEach((s) => s.classList.add("hidden"));
-    document.getElementById("section-" + b.dataset.section).classList.remove("hidden");
-  })
-);
+document.getElementById('result-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const alertEl = document.getElementById('result-alert');
+  const successEl = document.getElementById('result-success');
+  alertEl.classList.add('hidden'); successEl.classList.add('hidden');
+  const matchId = parseInt(matchSelect.value, 10);
+  if (!matchId) { alertEl.textContent = 'Velg en kamp'; alertEl.classList.remove('hidden'); return; }
+  const btn = document.getElementById('result-btn');
+  btn.disabled = true;
+  const numVal = id => { const v = document.getElementById(id).value; return v === '' ? null : parseInt(v, 10); };
+  const strVal = id => { const v = document.getElementById(id).value.trim(); return v || null; };
+  const result = {
+    match_id: matchId, home_goals: numVal('res-home-goals'), away_goals: numVal('res-away-goals'),
+    first_scorer: strVal('res-first-scorer'), home_yellow: numVal('res-home-yellow'),
+    away_yellow: numVal('res-away-yellow'), home_red: numVal('res-home-red'), away_red: numVal('res-away-red')
+  };
+  const { error } = await db.from('tk_match_results').upsert(result, { onConflict: 'match_id' });
+  if (error) { alertEl.textContent = 'Feil: ' + error.message; alertEl.classList.remove('hidden'); }
+  else { successEl.classList.remove('hidden'); loadMatchOptions(); }
+  btn.disabled = false;
+});
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[c]);
-}
+let trExtra = null;
+document.getElementById('tr-extra-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.toggle-btn');
+  if (!btn) return;
+  document.querySelectorAll('#tr-extra-toggle .toggle-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  trExtra = btn.dataset.val === 'true';
+});
 
-function showAlert(type, msg) {
-  document.getElementById("alert-area").innerHTML =
-    `<div class="alert alert-${type}">${escapeHtml(msg)}</div>`;
-  setTimeout(() => { document.getElementById("alert-area").innerHTML = ""; }, 4000);
-}
-
-// ============ Kamper ============
-async function renderMatches() {
-  const sec = document.getElementById("section-matches");
-  sec.innerHTML = `<p><span class="spinner"></span> Laster kamper…</p>`;
-  let matches;
-  try {
-    matches = await getMatches();
-  } catch (err) {
-    sec.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
-    return;
+async function loadTournamentResult() {
+  const { data } = await db.from('tk_tournament_results').select('*').limit(1).maybeSingle();
+  if (!data) return;
+  const fill = (el, v) => { if (v != null) document.getElementById(el).value = v; };
+  fill('tr-winner', data.winner); fill('tr-top-scorer', data.top_scorer);
+  fill('tr-golden-glove', data.golden_glove); fill('tr-most-goals-team', data.most_goals_team);
+  fill('tr-most-yellow-team', data.most_yellow_cards_team); fill('tr-most-red-team', data.most_red_cards_team);
+  fill('tr-total-goals', data.total_goals);
+  if (data.final_extra_time != null) {
+    trExtra = data.final_extra_time;
+    document.querySelectorAll('#tr-extra-toggle .toggle-btn').forEach(btn => {
+      if ((btn.dataset.val === 'true') === data.final_extra_time) btn.classList.add('selected');
+    });
   }
-  const { data: results } = await supabase.from("tk_match_results").select("*");
-  const resultByMatch = new Map((results || []).map((r) => [r.match_id, r]));
-
-  matches.sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate));
-
-  sec.innerHTML = `
-    <div class="btn-row mb-2">
-      <button id="sync-now" class="btn" type="button">Sync resultater nå</button>
-      <button id="refresh" class="btn btn-secondary" type="button">Tøm football-cache</button>
-    </div>
-    <div class="match-list" id="adm-match-list">
-      ${matches.map((m) => {
-        const r = resultByMatch.get(m.id);
-        const fs = m.score?.fullTime;
-        return `
-          <details>
-            <summary class="match-row" style="display:block;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div class="teams">${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}</div>
-                  <div class="muted" style="font-size:0.82rem;">${formatKickoff(m.utcDate)} · ${escapeHtml(m.status)}${m.group ? " · gruppe " + m.group.replace("GROUP_", "") : ""}</div>
-                </div>
-                <span class="status ${r ? "status-done" : (m.status === "FINISHED" ? "status-live" : "status-open")}">${r ? "Lagt inn" : (m.status === "FINISHED" ? "Mangler" : "Venter")}</span>
-              </div>
-            </summary>
-            <form class="form-body card" data-match-id="${m.id}" data-stage="${escapeHtml(m.stage)}" style="margin-top:8px;">
-              <div class="field-row">
-                <div class="field">
-                  <label>Hjemme mål${m.stage !== "GROUP_STAGE" ? " (90 min)" : ""}</label>
-                  <input name="home_goals" type="number" min="0" value="${r?.home_goals ?? fs?.home ?? ""}" />
-                </div>
-                <div class="field">
-                  <label>Borte mål${m.stage !== "GROUP_STAGE" ? " (90 min)" : ""}</label>
-                  <input name="away_goals" type="number" min="0" value="${r?.away_goals ?? fs?.away ?? ""}" />
-                </div>
-              </div>
-              ${m.stage !== "GROUP_STAGE" ? `
-              <div class="field">
-                <label>Hvem gikk videre</label>
-                <select name="winner">
-                  <option value="">—</option>
-                  <option value="HOME" ${r?.winner === "HOME" ? "selected" : ""}>Hjemme</option>
-                  <option value="AWAY" ${r?.winner === "AWAY" ? "selected" : ""}>Borte</option>
-                </select>
-              </div>` : ""}
-              <button class="btn" type="submit">Lagre resultat</button>
-            </form>
-          </details>`;
-      }).join("")}
-    </div>
-  `;
-
-  document.getElementById("refresh").addEventListener("click", () => {
-    clearCache();
-    renderMatches();
-  });
-
-  document.getElementById("sync-now").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    btn.textContent = "Synker…";
-    const res = await manualSync();
-    btn.disabled = false;
-    btn.textContent = "Sync resultater nå";
-    if (!res) {
-      showAlert("warning", "Synket nylig — vent et øyeblikk før neste sync.");
-      return;
-    }
-    if (res.error) {
-      showAlert("error", "Sync feilet: " + res.error);
-      return;
-    }
-    showAlert("success", `Oppdaterte ${res.updated} resultater (${res.total_finished} ferdige kamper totalt).`);
-    if (res.updated > 0) {
-      clearCache();
-      renderMatches();
-    }
-  });
-
-  sec.querySelectorAll("form[data-match-id]").forEach((f) => {
-    f.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const mid = Number(f.dataset.matchId);
-      const fd = new FormData(f);
-      const payload = { match_id: mid };
-      for (const key of ["home_goals", "away_goals"]) {
-        const v = fd.get(key);
-        payload[key] = v === "" || v === null ? null : Number(v);
-      }
-      const w = fd.get("winner");
-      if (w !== null) payload.winner = w || null;
-
-      const { error } = await supabase
-        .from("tk_match_results")
-        .upsert(payload, { onConflict: "match_id" });
-      if (error) showAlert("error", error.message);
-      else showAlert("success", "Resultat lagret.");
-    });
-  });
 }
 
-// ============ Turnering ============
-async function renderTournament() {
-  const sec = document.getElementById("section-tournament");
-  const { data } = await supabase.from("tk_tournament_results").select("*").limit(1).maybeSingle();
-  const cur = data || {};
+document.getElementById('tournament-result-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const alertEl = document.getElementById('tr-alert');
+  const successEl = document.getElementById('tr-success');
+  alertEl.classList.add('hidden'); successEl.classList.add('hidden');
+  const val = id => { const v = document.getElementById(id).value.trim(); return v || null; };
+  const numVal = id => { const v = document.getElementById(id).value; return v === '' ? null : parseInt(v, 10); };
+  const result = {
+    winner: val('tr-winner'), top_scorer: val('tr-top-scorer'), golden_glove: val('tr-golden-glove'),
+    most_goals_team: val('tr-most-goals-team'), most_yellow_cards_team: val('tr-most-yellow-team'),
+    most_red_cards_team: val('tr-most-red-team'), total_goals: numVal('tr-total-goals'), final_extra_time: trExtra
+  };
+  await db.from('tk_tournament_results').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error } = await db.from('tk_tournament_results').insert(result);
+  if (error) { alertEl.textContent = 'Feil: ' + error.message; alertEl.classList.remove('hidden'); }
+  else { successEl.classList.remove('hidden'); }
+});
 
-  sec.innerHTML = `
-    <form id="t-form" class="form-body card">
-      ${TOURNAMENT_FIELDS.map((f) => {
-        const v = cur[f.key];
-        if (f.type === "boolean") {
-          return `
-            <div class="field">
-              <label>${f.label}</label>
-              <select name="${f.key}">
-                <option value="">—</option>
-                <option value="true" ${v === true ? "selected" : ""}>Ja</option>
-                <option value="false" ${v === false ? "selected" : ""}>Nei</option>
-              </select>
-            </div>`;
-        }
-        if (f.type === "number") {
-          return `
-            <div class="field">
-              <label>${f.label}</label>
-              <input name="${f.key}" type="number" value="${v ?? ""}" />
-            </div>`;
-        }
-        return `
-          <div class="field">
-            <label>${f.label}</label>
-            <input name="${f.key}" type="text" value="${escapeHtml(v ?? "")}" />
-          </div>`;
-      }).join("")}
-      <button class="btn" type="submit">Lagre turneringsresultat</button>
-    </form>
-  `;
-
-  document.getElementById("t-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const payload = {};
-    for (const f of TOURNAMENT_FIELDS) {
-      const v = fd.get(f.key);
-      if (f.type === "boolean") payload[f.key] = v === "true" ? true : v === "false" ? false : null;
-      else if (f.type === "number") payload[f.key] = v === "" || v === null ? null : Number(v);
-      else payload[f.key] = v && v.toString().trim() ? v.toString().trim() : null;
-    }
-    // Single row table: enten oppdater eller insert
-    if (data?.id) {
-      const { error } = await supabase.from("tk_tournament_results").update(payload).eq("id", data.id);
-      if (error) return showAlert("error", error.message);
-    } else {
-      const { error } = await supabase.from("tk_tournament_results").insert(payload);
-      if (error) return showAlert("error", error.message);
-    }
-    showAlert("success", "Turneringsresultat lagret.");
-    renderTournament();
-  });
-}
-
-// ============ Spillere ============
-async function renderPlayers() {
-  const sec = document.getElementById("section-players");
-  const { data: players, error } = await supabase
-    .from("tk_players")
-    .select("*")
-    .order("created_at", { ascending: true });
-  if (error) {
-    sec.innerHTML = `<div class="alert alert-error">${escapeHtml(error.message)}</div>`;
-    return;
-  }
-
-  sec.innerHTML = `
-    <div class="card">
-      <table class="lb-table">
-        <thead>
-          <tr><th>Navn</th><th>Admin</th><th></th></tr>
-        </thead>
-        <tbody>
-          ${players.map((p) => `
-            <tr>
-              <td>${escapeHtml(p.name)}</td>
-              <td>${p.is_admin ? "Ja" : ""}</td>
-              <td>
-                <button class="btn btn-secondary" data-toggle-admin="${p.id}" data-val="${!p.is_admin}">${p.is_admin ? "Fjern admin" : "Gjør admin"}</button>
-                ${p.id !== me.id ? `<button class="btn btn-danger" data-delete="${p.id}" data-name="${escapeHtml(p.name)}">Slett</button>` : ""}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-    <p class="muted">Du kan ikke slette deg selv. PIN-nullstilling gjøres i Supabase SQL.</p>
-  `;
-
-  sec.querySelectorAll("[data-toggle-admin]").forEach((b) => {
-    b.addEventListener("click", async () => {
-      const id = b.dataset.toggleAdmin;
-      const val = b.dataset.val === "true";
-      const { error } = await supabase.from("tk_players").update({ is_admin: val }).eq("id", id);
-      if (error) showAlert("error", error.message);
-      else { showAlert("success", "Oppdatert."); renderPlayers(); }
-    });
-  });
-  sec.querySelectorAll("[data-delete]").forEach((b) => {
-    b.addEventListener("click", async () => {
-      const id = b.dataset.delete;
-      const name = b.dataset.name;
-      if (!confirm(`Slette ${name} og alle deres tipp?`)) return;
-      const { error } = await supabase.from("tk_players").delete().eq("id", id);
-      if (error) showAlert("error", error.message);
-      else { showAlert("success", "Slettet."); renderPlayers(); }
-    });
-  });
-}
-
-// ============ Innstillinger ============
-async function renderSettings() {
-  const sec = document.getElementById("section-settings");
-  sec.innerHTML = `
-    <div class="card">
-      <h3 class="mt-0 mb-1">Backup / eksport</h3>
-      <p class="muted">Last ned alt av tippinger, resultater og stilling som Excel-fil — inkludert <strong>alle</strong> spillernes bets uavhengig av kamp-status. Spillere kan også laste ned fra Hjem-siden, men da blir andres bets filtrert ut på åpne kamper.</p>
-      <button class="btn" id="export-xlsx" type="button">Last ned Excel-backup (admin)</button>
-    </div>
-
-    <div class="card">
-      <h3 class="mt-0 mb-1">Invitasjonskode</h3>
-      <p class="muted">Nye brukere må skrive inn denne koden for å registrere seg. Koden lagres som SHA-256-hash i Supabase. Nåværende kode kan ikke leses fra DB — du må enten huske den eller sette en ny her.</p>
-      <form id="invite-form" class="form-body" autocomplete="off">
-        <div class="field">
-          <label for="new-code">Ny invitasjonskode (minst 4 tegn)</label>
-          <input id="new-code" type="text" autocapitalize="off" required minlength="4" />
-        </div>
-        <button class="btn" type="submit">Oppdater kode</button>
-      </form>
-    </div>
-  `;
-  document.getElementById("invite-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const newCode = document.getElementById("new-code").value;
-    try {
-      await updateInviteCode(newCode);
-      showAlert("success", "Invitasjonskode oppdatert. Del den nye koden med vennene dine.");
-      document.getElementById("new-code").value = "";
-    } catch (err) {
-      showAlert("error", err.message || "Kunne ikke oppdatere kode");
-    }
-  });
-
-  document.getElementById("export-xlsx").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    btn.textContent = "Henter data…";
-    try {
-      await exportToExcel({ asUser: null }); // admin: alt synlig
-      showAlert("success", "Excel-fil lastet ned.");
-    } catch (err) {
-      showAlert("error", "Eksport feilet: " + err.message);
-    }
-    btn.disabled = false;
-    btn.textContent = "Last ned Excel-backup (admin)";
-  });
-}
-
-renderMatches();
-renderTournament();
-renderPlayers();
-renderSettings();
+loadMatchOptions();
+loadTournamentResult();

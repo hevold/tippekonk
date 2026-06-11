@@ -1,53 +1,65 @@
-<!doctype html>
-<html lang="nb">
+<!DOCTYPE html>
+<html lang="no">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tippekonk</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#060b16" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Tippekonk" />
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
-  <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tippekonk — VM 2026</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main class="page">
-    <h1>Tippekonk</h1>
-    <p class="muted">VM 2026. Logg inn eller registrer deg med navn og PIN.</p>
+  <div class="page">
+    <div class="page-hero">
+      <h1>Tippekonk</h1>
+      <p class="tagline">VM 2026 · Privat tippekonkurranse</p>
+    </div>
 
     <div class="card">
       <div class="tabs">
-        <button id="tab-login" class="active">Logg inn</button>
-        <button id="tab-register">Registrer</button>
+        <button class="tab-btn active" data-tab="login">Logg inn</button>
+        <button class="tab-btn" data-tab="register">Registrer deg</button>
       </div>
 
-      <div id="alert-area"></div>
+      <div class="tab-pane active" id="tab-login">
+        <form class="form-body" id="login-form" autocomplete="on">
+          <div class="field">
+            <label for="login-name">Navn</label>
+            <input id="login-name" type="text" autocomplete="username" placeholder="Ditt navn" required>
+          </div>
+          <div class="field">
+            <label for="login-pin">PIN</label>
+            <input id="login-pin" type="password" autocomplete="current-password" placeholder="••••" maxlength="8" required>
+          </div>
+          <div id="login-alert" class="alert alert-error hidden"></div>
+          <button type="submit" class="btn btn-primary" id="login-btn">Logg inn</button>
+        </form>
+      </div>
 
-      <form id="auth-form" class="form-body" autocomplete="off">
-        <div class="field">
-          <label for="name">Navn</label>
-          <input id="name" name="name" type="text" autocapitalize="words" required />
-        </div>
-        <div class="field">
-          <label for="pin">PIN (4–8 sifre)</label>
-          <input id="pin" name="pin" type="password" inputmode="numeric" pattern="\d{4,8}" required />
-        </div>
-        <div class="field hidden" id="invite-field">
-          <label for="invite-code">Invitasjonskode</label>
-          <input id="invite-code" name="invite_code" type="text" autocapitalize="off" autocomplete="off" />
-          <small class="muted">Spør Henrik om koden hvis du ikke har den.</small>
-        </div>
-        <button class="btn" id="submit" type="submit">Logg inn</button>
-      </form>
+      <div class="tab-pane" id="tab-register">
+        <form class="form-body" id="register-form" autocomplete="on">
+          <div class="field">
+            <label for="reg-name">Ditt navn</label>
+            <input id="reg-name" type="text" autocomplete="username" placeholder="F.eks. Ola Nordmann" required>
+          </div>
+          <div class="field">
+            <label for="reg-pin">Velg PIN <span class="field-hint">(4–8 siffer)</span></label>
+            <input id="reg-pin" type="password" autocomplete="new-password" placeholder="••••" pattern="[0-9]{4,8}" maxlength="8" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="reg-pin2">Bekreft PIN</label>
+            <input id="reg-pin2" type="password" autocomplete="new-password" placeholder="••••" maxlength="8" inputmode="numeric" required>
+          </div>
+          <div id="reg-alert" class="alert alert-error hidden"></div>
+          <button type="submit" class="btn btn-primary" id="reg-btn">Opprett konto</button>
+        </form>
+      </div>
     </div>
 
-    <p class="muted center">Glemt PIN? Be admin om å nullstille i Supabase.</p>
-  </main>
+    <p class="text-center text-muted mt-2" style="font-size:0.8rem">
+      Kun for inviterte deltakere
+    </p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script type="module" src="js/index.js"></script>
 </body>
 </html>

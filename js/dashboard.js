@@ -1,133 +1,68 @@
-// Dashbord: stilling og kommende kamper.
-import { requireAuth, clearSession } from "./auth.js";
-import { supabase } from "./client.js";
-import { getMatches, formatKickoff, isOpenForBetting, isLive, currentScore, statusBadge, autoSync } from "./football.js";
-import { teamNo } from "./teams-no.js";
-import { buildLeaderboard } from "./scoring.js";
-import { exportToExcel } from "./export.js";
+import { requireAuth, clearSession } from './auth.js';
+import { db } from './client.js';
+import { calcLeaderboard } from './scoring.js';
 
-// Trigger sync i bakgrunnen ved page-load
-autoSync();
+const player = requireAuth();
+if (!player) throw new Error('not auth');
 
-const me = requireAuth();
-if (!me) throw new Error("no auth");
-
-document.getElementById("hello").textContent = "Hei, " + me.name;
-document.getElementById("logout").addEventListener("click", () => {
-  clearSession();
-  window.location.href = "index.html";
+document.getElementById('user-name').textContent = player.name;
+document.getElementById('logout-btn').addEventListener('click', e => {
+  e.preventDefault(); clearSession(); window.location.href = 'index.html';
 });
 
-if (me.is_admin) document.getElementById("admin-link").classList.remove("hidden");
+if (player.is_admin) document.getElementById('admin-link').style.display = '';
 
-async function loadLeaderboard() {
-  const area = document.getElementById("leaderboard-area");
-  const [players, matchBets, matchResults, tBets, tRes] = await Promise.all([
-    supabase.from("tk_players").select("*"),
-    supabase.from("tk_match_bets").select("*"),
-    supabase.from("tk_match_results").select("*"),
-    supabase.from("tk_tournament_bets").select("*"),
-    supabase.from("tk_tournament_results").select("*").limit(1).maybeSingle(),
+async function renderLeaderboard() {
+  const wrap = document.getElementById('leaderboard-wrap');
+  try {
+    const rows = await calcLeaderboard(db);
+    if (!rows.length) { wrap.innerHTML = '<p class="loading-state">Ingen deltakere ennå.</p>'; return; }
+    const tbl = document.createElement('table');
+    tbl.className = 'lb-table';
+    tbl.innerHTML = `<thead><tr><th>#</th><th>Navn</th><th class="right">Poeng</th></tr></thead><tbody></tbody>`;
+    const tbody = tbl.querySelector('tbody');
+    rows.forEach((r, i) => {
+      const rank = i + 1;
+      const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+      const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      const tr = document.createElement('tr');
+      if (r.id === player.id) tr.className = 'is-me';
+      tr.innerHTML = `
+        <td><span class="rank ${rankClass}">${rankIcon}</span></td>
+        <td>${esc(r.name)}${r.id === player.id ? ' <span class="bet-chip chip-done">deg</span>' : ''}</td>
+        <td class="pts-cell">${r.pts}</td>`;
+      tbody.appendChild(tr);
+    });
+    wrap.innerHTML = ''; wrap.appendChild(tbl);
+  } catch (err) {
+    wrap.innerHTML = `<p class="loading-state">${esc(err.message)}</p>`;
+  }
+}
+
+async function renderMyBets() {
+  const wrap = document.getElementById('my-bets-summary');
+  const [{ data: matchBets }, { data: tBet }] = await Promise.all([
+    db.from('tk_match_bets').select('match_id').eq('player_id', player.id),
+    db.from('tk_tournament_bets').select('id').eq('player_id', player.id).maybeSingle()
   ]);
-  if (players.error) {
-    area.innerHTML = `<div class="alert alert-error">${players.error.message}</div>`;
-    return;
-  }
-  const lb = buildLeaderboard(
-    players.data,
-    matchBets.data || [],
-    matchResults.data || [],
-    tBets.data || [],
-    tRes.data
-  );
-  if (lb.every((r) => r.total === 0)) {
-    area.innerHTML = `<div class="card"><p class="muted mb-0">Ingen poeng registrert enda. Stillingen fylles ut etter hvert som resultater legges inn.</p></div>`;
-    return;
-  }
-  area.innerHTML = `
-    <div class="card">
-      <table class="lb-table">
-        <thead>
-          <tr><th>#</th><th>Spiller</th><th class="num">Kamp</th><th class="num">Turn.</th><th class="num">Sum</th></tr>
-        </thead>
-        <tbody>
-          ${lb
-            .map(
-              (r, i) => `
-            <tr class="${r.player.id === me.id ? "you" : ""}">
-              <td>${i + 1}</td>
-              <td>${escapeHtml(r.player.name)}</td>
-              <td class="num">${r.match_points}</td>
-              <td class="num">${r.tournament_points}</td>
-              <td class="num"><strong>${r.total}</strong></td>
-            </tr>`
-            )
-            .join("")}
-        </tbody>
-      </table>
+  const matchCount = matchBets?.length || 0;
+  const hasTournament = !!tBet;
+  wrap.innerHTML = `
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+      <div>
+        <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700;margin-bottom:0.3rem">Kamptipper</div>
+        <div style="font-size:1.4rem;font-weight:700;color:var(--accent)">${matchCount}</div>
+        <a href="matches.html" style="font-size:0.82rem;color:var(--accent);text-decoration:underline">Legg inn tipper →</a>
+      </div>
+      <div>
+        <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700;margin-bottom:0.3rem">Turneringstipper</div>
+        <div style="font-size:1.4rem;font-weight:700;color:${hasTournament ? 'var(--accent)' : 'var(--muted)'}">${hasTournament ? '✓' : '—'}</div>
+        <a href="tournament.html" style="font-size:0.82rem;color:var(--accent);text-decoration:underline">${hasTournament ? 'Endre tipper →' : 'Legg inn tipper →'}</a>
+      </div>
     </div>`;
 }
 
-async function loadUpcoming() {
-  const area = document.getElementById("upcoming-area");
-  try {
-    const matches = await getMatches();
-    // Prioriter live → åpne → ferdige siste 24t
-    const live = matches.filter(isLive);
-    const open = matches.filter(isOpenForBetting).slice(0, 5);
-    const recentDone = matches
-      .filter((m) => m.status === "FINISHED")
-      .filter((m) => Date.now() - new Date(m.utcDate).getTime() < 24 * 3600 * 1000)
-      .slice(0, 3);
-    const list = [...live, ...open, ...recentDone];
-    if (!list.length) {
-      area.innerHTML = `<p class="muted">Ingen kommende eller pågående kamper.</p>`;
-      return;
-    }
-    area.innerHTML = `<div class="match-list">${list
-      .map((m) => {
-        const hf = m.homeTeam.crest ? `<img class="flag" src="${m.homeTeam.crest}" alt="" />` : "";
-        const af = m.awayTeam.crest ? `<img class="flag" src="${m.awayTeam.crest}" alt="" />` : "";
-        const badge = statusBadge(m);
-        const cs = currentScore(m);
-        const score = cs ? ` <strong>${cs.home}–${cs.away}</strong>` : "";
-        return `
-      <a href="match.html?id=${m.id}" class="match-row">
-        <div class="teams">${hf}${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}${af}${score}</div>
-        <div class="meta">
-          <span>${formatKickoff(m.utcDate)}</span>
-          <span class="status ${badge.cls}">${badge.text}</span>
-        </div>
-      </a>`;
-      })
-      .join("")}</div>`;
-  } catch (err) {
-    area.innerHTML = `<div class="alert alert-warning">Kunne ikke hente kamper: ${escapeHtml(err.message)}</div>`;
-  }
-}
+function esc(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[c]);
-}
-
-document.getElementById("export-btn").addEventListener("click", async (e) => {
-  const btn = e.currentTarget;
-  btn.disabled = true;
-  btn.textContent = "Henter data…";
-  try {
-    await exportToExcel({ asUser: me.id });
-  } catch (err) {
-    alert("Eksport feilet: " + err.message);
-  }
-  btn.disabled = false;
-  btn.textContent = "Last ned Excel";
-});
-
-loadLeaderboard();
-loadUpcoming();
+renderLeaderboard();
+renderMyBets();

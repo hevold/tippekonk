@@ -1,52 +1,96 @@
-<!doctype html>
-<html lang="nb">
+<!DOCTYPE html>
+<html lang="no">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kamp — Tippekonk</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#060b16" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Tippekonk" />
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
-  <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tippekonk — Tip kamp</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main class="page">
-    <nav class="nav-bar">
-      <a href="dashboard.html">Hjem</a>
-      <a href="gruppespill.html">Gruppespill</a>
-      <a href="sluttspill.html">Sluttspill</a>
-      <a href="matches.html" class="active">Kamper</a>
-      <a href="tournament.html">Turnering</a>
-      <a href="admin.html" id="admin-link" class="hidden">Admin</a>
-    </nav>
-    <div class="nav-meta">
-      <span id="hello">Hei</span>
-      <button class="btn-link" id="logout">Logg ut</button>
+  <div class="page">
+    <div class="topbar">
+      <a class="topbar-logo" href="dashboard.html">Tippekonk ⚽</a>
+      <a href="matches.html" class="btn btn-ghost btn-sm">← Tilbake</a>
     </div>
 
-    <div id="match-header" class="mb-2">
-      <span class="spinner"></span>
+    <div id="loading-state" class="loading-state">
+      <div class="spinner"></div>
+      Laster kamp…
     </div>
 
-    <div id="alert-area"></div>
+    <div id="match-content" class="hidden">
+      <div class="card">
+        <div class="match-header">
+          <div class="match-vs" id="match-vs">–</div>
+          <div class="match-when" id="match-when"></div>
+        </div>
 
-    <div id="match-form-area">
-      <span class="spinner"></span>
+        <form class="form-body" id="bet-form">
+          <div class="section-label">Mål</div>
+          <div class="grid-2">
+            <div class="field">
+              <label id="label-home">Hjemmelag mål <span class="pts-badge">3p</span></label>
+              <input id="home-goals" type="number" min="0" max="20" placeholder="0">
+            </div>
+            <div class="field">
+              <label id="label-away">Bortelag mål <span class="pts-badge">3p</span></label>
+              <input id="away-goals" type="number" min="0" max="20" placeholder="0">
+            </div>
+          </div>
+
+          <div class="section-label">Første målscorer <span class="pts-badge">3p</span></div>
+          <div class="field">
+            <label for="first-scorer">Spillernavn (fullt navn)</label>
+            <input id="first-scorer" type="text" placeholder="F.eks. Erling Haaland">
+          </div>
+
+          <div class="section-label">Gule kort <span class="pts-badge">3p / 1p</span></div>
+          <div class="grid-2">
+            <div class="field">
+              <label id="label-home-y">Hjemmelag</label>
+              <input id="home-yellow" type="number" min="0" max="11" placeholder="0">
+            </div>
+            <div class="field">
+              <label id="label-away-y">Bortelag</label>
+              <input id="away-yellow" type="number" min="0" max="11" placeholder="0">
+            </div>
+          </div>
+
+          <div class="section-label">Røde kort <span class="pts-badge">3p / 1p</span></div>
+          <div class="grid-2">
+            <div class="field">
+              <label id="label-home-r">Hjemmelag</label>
+              <input id="home-red" type="number" min="0" max="11" placeholder="0">
+            </div>
+            <div class="field">
+              <label id="label-away-r">Bortelag</label>
+              <input id="away-red" type="number" min="0" max="11" placeholder="0">
+            </div>
+          </div>
+
+          <div id="bet-alert" class="alert alert-error hidden"></div>
+          <div id="bet-success" class="alert alert-success hidden">Tipset er lagret ✓</div>
+
+          <button type="submit" class="btn btn-primary" id="submit-btn">Lagre tipp</button>
+        </form>
+      </div>
+
+      <p class="text-muted text-center mt-2" style="font-size:0.8rem">
+        Eksakt = 3 poeng · ±1 = 1 poeng
+      </p>
     </div>
 
-    <div id="match-result-area"></div>
-
-    <h2>Andres tipp</h2>
-    <div id="others-area">
-      <span class="spinner"></span>
+    <div id="closed-state" class="hidden">
+      <div class="card">
+        <div class="card-body text-center">
+          <p class="text-muted">Tipping er stengt for denne kampen.</p>
+          <a href="matches.html" class="btn btn-ghost btn-sm mt-2">← Tilbake til kamper</a>
+        </div>
+      </div>
     </div>
-  </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script type="module" src="js/match.js"></script>
 </body>
 </html>
