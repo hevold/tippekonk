@@ -84,6 +84,7 @@ async function loadUpcoming() {
       area.innerHTML = `<p class="muted">Ingen kommende eller pågående kamper.</p>`;
       return;
     }
+    const liveIds = new Set(live.map((m) => m.id));
     area.innerHTML = `<div class="match-list">${list
       .map((m) => {
         const hf = m.homeTeam.crest ? `<img class="flag" src="${m.homeTeam.crest}" alt="" />` : "";
@@ -91,6 +92,12 @@ async function loadUpcoming() {
         const badge = statusBadge(m);
         const cs = currentScore(m);
         const score = cs ? ` <strong>${cs.home}–${cs.away}</strong>` : "";
+        // For kamper som pågår: vindu under kampboksen med alles tipp
+        const liveBets = liveIds.has(m.id)
+          ? `<div class="card live-bets" data-live-bets="${m.id}" style="margin:2px 0 10px; padding:10px 14px;">
+               <span class="muted"><span class="spinner"></span> Henter tipp…</span>
+             </div>`
+          : "";
         return `
       <a href="match.html?id=${m.id}" class="match-row">
         <div class="teams">${hf}${escapeHtml(teamNo(m.homeTeam))} – ${escapeHtml(teamNo(m.awayTeam))}${af}${score}</div>
@@ -98,11 +105,52 @@ async function loadUpcoming() {
           <span>${formatKickoff(m.utcDate)}</span>
           <span class="status ${badge.cls}">${badge.text}</span>
         </div>
-      </a>`;
+      </a>${liveBets}`;
       })
       .join("")}</div>`;
+    renderLiveBets(live);
   } catch (err) {
     area.innerHTML = `<div class="alert alert-warning">Kunne ikke hente kamper: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// Henter og viser alles tipp for pågående kamper. Trygt å vise — tippefristen
+// er ute i det kampen har startet (se isOpenForBetting).
+async function renderLiveBets(liveMatches) {
+  if (!liveMatches.length) return;
+  const ids = liveMatches.map((m) => m.id);
+  const [bets, players] = await Promise.all([
+    supabase.from("tk_match_bets").select("player_id, match_id, home_goals, away_goals").in("match_id", ids),
+    supabase.from("tk_players").select("id, name"),
+  ]);
+  const nameById = new Map((players.data || []).map((p) => [p.id, p.name]));
+  for (const m of liveMatches) {
+    const el = document.querySelector(`[data-live-bets="${m.id}"]`);
+    if (!el) continue;
+    if (bets.error || players.error) {
+      el.innerHTML = `<span class="muted">Kunne ikke hente tippene.</span>`;
+      continue;
+    }
+    const mBets = (bets.data || [])
+      .filter((b) => b.match_id === m.id && b.home_goals !== null && b.away_goals !== null)
+      .sort((a, b) => (nameById.get(a.player_id) || "").localeCompare(nameById.get(b.player_id) || "", "nb"));
+    if (!mBets.length) {
+      el.innerHTML = `<span class="muted">Ingen tippet på denne kampen.</span>`;
+      continue;
+    }
+    el.innerHTML = `
+      <div class="muted" style="font-size:0.8rem; margin-bottom:6px;">Slik er det tippet</div>
+      ${mBets
+        .map((b) => {
+          const mine = b.player_id === me.id;
+          const name = escapeHtml(nameById.get(b.player_id) || "?");
+          return `
+        <div class="pts-row">
+          <span>${mine ? `<strong>${name} (deg)</strong>` : name}</span>
+          <span><strong>${b.home_goals}–${b.away_goals}</strong></span>
+        </div>`;
+        })
+        .join("")}`;
   }
 }
 

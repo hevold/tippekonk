@@ -47,8 +47,33 @@ export async function getTeams() {
   return d.teams || [];
 }
 
+// Odds fra The Odds API via edge-funksjonen "odds" (nøkkel server-side, cache i DB).
+// Returnerer liste av events: { home_team, away_team, commence_time, bookmakers[] }.
+export async function getOdds() {
+  const cacheKey = "odds:all";
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      const obj = JSON.parse(cached);
+      if (Date.now() - obj.t < TTL_MS) return obj.data;
+    } catch {}
+  }
+  const { data, error } = await supabase.functions.invoke("odds", { body: {} });
+  if (error) throw new Error("Odds: " + (error.message || "ukjent feil"));
+  if (data?.error) throw new Error("Odds: " + data.error);
+  const events = data?.events || [];
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), data: events }));
+  } catch {}
+  return events;
+}
+
 export function isOpenForBetting(match) {
-  return match.status === "SCHEDULED" || match.status === "TIMED";
+  // Stenger i det øyeblikket kampen starter (avspark) — også hvis status fra
+  // football-data henger etter og fortsatt sier SCHEDULED/TIMED.
+  const notStarted = match.status === "SCHEDULED" || match.status === "TIMED";
+  const beforeKickoff = new Date(match.utcDate).getTime() > Date.now();
+  return notStarted && beforeKickoff;
 }
 
 export function isLive(match) {
@@ -70,6 +95,10 @@ export function currentScore(match) {
 }
 
 export function statusBadge(match) {
+  // "Tipp åpen" skal aldri vises etter avspark, selv med hengende status.
+  if ((match.status === "SCHEDULED" || match.status === "TIMED") && !isOpenForBetting(match)) {
+    return { text: "Stengt", cls: "status-done" };
+  }
   switch (match.status) {
     case "IN_PLAY": return { text: "Live", cls: "status-live" };
     case "PAUSED": return { text: "Pause", cls: "status-live" };

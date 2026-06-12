@@ -1,7 +1,7 @@
 // Enkeltkamp: tipp + se andres tipp + resultat.
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
-import { getMatch, formatKickoff, isOpenForBetting } from "./football.js";
+import { getMatch, formatKickoff, isOpenForBetting, getOdds } from "./football.js";
 import { teamNo } from "./teams-no.js";
 import { scoreMatchBet, MATCH_FIELDS } from "./scoring.js";
 
@@ -104,6 +104,9 @@ async function load() {
     `;
   }
 
+  // Odds — pynt, skal aldri knekke siden
+  renderOdds(match);
+
   // Andres tipp — vis bare etter at tippet er stengt
   const othersArea = document.getElementById("others-area");
   if (open) {
@@ -124,6 +127,72 @@ async function load() {
         }).join("")}
       </div>
     `;
+  }
+}
+
+// ============ Odds (1X2) fra tre bettingselskaper ============
+function normName(s) {
+  return String(s || "").toLowerCase().replace(/[^a-zæøå]/g, "");
+}
+
+function findOddsEvent(events, match) {
+  const h = normName(match.homeTeam.name);
+  const a = normName(match.awayTeam.name);
+  const t = new Date(match.utcDate).getTime();
+  return events.find((e) => {
+    const eh = normName(e.home_team);
+    const ea = normName(e.away_team);
+    const namesOk = (eh.includes(h) || h.includes(eh)) && (ea.includes(a) || a.includes(ea));
+    const timeOk = Math.abs(new Date(e.commence_time).getTime() - t) < 24 * 3600 * 1000;
+    return namesOk && timeOk;
+  });
+}
+
+function fmtOdds(v) {
+  return v ? Number(v).toFixed(2) : "—";
+}
+
+async function renderOdds(match) {
+  const area = document.getElementById("odds-area");
+  if (!area) return;
+  if (match.status === "FINISHED") {
+    area.innerHTML = "";
+    return;
+  }
+  try {
+    const events = await getOdds();
+    const ev = findOddsEvent(events, match);
+    if (!ev || !ev.bookmakers?.length) {
+      area.innerHTML = "";
+      return;
+    }
+    const rows = ev.bookmakers
+      .map((b) => {
+        const o = { H: null, U: null, B: null };
+        for (const out of b.outcomes || []) {
+          if (normName(out.name) === normName(ev.home_team)) o.H = out.price;
+          else if (normName(out.name) === normName(ev.away_team)) o.B = out.price;
+          else o.U = out.price; // "Draw"
+        }
+        return `<tr>
+          <td>${escapeHtml(b.title)}</td>
+          <td class="num">${fmtOdds(o.H)}</td>
+          <td class="num">${fmtOdds(o.U)}</td>
+          <td class="num">${fmtOdds(o.B)}</td>
+        </tr>`;
+      })
+      .join("");
+    area.innerHTML = `
+      <h2>Odds (1X2)</h2>
+      <div class="card">
+        <table class="lb-table">
+          <thead><tr><th>Selskap</th><th class="num">H</th><th class="num">U</th><th class="num">B</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p class="muted" style="font-size:0.78rem; margin:8px 0 0;">Kilde: The Odds API · oppdateres ca. hver 2. time · kun til underholdning</p>
+      </div>`;
+  } catch {
+    area.innerHTML = "";
   }
 }
 
@@ -182,6 +251,12 @@ function renderForm(area, bet, match) {
 
   document.getElementById("bet-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    // Vakt: kampen kan ha startet mens skjemaet sto åpent. Frist = avspark.
+    if (!isOpenForBetting(match)) {
+      showAlert("error", "Tippefristen er ute — kampen har startet.");
+      load();
+      return;
+    }
     const payload = {
       player_id: me.id,
       match_id: matchId,
