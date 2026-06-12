@@ -2,7 +2,7 @@
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
 import { getMatch, formatKickoff, isOpenForBetting, getOdds } from "./football.js";
-import { teamNo } from "./teams-no.js";
+import { teamNo, teamTla } from "./teams-no.js";
 import { scoreMatchBet, MATCH_FIELDS } from "./scoring.js";
 
 const me = requireAuth();
@@ -131,20 +131,19 @@ async function load() {
 }
 
 // ============ Odds (1X2) fra tre bettingselskaper ============
-function normName(s) {
-  return String(s || "").toLowerCase().replace(/[^a-zæøå]/g, "");
-}
-
+// football-data og The Odds API staver flere lag ulikt ("United States" vs
+// "USA", "Congo DR" vs "DR Congo", "Czechia" vs "Czech Republic", …).
+// All navnematching går derfor via teamTla() i teams-no.js, som slår opp
+// alle kjente varianter (engelsk, norsk, shortName, TLA) og returnerer
+// FIFA-koden. To lag er samme lag hvis og bare hvis TLA-ene er like.
 function findOddsEvent(events, match) {
-  const h = normName(match.homeTeam.name);
-  const a = normName(match.awayTeam.name);
+  const h = teamTla(match.homeTeam);
+  const a = teamTla(match.awayTeam);
+  if (!h || !a) return undefined;
   const t = new Date(match.utcDate).getTime();
   return events.find((e) => {
-    const eh = normName(e.home_team);
-    const ea = normName(e.away_team);
-    const namesOk = (eh.includes(h) || h.includes(eh)) && (ea.includes(a) || a.includes(ea));
     const timeOk = Math.abs(new Date(e.commence_time).getTime() - t) < 24 * 3600 * 1000;
-    return namesOk && timeOk;
+    return timeOk && teamTla(e.home_team) === h && teamTla(e.away_team) === a;
   });
 }
 
@@ -169,10 +168,13 @@ async function renderOdds(match) {
     const rows = ev.bookmakers
       .map((b) => {
         const o = { H: null, U: null, B: null };
+        const homeTla = teamTla(ev.home_team);
+        const awayTla = teamTla(ev.away_team);
         for (const out of b.outcomes || []) {
-          if (normName(out.name) === normName(ev.home_team)) o.H = out.price;
-          else if (normName(out.name) === normName(ev.away_team)) o.B = out.price;
-          else o.U = out.price; // "Draw"
+          const outTla = teamTla(out.name);
+          if (outTla && outTla === homeTla) o.H = out.price;
+          else if (outTla && outTla === awayTla) o.B = out.price;
+          else o.U = out.price; // "Draw" (eller ukjent navn)
         }
         return `<tr>
           <td>${escapeHtml(b.title)}</td>
