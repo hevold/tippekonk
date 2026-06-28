@@ -1,94 +1,162 @@
-// Standard 32-lag knockout bracket. FIFA har ikke publisert spillplanen for VM 2026 enda,
-// så vi bruker en seeded bracket: 1v32, 16v17, 8v25 osv. Slik at vinner av M1 møter
-// vinner av M2 i Last_16, vinner av M1/M2 møter vinner av M3/M4 i kvart, osv.
+// VM 2026-sluttspilltre (FIFA-kampnummer 73–104).
 //
-// Pairings basert på standard tournament bracket struktur:
-//   QF1 = vinner(L16-1) vs vinner(L16-2)
-//   L16-1 = vinner(L32-1) vs vinner(L32-2)
-//   L32-1 = seed 1 vs seed 32
-//   L32-2 = seed 16 vs seed 17
+// TIDLIGERE: generisk seeded bracket (1v32, 16v17 …) fordi FIFAs spillplan ikke
+// var publisert. Lagene ble fylt fra hver spillers gruppespilltipp → feil lag.
+//
+// NÅ: R32-lagene hentes fra de FAKTISKE football-data-kampene. Treet (hvem som
+// møter hvem i neste runde) følger FIFAs offisielle oppsett — IKKE kronologisk
+// rekkefølge. Eks: åttendedel M89 = vinner(M74) v vinner(M77), ikke M73 v M74.
+//
+// VERIFISERT mot FIFA/Wikipedia (28.06.2026):
+//   • R32-malen (kamp 73–88) og R16-koblingen (89–96).
+// ANTAKELSER (sjekk mot football-data når lagene er fylt inn):
+//   • M84: Spanias motstander = toer gruppe J = Østerrike (uavgjort Algerie–
+//     Østerrike → Østerrike 2. på målforskjell). Algerie = 3J.
+//   • M85: Sveits' motstander = 3. plass fra gruppe G eller J (football-data
+//     har fasiten via FIFAs kombinasjonstabell).
+//   • QF/SF/finale (97–104): standard sammenkobling av påfølgende kamper.
+//
+// Lagene vises uansett riktig: tar football-datas homeTeam/awayTeam når de
+// finnes (gir riktig draktmerke + match_id for lagring/poeng), ellers fallback-
+// navnet under. Matcher riktig kamp via anchor-laget (robust mot navnevarianter
+// som Elfenbenskysten/Côte d'Ivoire, USA/United States, DR Kongo/Congo DR).
 
-const L32_SEEDS = [
-  [1, 32], [16, 17], [8, 25], [9, 24],
-  [4, 29], [13, 20], [5, 28], [12, 21],
-  [2, 31], [15, 18], [7, 26], [10, 23],
-  [3, 30], [14, 19], [6, 27], [11, 22],
+import { teamTla } from "./teams-no.js";
+
+// id = FIFA-kampnr. anchor = TLA på ett lag vi vet er i kampen (for å finne
+// riktig football-data-kamp). fb = [hjemme, borte] fallback-visningsnavn.
+const R32 = [
+  { id: "M73", anchor: "RSA", fb: ["Sør-Afrika", "Canada"] },
+  { id: "M74", anchor: "GER", fb: ["Tyskland", "Paraguay"] },
+  { id: "M75", anchor: "NED", fb: ["Nederland", "Marokko"] },
+  { id: "M76", anchor: "BRA", fb: ["Brasil", "Japan"] },
+  { id: "M77", anchor: "FRA", fb: ["Frankrike", "Sverige"] },
+  { id: "M78", anchor: "NOR", fb: ["Elfenbenskysten", "Norge"] },
+  { id: "M79", anchor: "MEX", fb: ["Mexico", "Ecuador"] },
+  { id: "M80", anchor: "ENG", fb: ["England", "DR Kongo"] },
+  { id: "M81", anchor: "BIH", fb: ["USA", "Bosnia-Hercegovina"] },
+  { id: "M82", anchor: "BEL", fb: ["Belgia", "Senegal"] },
+  { id: "M83", anchor: "COL", fb: ["Colombia", "Ghana"] },
+  { id: "M84", anchor: "ESP", fb: ["Spania", "Østerrike"] },
+  { id: "M85", anchor: "SUI", fb: ["Sveits", "3. plass G/J"] },
+  { id: "M86", anchor: "ARG", fb: ["Argentina", "Kapp Verde"] },
+  { id: "M87", anchor: "POR", fb: ["Portugal", "Kroatia"] },
+  { id: "M88", anchor: "EGY", fb: ["Australia", "Egypt"] },
 ];
 
-// Returns: array of 16 matches { id: 'L32-1', round: 'LAST_32', home, away, slot }
-// `home` og `away` er team-objekter (med .tla, .name, .crest) eller null.
-// Qualifier-metadata (seed, group, position) brukes bare til seeding — droppes etter.
-export function buildLast32(seededQualifiers) {
-  const bySeed = new Map(seededQualifiers.map((q) => [q.seed, q]));
-  return L32_SEEDS.map(([h, a], i) => ({
-    id: `L32-${i + 1}`,
-    round: "LAST_32",
-    home: bySeed.get(h)?.team || null,
-    away: bySeed.get(a)?.team || null,
-    homeSeed: h,
-    awaySeed: a,
-    slot: i,
-  }));
+// Treet videre: destinasjon → [kilde A, kilde B]
+const WIRING = {
+  // Åttendedelsfinaler (R16) — verifisert mot FIFA
+  M89: ["M74", "M77"], M90: ["M73", "M75"],
+  M91: ["M76", "M78"], M92: ["M79", "M80"],
+  M93: ["M83", "M84"], M94: ["M81", "M82"],
+  M95: ["M86", "M88"], M96: ["M85", "M87"],
+  // Kvartfinaler
+  M97: ["M89", "M90"], M98: ["M91", "M92"],
+  M99: ["M93", "M94"], M100: ["M95", "M96"],
+  // Semifinaler
+  M101: ["M97", "M98"], M102: ["M99", "M100"],
+};
+const R16_IDS = ["M89", "M90", "M91", "M92", "M93", "M94", "M95", "M96"];
+const QF_IDS = ["M97", "M98", "M99", "M100"];
+const SF_IDS = ["M101", "M102"];
+
+function fbTeam(name) {
+  return name ? { name, _fallback: true } : null;
 }
 
-// Bygger en runde basert på vinnere fra forrige.
-// `winners` er array av { matchId, winner: 'HOME'|'AWAY' } eller null hvis ikke valgt.
-function buildNextRound(prevMatches, winners, roundName, prefix) {
-  const winnerByMatch = new Map(winners.map((w) => [w.matchId, w]));
-  const out = [];
-  for (let i = 0; i < prevMatches.length; i += 2) {
-    const m1 = prevMatches[i];
-    const m2 = prevMatches[i + 1];
-    const w1 = winnerByMatch.get(m1.id);
-    const w2 = winnerByMatch.get(m2.id);
-    out.push({
-      id: `${prefix}-${out.length + 1}`,
-      round: roundName,
-      home: w1 ? (w1.winner === "HOME" ? m1.home : m1.away) : null,
-      away: w2 ? (w2.winner === "HOME" ? m2.home : m2.away) : null,
-      slot: out.length,
-      sourceMatches: [m1.id, m2.id],
+// Bygger R32 fra de faktiske football-data-kampene (stage LAST_32).
+// Matcher hver slot til kampen som inneholder anchor-laget.
+export function buildLast32(fdMatches) {
+  const list = fdMatches || [];
+  const used = new Set();
+  return R32.map((slot, i) => {
+    const fd = list.find((m) => {
+      if (used.has(m.id)) return false;
+      return teamTla(m.homeTeam) === slot.anchor || teamTla(m.awayTeam) === slot.anchor;
     });
-  }
-  return out;
+    if (fd) used.add(fd.id);
+    return {
+      id: slot.id,
+      round: "LAST_32",
+      home: fd?.homeTeam || fbTeam(slot.fb[0]),
+      away: fd?.awayTeam || fbTeam(slot.fb[1]),
+      slot: i,
+      match: fd || null,
+      fdMatchId: fd?.id || null,
+    };
+  });
+}
+
+// Generisk runde-bygger basert på eksplisitt WIRING.
+function buildRound(prevMatches, winners, ids, roundName) {
+  const byId = new Map(prevMatches.map((m) => [m.id, m]));
+  const winnerById = new Map(winners.map((w) => [w.matchId, w]));
+  const pick = (id) => {
+    const m = byId.get(id);
+    const w = winnerById.get(id);
+    if (!m || !w) return null;
+    return w.winner === "HOME" ? m.home : m.away;
+  };
+  return ids.map((id, i) => {
+    const [a, b] = WIRING[id];
+    return {
+      id,
+      round: roundName,
+      slot: i,
+      home: pick(a),
+      away: pick(b),
+      sourceMatches: [a, b],
+    };
+  });
 }
 
 export function buildLast16(last32, winners) {
-  return buildNextRound(last32, winners, "LAST_16", "L16");
+  return buildRound(last32, winners, R16_IDS, "LAST_16");
 }
-
 export function buildQuarters(last16, winners) {
-  return buildNextRound(last16, winners, "QUARTER_FINALS", "QF");
+  return buildRound(last16, winners, QF_IDS, "QUARTER_FINALS");
 }
-
 export function buildSemis(quarters, winners) {
-  return buildNextRound(quarters, winners, "SEMI_FINALS", "SF");
+  return buildRound(quarters, winners, SF_IDS, "SEMI_FINALS");
 }
 
-// Finale + bronse — bronse er taperne av semis
 export function buildFinal(semis, winners) {
-  const winnerByMatch = new Map(winners.map((w) => [w.matchId, w]));
-  const w1 = winnerByMatch.get(semis[0]?.id);
-  const w2 = winnerByMatch.get(semis[1]?.id);
+  const byId = new Map(semis.map((m) => [m.id, m]));
+  const winnerById = new Map(winners.map((w) => [w.matchId, w]));
+  const pick = (id) => {
+    const m = byId.get(id);
+    const w = winnerById.get(id);
+    if (!m || !w) return null;
+    return w.winner === "HOME" ? m.home : m.away;
+  };
   return [{
-    id: "FINAL-1",
+    id: "M104",
     round: "FINAL",
-    home: w1 ? (w1.winner === "HOME" ? semis[0].home : semis[0].away) : null,
-    away: w2 ? (w2.winner === "HOME" ? semis[1].home : semis[1].away) : null,
     slot: 0,
+    home: pick("M101"),
+    away: pick("M102"),
+    sourceMatches: ["M101", "M102"],
   }];
 }
 
+// Bronsefinale — taperne av semifinalene
 export function buildThirdPlace(semis, winners) {
-  const winnerByMatch = new Map(winners.map((w) => [w.matchId, w]));
-  const w1 = winnerByMatch.get(semis[0]?.id);
-  const w2 = winnerByMatch.get(semis[1]?.id);
+  const byId = new Map(semis.map((m) => [m.id, m]));
+  const winnerById = new Map(winners.map((w) => [w.matchId, w]));
+  const loser = (id) => {
+    const m = byId.get(id);
+    const w = winnerById.get(id);
+    if (!m || !w) return null;
+    return w.winner === "HOME" ? m.away : m.home;
+  };
   return [{
-    id: "THIRD-1",
+    id: "M103",
     round: "THIRD_PLACE",
-    home: w1 ? (w1.winner === "HOME" ? semis[0].away : semis[0].home) : null,
-    away: w2 ? (w2.winner === "HOME" ? semis[1].away : semis[1].home) : null,
     slot: 0,
+    home: loser("M101"),
+    away: loser("M102"),
+    sourceMatches: ["M101", "M102"],
   }];
 }
 
