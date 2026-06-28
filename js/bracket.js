@@ -38,7 +38,7 @@ const R32 = [
   { id: "M82", anchor: "BEL", fb: ["Belgia", "Senegal"] },
   { id: "M83", anchor: "COL", fb: ["Colombia", "Ghana"] },
   { id: "M84", anchor: "ESP", fb: ["Spania", "Østerrike"] },
-  { id: "M85", anchor: "SUI", fb: ["Sveits", "3. plass G/J"] },
+  { id: "M85", anchor: "SUI", fb: ["Sveits", "Algerie"] },
   { id: "M86", anchor: "ARG", fb: ["Argentina", "Kapp Verde"] },
   { id: "M87", anchor: "POR", fb: ["Portugal", "Kroatia"] },
   { id: "M88", anchor: "EGY", fb: ["Australia", "Egypt"] },
