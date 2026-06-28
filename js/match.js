@@ -204,12 +204,6 @@ function renderBetReadonly(bet) {
       <span class="label">Ditt tipp</span>
       <strong>${bet.home_goals ?? "—"} – ${bet.away_goals ?? "—"}</strong>
     </div>
-    ${bet.winner ? `
-      <div class="pts-row">
-        <span class="label">Du tippet videre</span>
-        <span>${bet.winner === "HOME" ? "Hjemme" : "Borte"}</span>
-      </div>
-    ` : ""}
   </div>`;
 }
 
@@ -228,28 +222,9 @@ function renderForm(area, bet, match) {
           <input id="away_goals" type="number" min="0" value="${bet?.away_goals ?? ""}" />
         </div>
       </div>
-      ${isKnockout ? `
-      <div class="field">
-        <label>Hvem går videre <span class="muted">(kun for bracket — gir ingen poeng)</span></label>
-        <div class="toggle-group">
-          <button type="button" data-winner="HOME" ${bet?.winner === "HOME" ? 'class="active"' : ""}>Hjemme</button>
-          <button type="button" data-winner="AWAY" ${bet?.winner === "AWAY" ? 'class="active"' : ""}>Borte</button>
-        </div>
-        <input type="hidden" id="winner" value="${escapeHtml(bet?.winner ?? "")}" />
-      </div>` : ""}
       <button class="btn" type="submit">${bet ? "Oppdater tipp" : "Lagre tipp"}</button>
     </form>
   `;
-
-  // Toggle for vinner i sluttspill
-  area.querySelectorAll("[data-winner]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      area.querySelectorAll("[data-winner]").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      const w = document.getElementById("winner");
-      if (w) w.value = btn.dataset.winner;
-    });
-  });
 
   document.getElementById("bet-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -266,10 +241,6 @@ function renderForm(area, bet, match) {
       away_goals: numOrNull("away_goals"),
       updated_at: new Date().toISOString(),
     };
-    const winnerEl = document.getElementById("winner");
-    if (winnerEl) {
-      payload.winner = winnerEl.value || null;
-    }
     const { error } = await supabase
       .from("tk_match_bets")
       .upsert(payload, { onConflict: "player_id,match_id" });
