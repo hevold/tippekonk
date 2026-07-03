@@ -82,13 +82,33 @@ async function load() {
   const resArea = document.getElementById("match-result-area");
   if (result.data) {
     const score = bet ? scoreMatchBet(bet, result.data) : null;
+    // Sluttspill scores på ordinær tid, men kampen kan ha endt annerledes etter
+    // ekstraomganger/straffer — vis hele det ferdige resultatet fra API-et også,
+    // ellers ser det lagrede (poenggivende) resultatet ut som en feil.
+    const knockout = match.stage && match.stage !== "GROUP_STAGE";
+    const ft = match.score?.fullTime;
+    const pen = match.score?.penalties;
+    // regularTime settes bare av football-data når kampen gikk til ekstraomganger
+    const wentExtra = knockout && match.score?.regularTime?.home != null;
+    const extraRows = [];
+    if (wentExtra && ft?.home != null) extraRows.push(["Etter ekstraomganger", `${ft.home} – ${ft.away}`]);
+    if (pen?.home != null) extraRows.push(["Straffespark", `${pen.home} – ${pen.away}`]);
+    if (knockout && result.data.winner) {
+      const adv = result.data.winner === "HOME" ? match.homeTeam : match.awayTeam;
+      extraRows.push(["Videre", teamNo(adv)]);
+    }
     resArea.innerHTML = `
       <h2>Resultat</h2>
       <div class="card">
         <div class="pts-row">
-          <span class="label">Sluttresultat</span>
+          <span class="label">${knockout ? "Etter ordinær tid (gir poeng)" : "Sluttresultat"}</span>
           <strong>${result.data.home_goals ?? "—"} – ${result.data.away_goals ?? "—"}</strong>
         </div>
+        ${extraRows.map(([label, val]) => `
+        <div class="pts-row">
+          <span class="label">${escapeHtml(label)}</span>
+          <strong>${escapeHtml(val)}</strong>
+        </div>`).join("")}
         ${score ? `
           <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
           ${score.breakdown.map(b => `

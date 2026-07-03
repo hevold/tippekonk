@@ -108,7 +108,9 @@ function bracketRow(b, side, s, isPlaceholder, time) {
   const team = side === "home" ? b.home : b.away;
   const val = s[`${side}_goals`];
   const empty = val === null || val === undefined;
-  const open = !s.locked && !isPlaceholder && team;
+  // Uten fdMatchId kan tippet ikke lagres (save() krever ekte kamp-ID) —
+  // da skal det heller ikke gå an å taste inn noe som stille forsvinner.
+  const open = !s.locked && !isPlaceholder && team && s.fdMatchId;
   return `
     <div class="gs-team-row">
       <span class="time">${time || ""}</span>
@@ -129,7 +131,7 @@ function bracketMatch(b) {
   const time = s.match ? fmtTimeShort(s.match.utcDate) : "";
   const meta = s.match
     ? fmtFull(s.match.utcDate)
-    : (homeOK && awayOK ? "Tid ikke satt" : "Avventer forrige runde");
+    : (homeOK && awayOK ? "Venter på kampoppsett — kan ikke tippes ennå" : "Avventer forrige runde");
   return `
     <div class="gs-match${s.locked ? " locked" : ""}${isDirty(s) ? " changed" : ""}" data-slot-id="${b.id}">
       <div class="gs-match-meta">${escapeHtml(meta)}${s.locked ? " · stengt" : ""}</div>
@@ -460,9 +462,13 @@ async function load() {
 
 async function save() {
   const dirty = [];
+  // Tipp uten ekte match-ID kan ikke lagres. Det skal ikke lenger kunne
+  // oppstå (stepperne er deaktivert), men om det skjer: SI FRA — et stille
+  // dropp her har tidligere kostet spillere tipp de trodde var lagret.
+  let unsavable = 0;
   for (const [, s] of state) {
     if (!isDirty(s) || s.locked) continue;
-    if (!s.fdMatchId) continue; // kan ikke lagre uten faktisk match-ID
+    if (!s.fdMatchId) { unsavable++; continue; }
     dirty.push({
       player_id: me.id,
       match_id: s.fdMatchId,
@@ -471,7 +477,12 @@ async function save() {
       updated_at: new Date().toISOString(),
     });
   }
-  if (!dirty.length) return;
+  if (!dirty.length) {
+    if (unsavable) {
+      showAlert("warning", `${unsavable} tipp kan ikke lagres ennå — kampen mangler i kampoppsettet fra football-data. Prøv igjen senere.`);
+    }
+    return;
+  }
 
   const btn = document.getElementById("save-btn");
   btn.disabled = true;
@@ -500,7 +511,11 @@ async function save() {
   btn.textContent = "Lagre tipp";
   render();
   updateSaveBar();
-  showAlert("success", `Lagret ${dirty.length} tipp.`);
+  if (unsavable) {
+    showAlert("warning", `Lagret ${dirty.length} tipp, men ${unsavable} kunne IKKE lagres — kampen mangler i kampoppsettet ennå. Prøv igjen senere.`);
+  } else {
+    showAlert("success", `Lagret ${dirty.length} tipp.`);
+  }
 }
 
 document.getElementById("save-btn").addEventListener("click", save);
