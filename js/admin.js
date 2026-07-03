@@ -70,7 +70,12 @@ async function renderMatches() {
     <div class="match-list" id="adm-match-list">
       ${matches.map((m) => {
         const r = resultByMatch.get(m.id);
-        const fs = m.score?.fullTime;
+        // Forslagsverdi når resultat mangler: må være poenggivende 90-minutters
+        // score. fullTime inkluderer ekstraomganger i sluttspill → bruk
+        // regularTime der (samme regel som sync-results).
+        const fs = m.stage !== "GROUP_STAGE"
+          ? (m.score?.regularTime ?? m.score?.fullTime)
+          : m.score?.fullTime;
         return `
           <details>
             <summary class="match-row" style="display:block;">
