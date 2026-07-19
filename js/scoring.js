@@ -58,10 +58,27 @@ function outcomeLabel(o) {
   return "—";
 }
 
-// Turnering — alle eksakte tekstfelt gir 5p. total_goals: ±5 gir 5p.
+// Turnering — riktig tekstfelt gir 5p. total_goals: ±5 gir 5p.
+// Navnematching: ren eksakt tekst er for strengt — «Mbappe» skal matche fasit
+// «Kylian Mbappé». Normaliser (småbokstaver, uten aksenter/tegnsetting) og
+// godta at det korteste navnets ord er et subsett av det lengste. Dermed
+// matcher også «Congo DR» ↔ «DR Congo», men «Kane» matcher aldri «Mbappé».
+function nameTokens(s) {
+  return String(s)
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
 function scoreExactText(bet, actual) {
   if (!bet || !actual) return 0;
-  return String(bet).trim().toLowerCase() === String(actual).trim().toLowerCase() ? 5 : 0;
+  const a = nameTokens(bet), b = nameTokens(actual);
+  if (!a.length || !b.length) return 0;
+  const [short_, long_] = a.length <= b.length ? [a, b] : [b, a];
+  const longSet = new Set(long_);
+  return short_.every((t) => longSet.has(t)) ? 5 : 0;
 }
 
 function scoreBoolean(bet, actual) {
