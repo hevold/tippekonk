@@ -39,9 +39,26 @@ function json(body: unknown, status = 200) {
 
 // 90-minutters score. fullTime fra football-data inkluderer ekstraomganger i
 // sluttspill, så der bruker vi regularTime. Gruppespill: fullTime.
+// NB: football-data kan levere regularTime som {home: null, away: null} selv
+// når kampen gikk til ekstraomganger (skjedde i VM-finalen 2026) — et rent
+// `regularTime ?? fullTime` velger da det tomme objektet og kampen hoppes
+// over for alltid. Fall i stedet tilbake til fullTime minus extraTime-målene.
 function ninetyScore(m: any) {
   const knockout = m.stage && m.stage !== "GROUP_STAGE";
-  const s = knockout ? (m.score?.regularTime ?? m.score?.fullTime) : m.score?.fullTime;
+  const ft = m.score?.fullTime;
+  let s = ft;
+  if (knockout) {
+    const rt = m.score?.regularTime;
+    const et = m.score?.extraTime;
+    if (rt?.home != null && rt?.away != null) {
+      s = rt;
+    } else if (
+      m.score?.duration && m.score.duration !== "REGULAR" &&
+      ft?.home != null && et?.home != null && et?.away != null
+    ) {
+      s = { home: ft.home - et.home, away: ft.away - et.away };
+    }
+  }
   return {
     knockout,
     home: s?.home ?? null,
