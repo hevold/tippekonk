@@ -2,7 +2,7 @@
 import { requireAuth, clearSession } from "./auth.js";
 import { supabase } from "./client.js";
 import { scoreTournamentBet, TOURNAMENT_FIELDS } from "./scoring.js";
-import { getTeams } from "./football.js";
+import { getTeams, getMatches } from "./football.js";
 
 const me = requireAuth();
 if (!me) throw new Error("no auth");
@@ -32,17 +32,25 @@ function showAlert(type, msg) {
 let teams = [];
 
 async function load() {
-  const [bet, result, allBets, players, teamsRes] = await Promise.all([
+  const [bet, result, allBets, players, teamsRes, matchesRes] = await Promise.all([
     supabase.from("tk_tournament_bets").select("*").eq("player_id", me.id).maybeSingle(),
     supabase.from("tk_tournament_results").select("*").limit(1).maybeSingle(),
     supabase.from("tk_tournament_bets").select("*"),
     supabase.from("tk_players").select("id, name"),
     getTeams().catch(() => []),
+    getMatches().catch(() => []),
   ]);
   teams = teamsRes;
 
-  // Hvis resultat er publisert: lås tipp og vis resultat.
-  const locked = !!result.data;
+  // Lås når resultatet er publisert ELLER turneringen er i gang — frist er
+  // første avspark, samme prinsipp som kamptipping. Uten dette kunne
+  // turneringstipp endres helt til fasit ble publisert (skjedde faktisk
+  // midt i VM-finalen 2026).
+  const firstKickoff = (matchesRes || [])
+    .map((m) => new Date(m.utcDate).getTime())
+    .reduce((a, b) => Math.min(a, b), Infinity);
+  const started = firstKickoff !== Infinity && Date.now() >= firstKickoff;
+  const locked = !!result.data || started;
   renderForm(bet.data, locked);
   if (result.data) {
     renderResult(result.data, bet.data);
@@ -56,7 +64,7 @@ async function load() {
   const others = (allBets.data || []).filter((b) => b.player_id !== me.id);
   const othersArea = document.getElementById("others-area");
   if (!locked) {
-    othersArea.innerHTML = `<p class="muted">Andres turneringstipp vises etter at resultatet er publisert.</p>`;
+    othersArea.innerHTML = `<p class="muted">Andres turneringstipp vises etter at tippefristen er ute (første avspark).</p>`;
   } else if (!others.length) {
     othersArea.innerHTML = `<p class="muted">Ingen andre har tippet turnering.</p>`;
   } else {
@@ -84,7 +92,7 @@ async function load() {
 function renderForm(bet, locked) {
   const area = document.getElementById("form-area");
   if (locked && !bet) {
-    area.innerHTML = `<div class="alert alert-warning">Turneringen er ferdig og du har ikke tippet.</div>`;
+    area.innerHTML = `<div class="alert alert-warning">Tippefristen gikk ut ved første avspark, og du har ikke tippet.</div>`;
     return;
   }
 
