@@ -9,6 +9,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  /** Lets several builds coexist (CI matrices, parallel agents): NEXT_DIST_DIR=.next-foo pnpm build */
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['@electric-sql/pglite', 'sharp', '@node-rs/argon2', 'postgres', 'nodemailer'],

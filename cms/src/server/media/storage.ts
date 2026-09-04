@@ -21,6 +21,7 @@ import { Readable } from 'node:stream';
 import { env } from '@/env';
 
 import { mimeFromKey } from './mime';
+import { s3ObjectUrl } from './urls';
 
 export type StorageObject = {
   body: ReadableStream | Buffer;
@@ -104,7 +105,9 @@ export class LocalStorageAdapter implements StorageAdapter {
     return file;
   }
 
-  async put(key: string, data: Buffer): Promise<void> {
+  async put(key: string, data: Buffer, contentType?: string): Promise<void> {
+    // The content type is derived from the extension when serving; it is only part of the shared interface.
+    void contentType;
     const file = this.pathFor(key);
     await fs.mkdir(path.dirname(file), { recursive: true });
     const tmp = `${file}.${randomBytes(6).toString('hex')}.tmp`;
@@ -261,7 +264,9 @@ export class S3StorageAdapter implements StorageAdapter {
     assertStorageKey(key);
     const [{ GetObjectCommand }, client] = await Promise.all([this.loadSdk(), this.getClient()]);
     try {
-      const res = await client.send(new GetObjectCommand({ Bucket: this.opts.bucket, Key: key, Range: range }));
+      const res = await client.send(
+        new GetObjectCommand({ Bucket: this.opts.bucket, Key: key, Range: range }),
+      );
       if (!res.Body) return null;
       return {
         body: res.Body.transformToWebStream() as ReadableStream,
@@ -284,11 +289,7 @@ export class S3StorageAdapter implements StorageAdapter {
 
   publicUrl(key: string): string {
     assertStorageKey(key);
-    const base = this.opts.publicUrl?.replace(/\/+$/, '');
-    if (base) return `${base}/${key}`;
-    if (this.opts.endpoint) return `${this.opts.endpoint.replace(/\/+$/, '')}/${this.opts.bucket}/${key}`;
-    const region = this.opts.region && this.opts.region !== 'auto' ? `.${this.opts.region}` : '';
-    return `https://${this.opts.bucket}.s3${region}.amazonaws.com/${key}`;
+    return s3ObjectUrl(this.opts, key);
   }
 }
 

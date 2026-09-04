@@ -9,7 +9,13 @@
  */
 import type { MediaKind } from '@/db/schema';
 
-export const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'] as const;
+export const ALLOWED_IMAGE_MIMES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+] as const;
 export const ALLOWED_VIDEO_MIMES = ['video/mp4'] as const;
 export const ALLOWED_AUDIO_MIMES = ['audio/mpeg'] as const;
 export const ALLOWED_DOCUMENT_MIMES = ['application/pdf'] as const;
