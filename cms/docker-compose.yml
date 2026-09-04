@@ -1,0 +1,46 @@
+# Desken — self-hosted with PostgreSQL.
+#   cp .env.example .env && openssl rand -base64 48   # sett APP_SECRET i .env
+#   docker compose up -d --build
+#   docker compose exec app node scripts/seed.cjs      # valgfritt demo-innhold (se DEPLOYMENT.md)
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: desken
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-desken}
+      POSTGRES_DB: desken
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U desken -d desken']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://desken:${POSTGRES_PASSWORD:-desken}@db:5432/desken
+      APP_SECRET: ${APP_SECRET:?Sett APP_SECRET i .env (openssl rand -base64 48)}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      UPLOAD_DIR: /app/data/uploads
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-Desken <no-reply@example.no>}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      AUTO_MIGRATE: 'true'
+      ENABLE_INTERNAL_SCHEDULER: 'true'
+    volumes:
+      - uploads:/app/data
+
+volumes:
+  pgdata:
+  uploads:

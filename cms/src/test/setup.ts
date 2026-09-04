@@ -1,11 +1,12 @@
 /**
  * Vitest global setup. Feature tests that need a database call
- * `await useTestDb()` from '@/test/db' in beforeAll.
+ * `await useTestDb()` from '@/test/db' in beforeAll; the in-memory PGlite
+ * instance is closed here after each test file.
  */
 import { afterAll } from 'vitest';
 
-import { closeDb } from '@/db';
+import { teardownTestDb } from '@/test/db';
 
 afterAll(async () => {
-  await closeDb().catch(() => {});
+  await teardownTestDb().catch(() => {});
 });
