@@ -61,7 +61,7 @@ export function Textarea({
         'bg-surface text-text placeholder:text-subtle flex w-full min-w-0 rounded-md border px-3 py-2 text-[15px] leading-relaxed',
         'border-border shadow-xs transition-colors',
         'hover:border-border-strong',
-        'focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring',
+        'focus-visible:border-ring focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-0',
         'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger',
         'disabled:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-70',
         autoResize ? 'resize-none' : 'resize-y',

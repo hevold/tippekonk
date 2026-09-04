@@ -62,6 +62,11 @@ export type LayoutBlockSettings = {
   variant?: string;
   /** Most-read window in days. */
   days?: number;
+  /**
+   * Restrict auto-fill to an access level. For 'latest' blocks the engine
+   * defaults to 'open' (plus articles only appear when this says 'plus').
+   */
+  access?: 'open' | 'plus';
 };
 
 export type LayoutBlock = {

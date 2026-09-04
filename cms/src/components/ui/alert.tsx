@@ -33,7 +33,16 @@ const defaultIcon: Record<AlertVariant, ReactNode> = {
   danger: <CircleAlert aria-hidden />,
 };
 
-export function Alert({ variant = 'info', title, live, icon, actions, className, children, ...props }: AlertProps) {
+export function Alert({
+  variant = 'info',
+  title,
+  live,
+  icon,
+  actions,
+  className,
+  children,
+  ...props
+}: AlertProps) {
   return (
     <div
       role={live ? 'alert' : undefined}

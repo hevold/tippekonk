@@ -28,9 +28,7 @@ export type MigrationResult = {
 
 async function countApplied(db: Db): Promise<number> {
   try {
-    const rows = await db
-      .select({ n: sql<string>`count(*)` })
-      .from(sql`drizzle.__drizzle_migrations`);
+    const rows = await db.select({ n: sql<string>`count(*)` }).from(sql`drizzle.__drizzle_migrations`);
     return Number(rows[0]?.n ?? 0);
   } catch {
     // The migrations table does not exist yet — nothing has been applied.
@@ -47,7 +45,11 @@ export function migrationsFolder(): string {
  * Run pending migrations against `db` using the migrator for `driver`.
  * Logs and returns how many migrations were applied.
  */
-export async function runMigrations(db: Db, driver: DbDriver, opts: { quiet?: boolean } = {}): Promise<MigrationResult> {
+export async function runMigrations(
+  db: Db,
+  driver: DbDriver,
+  opts: { quiet?: boolean } = {},
+): Promise<MigrationResult> {
   const folder = migrationsFolder();
   const before = await countApplied(db);
 

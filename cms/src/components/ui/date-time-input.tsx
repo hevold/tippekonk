@@ -72,12 +72,16 @@ export function DateTimeInput({
     }
   }
 
-  const describedBy = [aria['aria-describedby'], showHint ? hintId : undefined].filter(Boolean).join(' ') || undefined;
+  const describedBy =
+    [aria['aria-describedby'], showHint ? hintId : undefined].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className={cn('grid gap-1', className)}>
       <div className="relative">
-        <CalendarClock className="text-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden />
+        <CalendarClock
+          className="text-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+          aria-hidden
+        />
         <input
           id={inputId}
           name={name}
@@ -102,7 +106,7 @@ export function DateTimeInput({
               onChange(null);
             }}
             aria-label={t('ui.clear')}
-            className="text-muted hover:text-text hover:bg-surface-2 absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            className="text-muted hover:text-text hover:bg-surface-2 focus-visible:outline-ring absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-1"
           >
             <X className="size-3.5" aria-hidden />
           </button>

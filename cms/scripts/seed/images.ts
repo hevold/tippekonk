@@ -32,11 +32,7 @@ export type GeneratedImage = {
 };
 
 function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function svgFor(spec: ImageSpec): string {
@@ -92,7 +88,10 @@ export async function generateImage(
 
   const variants: Record<string, MediaVariant> = {};
   for (const width of VARIANT_WIDTHS) {
-    const buf = await sharp(original).resize({ width, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+    const buf = await sharp(original)
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
     const meta = await sharp(buf).metadata();
     const key = `${opts.prefix}/${id}-${width}.webp`;
     await writeFile(uploadDir, key, buf);

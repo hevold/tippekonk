@@ -54,7 +54,11 @@ export function TableHead({ className, ...props }: ComponentProps<'th'>) {
 export function TableCell({ className, ...props }: ComponentProps<'td'>) {
   return (
     <td
-      className={cn('px-3 py-2 align-middle', '[&:has([role=checkbox])]:w-8 [&:has([role=checkbox])]:pr-0', className)}
+      className={cn(
+        'px-3 py-2 align-middle',
+        '[&:has([role=checkbox])]:w-8 [&:has([role=checkbox])]:pr-0',
+        className,
+      )}
       {...props}
     />
   );

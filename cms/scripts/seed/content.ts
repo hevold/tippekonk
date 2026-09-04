@@ -3,8 +3,9 @@
  * sections, content types, tags, authors and ~24 articles with rich bodies.
  * Everything here is invented; Elvebyen does not exist.
  */
-import type { ArticleStatus, BylineRole, FieldDef } from '@/db/schema';
+import type { ArticleStatus, BylineRole } from '@/db/schema';
 import type { ContentDoc } from '@/lib/content/types';
+import type { FieldDef } from '@/lib/validation/site';
 
 import {
   blockquote,
@@ -232,7 +233,14 @@ export const CONTENT_TYPES: {
     isDefault: false,
     fields: [
       { key: 'startsAt', label: 'Starter', type: 'datetime', required: true, showInList: true },
-      { key: 'venue', label: 'Sted', type: 'text', required: true, placeholder: 'F.eks. Elvebyen kulturhus', showInList: true },
+      {
+        key: 'venue',
+        label: 'Sted',
+        type: 'text',
+        required: true,
+        placeholder: 'F.eks. Elvebyen kulturhus',
+        showInList: true,
+      },
       { key: 'ticketUrl', label: 'Billettlenke', type: 'url', required: false, showInList: false },
     ],
   },
@@ -301,6 +309,14 @@ export type ArticleSpec = {
 
 const OSLO_TIP = 'tips@elvebyen.no';
 
+/** ISO timestamp `days` days ahead at `hour` (Europe/Oslo, CEST) for event custom fields. */
+function eventStart(days: number, hour: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCHours(hour - 2, 0, 0, 0);
+  return d.toISOString();
+}
+
 export const ARTICLES: ArticleSpec[] = [
   /* ------------------------------------------------------------------ */
   /*  Nyheter                                                            */
@@ -321,24 +337,40 @@ export const ARTICLES: ArticleSpec[] = [
     tags: ['kommunestyret', 'budsjett-2027'],
     bylines: [{ author: 'jonas' }, { author: 'ingrid' }],
     createdBy: 'jonas',
-    seoDescription: 'Kommunestyret i Elvebyen vedtok budsjettet for 2027: ny svømmehall i 2028 og økt eiendomsskatt.',
+    seoDescription:
+      'Kommunestyret i Elvebyen vedtok budsjettet for 2027: ny svømmehall i 2028 og økt eiendomsskatt.',
     revisionTitles: ['Kommunestyret behandler budsjettet', 'Budsjettet vedtatt etter seks timers debatt'],
-    relatedKeys: ['leder-budsjett', 'svommehall'],
+    relatedKeys: ['leder_budsjett', 'svommehall'],
     body: (ctx) =>
       doc(
-        p('Klokka 20.42 torsdag kveld kunne ordfører Kari Brekke (Ap) banke gjennom budsjettet for 2027. Vedtaket kom etter en debatt som startet klokka 15, og som til tider ble så opphetet at ordføreren måtte be representantene om å «senke temperaturen og heve nivået».'),
-        p(['Flertallet bak budsjettet består av Arbeiderpartiet, Senterpartiet og Kristelig Folkeparti. Høyre, Fremskrittspartiet og Elvebyen Bylist stemte imot. ', bold('21 mot 14'), ' ble resultatet.']),
+        p(
+          'Klokka 20.42 torsdag kveld kunne ordfører Kari Brekke (Ap) banke gjennom budsjettet for 2027. Vedtaket kom etter en debatt som startet klokka 15, og som til tider ble så opphetet at ordføreren måtte be representantene om å «senke temperaturen og heve nivået».',
+        ),
+        p([
+          'Flertallet bak budsjettet består av Arbeiderpartiet, Senterpartiet og Kristelig Folkeparti. Høyre, Fremskrittspartiet og Elvebyen Bylist stemte imot. ',
+          bold('21 mot 14'),
+          ' ble resultatet.',
+        ]),
         liveBlogNode(ctx.liveBlogId),
         h2('Svømmehallen kommer i 2028'),
-        p('Det største enkeltprosjektet i budsjettet er en ny svømmehall på Bekkelund, med byggestart høsten 2027 og planlagt åpning i august 2028. Prislappen er 186 millioner kroner, hvorav 40 millioner er forutsatt dekket av spillemidler.'),
+        p(
+          'Det største enkeltprosjektet i budsjettet er en ny svømmehall på Bekkelund, med byggestart høsten 2027 og planlagt åpning i august 2028. Prislappen er 186 millioner kroner, hvorav 40 millioner er forutsatt dekket av spillemidler.',
+        ),
         blockquote(
           '– Dette er en investering i folkehelse og i barna våre. Elvebyen har ventet på en svømmehall siden den gamle ble stengt i 2021, og nå kommer den, sa Brekke fra talerstolen.',
         ),
-        image(ctx.images.raadhus!, { caption: 'Rådhuset i Elvebyen var fullsatt under budsjettdebatten torsdag.' }),
+        image(ctx.images.raadhus!, {
+          caption: 'Rådhuset i Elvebyen var fullsatt under budsjettdebatten torsdag.',
+        }),
         h2('Eiendomsskatten øker'),
-        p('For å finansiere svømmehallen og økte kostnader i eldreomsorgen øker eiendomsskatten fra 2,8 til 4,0 promille. For en bolig med skattegrunnlag på 3 millioner kroner betyr det om lag 3 600 kroner mer i året.'),
+        p(
+          'For å finansiere svømmehallen og økte kostnader i eldreomsorgen øker eiendomsskatten fra 2,8 til 4,0 promille. For en bolig med skattegrunnlag på 3 millioner kroner betyr det om lag 3 600 kroner mer i året.',
+        ),
         p('Høyres gruppeleder Erik Nordvik kalte økningen «et løftebrudd».'),
-        pullquote('Dette er den største skatteøkningen i Elvebyens historie, og den kommer uten at tjenestene blir bedre.', 'Erik Nordvik (H)'),
+        pullquote(
+          'Dette er den største skatteøkningen i Elvebyens historie, og den kommer uten at tjenestene blir bedre.',
+          'Erik Nordvik (H)',
+        ),
         factbox(
           'Dette er hovedpunktene i budsjettet',
           ul([
@@ -356,8 +388,14 @@ export const ARTICLES: ArticleSpec[] = [
           link('sprengt kapasiteten', `/nyheter/bekkelund-skole-sprenger-kapasiteten-vi-underviser-i-gangen`),
           ', og FAU-leder Siri Moen var tydelig skuffet etter møtet.',
         ]),
-        p('– Politikerne sier de prioriterer barna, men de bygger svømmehall før de bygger klasserom, sier Moen.'),
-        p(['Rådmann Petter Aas sier administrasjonen vil legge fram en ny skolebruksplan i mars. Tips oss på ', link(OSLO_TIP, `mailto:${OSLO_TIP}`), ' hvis du har innspill til saken.']),
+        p(
+          '– Politikerne sier de prioriterer barna, men de bygger svømmehall før de bygger klasserom, sier Moen.',
+        ),
+        p([
+          'Rådmann Petter Aas sier administrasjonen vil legge fram en ny skolebruksplan i mars. Tips oss på ',
+          link(OSLO_TIP, `mailto:${OSLO_TIP}`),
+          ' hvis du har innspill til saken.',
+        ]),
         related([ctx.ids.leder_budsjett!, ctx.ids.svommehall!, ctx.ids.skole_elevtall!]),
       ),
   },
@@ -378,10 +416,16 @@ export const ARTICLES: ArticleSpec[] = [
     relatedKeys: ['debatt_skole', 'budsjett'],
     body: (ctx) =>
       doc(
-        p('Det er tirsdag morgen, og 7B har mattetime i gangen utenfor lærerværelset. To bord er skjøvet sammen under en tavle på hjul. Hver gang noen skal på do, går de gjennom klasserommet.'),
-        p('– Vi gjør det beste ut av det, men det er ikke slik en skole skal være, sier rektor Anne-Lise Fjeld.'),
+        p(
+          'Det er tirsdag morgen, og 7B har mattetime i gangen utenfor lærerværelset. To bord er skjøvet sammen under en tavle på hjul. Hver gang noen skal på do, går de gjennom klasserommet.',
+        ),
+        p(
+          '– Vi gjør det beste ut av det, men det er ikke slik en skole skal være, sier rektor Anne-Lise Fjeld.',
+        ),
         h2('Fra 312 til 384 elever'),
-        p('Da Bekkelund skole ble bygd i 1994, var den dimensjonert for 320 elever. I dag går det 384 elever på skolen, og prognosene fra kommunen viser at tallet passerer 420 innen 2029. Årsaken er de nye boligfeltene på Bekkelund sør og Furuhaugen.'),
+        p(
+          'Da Bekkelund skole ble bygd i 1994, var den dimensjonert for 320 elever. I dag går det 384 elever på skolen, og prognosene fra kommunen viser at tallet passerer 420 innen 2029. Årsaken er de nye boligfeltene på Bekkelund sør og Furuhaugen.',
+        ),
         image(ctx.images.skole!),
         ul([
           '2023: 312 elever',
@@ -391,13 +435,26 @@ export const ARTICLES: ArticleSpec[] = [
           'Prognose 2029: 421 elever',
         ]),
         h2('Musikkrommet er blitt klasserom'),
-        p('Musikkrommet i kjelleren ble gjort om til klasserom i august. Musikkundervisningen foregår nå i gymsalen, som dermed er opptatt tre timer ekstra i uka.'),
-        pullquote('Vi har ikke et eneste rom som står tomt i løpet av en skoledag.', 'Anne-Lise Fjeld, rektor'),
+        p(
+          'Musikkrommet i kjelleren ble gjort om til klasserom i august. Musikkundervisningen foregår nå i gymsalen, som dermed er opptatt tre timer ekstra i uka.',
+        ),
+        pullquote(
+          'Vi har ikke et eneste rom som står tomt i løpet av en skoledag.',
+          'Anne-Lise Fjeld, rektor',
+        ),
         p('Kommunalsjef for oppvekst, Torbjørn Lie, sier kommunen kjenner situasjonen godt.'),
-        blockquote('– Vi jobber med en ny skolebruksplan som skal legges fram i mars. Modulbygg er ett av alternativene på kort sikt, sier Lie.'),
+        blockquote(
+          '– Vi jobber med en ny skolebruksplan som skal legges fram i mars. Modulbygg er ett av alternativene på kort sikt, sier Lie.',
+        ),
         factbox(
           'Bekkelund skole',
-          ul(['Barneskole 1.–7. trinn', 'Bygd 1994, utvidet 2008', 'Dimensjonert for 320 elever', '384 elever skoleåret 2026/27', '31 ansatte']),
+          ul([
+            'Barneskole 1.–7. trinn',
+            'Bygd 1994, utvidet 2008',
+            'Dimensjonert for 320 elever',
+            '384 elever skoleåret 2026/27',
+            '31 ansatte',
+          ]),
         ),
         related([ctx.ids.debatt_skole!, ctx.ids.budsjett!]),
       ),
@@ -419,7 +476,9 @@ export const ARTICLES: ArticleSpec[] = [
     relatedKeys: ['kommentar_bro'],
     body: (ctx) =>
       doc(
-        p('Rehabiliteringen av Gamlebrua fra 1911 starter 1. november og skal etter planen være ferdig til 17. mai 2027. Brua har vært i dårlig stand siden en inspeksjon i 2023 avdekket sprekker i to av bærebjelkene.'),
+        p(
+          'Rehabiliteringen av Gamlebrua fra 1911 starter 1. november og skal etter planen være ferdig til 17. mai 2027. Brua har vært i dårlig stand siden en inspeksjon i 2023 avdekket sprekker i to av bærebjelkene.',
+        ),
         image(ctx.images.bro!),
         h2('Slik blir omkjøringen'),
         ol([
@@ -430,11 +489,17 @@ export const ARTICLES: ArticleSpec[] = [
         ]),
         p('Kommunen anslår at omkjøringen gir fem til åtte minutter ekstra reisetid i rushtida.'),
         h2('42 millioner kroner'),
-        p('Arbeidet koster 42 millioner kroner og utføres av Brubygg AS fra Lillehammer. Kommunen betaler 30 millioner, mens fylkeskommunen dekker resten.'),
-        blockquote('– Vi skjønner at dette er en belastning, men alternativet er en bru vi ikke kan garantere at er trygg, sier teknisk sjef Hanne Stormo.'),
+        p(
+          'Arbeidet koster 42 millioner kroner og utføres av Brubygg AS fra Lillehammer. Kommunen betaler 30 millioner, mens fylkeskommunen dekker resten.',
+        ),
+        blockquote(
+          '– Vi skjønner at dette er en belastning, men alternativet er en bru vi ikke kan garantere at er trygg, sier teknisk sjef Hanne Stormo.',
+        ),
         factbox(
           'Gamlebrua',
-          p('Bygd i 1911 som jernbanebru, ombygd til veibru i 1962. 84 meter lang. Fredet av Riksantikvaren i 1998. Daglig trafikk: om lag 4 200 kjøretøy.'),
+          p(
+            'Bygd i 1911 som jernbanebru, ombygd til veibru i 1962. 84 meter lang. Fredet av Riksantikvaren i 1998. Daglig trafikk: om lag 4 200 kjøretøy.',
+          ),
         ),
         related([ctx.ids.kommentar_bro!, ctx.ids.elbuss!]),
       ),
@@ -455,15 +520,26 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'jonas',
     body: (ctx) =>
       doc(
-        p('Fylkeskommunen og operatøren Elvebuss AS bekreftet mandag at de siste sju dieselbussene på rutene 1–4 erstattes av elektriske busser fra 1. januar. Totalt 19 elbusser vil da trafikkere bybussrutene.'),
+        p(
+          'Fylkeskommunen og operatøren Elvebuss AS bekreftet mandag at de siste sju dieselbussene på rutene 1–4 erstattes av elektriske busser fra 1. januar. Totalt 19 elbusser vil da trafikkere bybussrutene.',
+        ),
         image(ctx.images.buss!),
-        p('– Dette har vi jobbet mot siden 2022. Bussene er stillere, renere og billigere i drift, sier daglig leder Mona Rui i Elvebuss.'),
+        p(
+          '– Dette har vi jobbet mot siden 2022. Bussene er stillere, renere og billigere i drift, sier daglig leder Mona Rui i Elvebuss.',
+        ),
         h2('Ladeanlegg på busstasjonen'),
-        p('Et nytt ladeanlegg med tolv ladepunkter er bygd på busstasjonen. Bussene lades om natta og hurtiglades ved behov i løpet av dagen.'),
+        p(
+          'Et nytt ladeanlegg med tolv ladepunkter er bygd på busstasjonen. Bussene lades om natta og hurtiglades ved behov i løpet av dagen.',
+        ),
         youtube('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'Se de nye bussene i drift'),
         factbox(
           'Elbussene i tall',
-          ul(['19 elektriske busser fra nyttår', 'Rekkevidde: ca. 300 km per lading', 'Utslippskutt: 620 tonn CO₂ per år', '12 ladepunkter på busstasjonen']),
+          ul([
+            '19 elektriske busser fra nyttår',
+            'Rekkevidde: ca. 300 km per lading',
+            'Utslippskutt: 620 tonn CO₂ per år',
+            '12 ladepunkter på busstasjonen',
+          ]),
         ),
         p([italic('Saken er oppdatert med tall fra fylkeskommunen. '), 'Kilde: Fylkeskommunen og NTB.']),
       ),
@@ -484,13 +560,25 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ingrid',
     body: (ctx) =>
       doc(
-        p('Da mottaket på havna nesten ble lagt ned i 2019, var det få som trodde det skulle bli rekord sju år senere. Men i august leverte de åtte båtene som har Elvebyen som hjemmehavn til sammen 214 tonn sei, hyse og torsk.'),
+        p(
+          'Da mottaket på havna nesten ble lagt ned i 2019, var det få som trodde det skulle bli rekord sju år senere. Men i august leverte de åtte båtene som har Elvebyen som hjemmehavn til sammen 214 tonn sei, hyse og torsk.',
+        ),
         image(ctx.images.havn!),
-        p('– Det har vært et uvanlig godt år. Seien har stått tett utenfor Skjæret hele sommeren, sier skipper Roald Vangen på «Elvebyværingen».'),
+        p(
+          '– Det har vært et uvanlig godt år. Seien har stått tett utenfor Skjæret hele sommeren, sier skipper Roald Vangen på «Elvebyværingen».',
+        ),
         h2('Ny generasjon'),
-        p('Tre av båtene har fått nye eiere under 35 år de siste to årene. Kommunen har bidratt med et rekrutteringsfond på to millioner kroner.'),
-        pullquote('Jeg trodde aldri jeg skulle få lov til å leve av fiske i hjembyen min.', 'Mari Vangen (28), skipper'),
-        factbox('Fiskemottaket i Elvebyen', p('Etablert 1952. Eies av Elvebyen Fiskarlag. Fem ansatte. Tok imot 1 340 tonn i 2025.')),
+        p(
+          'Tre av båtene har fått nye eiere under 35 år de siste to årene. Kommunen har bidratt med et rekrutteringsfond på to millioner kroner.',
+        ),
+        pullquote(
+          'Jeg trodde aldri jeg skulle få lov til å leve av fiske i hjembyen min.',
+          'Mari Vangen (28), skipper',
+        ),
+        factbox(
+          'Fiskemottaket i Elvebyen',
+          p('Etablert 1952. Eies av Elvebyen Fiskarlag. Fem ansatte. Tok imot 1 340 tonn i 2025.'),
+        ),
       ),
   },
   {
@@ -509,8 +597,12 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ola',
     body: () =>
       doc(
-        p('Kommunen har vedtatt å øke parkeringsavgiften i sentrum fra 20 til 40 kroner timen. Endringen gjelder fra 1. oktober.'),
-        p('Merk: Kommunen har i ettertid opplyst at vedtaket gjelder 30 kroner, ikke 40. Saken er trukket tilbake til tallene er bekreftet.'),
+        p(
+          'Kommunen har vedtatt å øke parkeringsavgiften i sentrum fra 20 til 40 kroner timen. Endringen gjelder fra 1. oktober.',
+        ),
+        p(
+          'Merk: Kommunen har i ettertid opplyst at vedtaket gjelder 30 kroner, ikke 40. Saken er trukket tilbake til tallene er bekreftet.',
+        ),
       ),
   },
   {
@@ -529,10 +621,18 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'jonas',
     body: (ctx) =>
       doc(
-        p('Vannføringen i Elva var søndag ettermiddag 410 kubikkmeter i sekundet ved Kvernfossen, ifølge NVE. Rekorden fra 2014 er 445.'),
+        p(
+          'Vannføringen i Elva var søndag ettermiddag 410 kubikkmeter i sekundet ved Kvernfossen, ifølge NVE. Rekorden fra 2014 er 445.',
+        ),
         image(ctx.images.elv!),
-        p('Kommunens kriseledelse er satt, og beredskapen er hevet. Gangveien langs elva mellom Gamlebrua og Kvernfossen er stengt.'),
-        ul(['Hold avstand til elvebredden', 'Flytt verdier opp fra kjellere i flomutsatte områder', 'Ikke kjør gjennom vann på veien']),
+        p(
+          'Kommunens kriseledelse er satt, og beredskapen er hevet. Gangveien langs elva mellom Gamlebrua og Kvernfossen er stengt.',
+        ),
+        ul([
+          'Hold avstand til elvebredden',
+          'Flytt verdier opp fra kjellere i flomutsatte områder',
+          'Ikke kjør gjennom vann på veien',
+        ]),
         p('Saken ble arkivert da flomvarselet ble opphevet.'),
       ),
   },
@@ -551,8 +651,12 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'jonas',
     body: () =>
       doc(
-        p('Elvebyen kommune melder at vannet stenges i Nedre gate 1–37 og på Bruplassen torsdag mellom klokka 09.00 og 14.00. Årsaken er utskifting av en ventil på hovedledningen.'),
-        p('Beboere bes tappe opp vann på forhånd. Vannet kan være misfarget en stund etter at det er satt på igjen.'),
+        p(
+          'Elvebyen kommune melder at vannet stenges i Nedre gate 1–37 og på Bruplassen torsdag mellom klokka 09.00 og 14.00. Årsaken er utskifting av en ventil på hovedledningen.',
+        ),
+        p(
+          'Beboere bes tappe opp vann på forhånd. Vannet kan være misfarget en stund etter at det er satt på igjen.',
+        ),
       ),
   },
   {
@@ -571,9 +675,16 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ingrid',
     body: (ctx) =>
       doc(
-        p('Tegningene fra arkitektkontoret Nordlys viser en svømmehall på 4 200 kvadratmeter plassert mellom Bekkelund skole og idrettshallen.'),
+        p(
+          'Tegningene fra arkitektkontoret Nordlys viser en svømmehall på 4 200 kvadratmeter plassert mellom Bekkelund skole og idrettshallen.',
+        ),
         h2('Dette får du'),
-        ul(['25-meters basseng med åtte baner', 'Terapibasseng på 34 grader', 'Barnebasseng med sklie', 'Badstue og garderober for 200']),
+        ul([
+          '25-meters basseng med åtte baner',
+          'Terapibasseng på 34 grader',
+          'Barnebasseng med sklie',
+          'Badstue og garderober for 200',
+        ]),
         p('(Utkast – mangler sitater fra prosjektleder og illustrasjoner.)'),
         related([ctx.ids.budsjett!]),
       ),
@@ -595,21 +706,37 @@ export const ARTICLES: ArticleSpec[] = [
     image: 'fotball',
     featuredCaption: 'Sander Moe jubler etter sitt tredje mål på Elvebyen stadion lørdag.',
     tags: ['elvebyen-il'],
-    bylines: [{ author: 'ola' }, { author: 'ola', role: 'photo' }],
+    bylines: [{ author: 'ola' }, { author: 'ingrid', role: 'photo' }],
     createdBy: 'ola',
     revisionTitles: ['Elvebyen IL snudde kampen på overtid'],
     body: (ctx) =>
       doc(
         p(['Elvebyen IL – Fjellstad 3–2 (0–1)']),
-        p('Det så mørkt ut for hjemmelaget da Fjellstad økte til 2–0 i det 79. minutt. Men Sander Moe hadde andre planer.'),
+        p(
+          'Det så mørkt ut for hjemmelaget da Fjellstad økte til 2–0 i det 79. minutt. Men Sander Moe hadde andre planer.',
+        ),
         image(ctx.images.fotball!),
         h2('Hat-trick på elleve minutter'),
-        p('Første mål kom på et hjørnespark i det 81. minutt. Utligningen fire minutter senere var et suserskudd fra 18 meter. Og på overtid, i det 92. minutt, stupte Moe inn vinnermålet etter innlegg fra Ahmed Said.'),
-        blockquote('– Helt vilt. Jeg husker nesten ikke det siste målet, bare at det ble helt stille et halvt sekund før alt eksploderte, sier Moe.'),
+        p(
+          'Første mål kom på et hjørnespark i det 81. minutt. Utligningen fire minutter senere var et suserskudd fra 18 meter. Og på overtid, i det 92. minutt, stupte Moe inn vinnermålet etter innlegg fra Ahmed Said.',
+        ),
+        blockquote(
+          '– Helt vilt. Jeg husker nesten ikke det siste målet, bare at det ble helt stille et halvt sekund før alt eksploderte, sier Moe.',
+        ),
         pullquote('Dette laget gir seg aldri. Det er det som gjør at vi leder serien.', 'Trener Tove Lund'),
         h2('Tabellen'),
-        p('Elvebyen IL har nå 41 poeng etter 19 kamper, tre poeng foran Fjellstad. Neste kamp er borte mot Dalsbygda søndag.'),
-        factbox('Kampfakta', ul(['Elvebyen stadion, 1 240 tilskuere', 'Mål: 0–1 Bakke (34), 0–2 Holm (79), 1–2 Moe (81), 2–2 Moe (85), 3–2 Moe (90+2)', 'Gult kort: Said (E), Bakke (F)', 'Dommer: Ali Rezai, Hamar'])),
+        p(
+          'Elvebyen IL har nå 41 poeng etter 19 kamper, tre poeng foran Fjellstad. Neste kamp er borte mot Dalsbygda søndag.',
+        ),
+        factbox(
+          'Kampfakta',
+          ul([
+            'Elvebyen stadion, 1 240 tilskuere',
+            'Mål: 0–1 Bakke (34), 0–2 Holm (79), 1–2 Moe (81), 2–2 Moe (85), 3–2 Moe (90+2)',
+            'Gult kort: Said (E), Bakke (F)',
+            'Dommer: Ali Rezai, Hamar',
+          ]),
+        ),
         related([ctx.ids.handball_jenter!]),
       ),
   },
@@ -629,10 +756,14 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ola',
     body: (ctx) =>
       doc(
-        p('Elvebyhallen kokte da sluttsignalet gikk søndag ettermiddag. For første gang i klubbens historie skal et jentelag fra Elvebyen spille sluttspill i NM.'),
+        p(
+          'Elvebyhallen kokte da sluttsignalet gikk søndag ettermiddag. For første gang i klubbens historie skal et jentelag fra Elvebyen spille sluttspill i NM.',
+        ),
         p('– Vi har jobbet for dette i tre år. Jentene fortjener alt, sier trener Nina Solberg.'),
         h2('Snudde etter pause'),
-        p('Byåsen ledet 13–11 ved pause, men en 6–0-periode midt i andre omgang avgjorde kampen. Keeper Ida Rustad reddet tolv skudd.'),
+        p(
+          'Byåsen ledet 13–11 ved pause, men en 6–0-periode midt i andre omgang avgjorde kampen. Keeper Ida Rustad reddet tolv skudd.',
+        ),
         ul(['Toppscorer: Emma Lie, 9 mål', 'Redninger: Ida Rustad, 12', 'Tilskuere: 610']),
         pullquote('Vi skal til Oslo for å vinne kamper, ikke for å se på.', 'Emma Lie'),
         related([ctx.ids.fotball_seier!]),
@@ -651,20 +782,38 @@ export const ARTICLES: ArticleSpec[] = [
     hour: 8,
     image: 'skog',
     tags: ['friluftsliv', 'elvebyen-il'],
-    bylines: [{ author: 'ola' }, { author: 'ola', role: 'photo' }],
+    bylines: [{ author: 'ola' }, { author: 'jonas', role: 'photo' }],
     createdBy: 'ola',
     body: (ctx) =>
       doc(
-        p('Arne Kvernmo skulle ha vært her i dag. Skigruppas grand old man døde i august, ett år før lysløypa han kjempet for i et tiår blir tent.'),
+        p(
+          'Arne Kvernmo skulle ha vært her i dag. Skigruppas grand old man døde i august, ett år før lysløypa han kjempet for i et tiår blir tent.',
+        ),
         p('– Han visste at den kom. Det var det viktigste for ham, sier leder i skigruppa, Bente Aasen.'),
         image(ctx.images.skog!),
         h2('Fem kilometer, 118 lyspunkter'),
-        p('Traseen starter ved parkeringsplassen på Bekkelund, følger den gamle skogsbilveien til Myrtjernet og går derfra i slak stigning opp til toppen på 412 meter. Underveis passerer den to gapahuker og den nye varmestua ved Myrtjernet.'),
-        ol(['Bekkelund P – Myrtjernet: 2,1 km, slakt', 'Myrtjernet – Storåsen topp: 2,9 km, 190 høydemeter', 'Retur samme vei eller via Furuhaugen (ikke lys)']),
+        p(
+          'Traseen starter ved parkeringsplassen på Bekkelund, følger den gamle skogsbilveien til Myrtjernet og går derfra i slak stigning opp til toppen på 412 meter. Underveis passerer den to gapahuker og den nye varmestua ved Myrtjernet.',
+        ),
+        ol([
+          'Bekkelund P – Myrtjernet: 2,1 km, slakt',
+          'Myrtjernet – Storåsen topp: 2,9 km, 190 høydemeter',
+          'Retur samme vei eller via Furuhaugen (ikke lys)',
+        ]),
         h2('Slik ble det finansiert'),
-        p('Prosjektet koster 4,8 millioner kroner. Spillemidler dekker 1,6 millioner, kommunen 1,2 millioner, sparebankstiftelsen 800 000, og resten er dugnad og gaver.'),
+        p(
+          'Prosjektet koster 4,8 millioner kroner. Spillemidler dekker 1,6 millioner, kommunen 1,2 millioner, sparebankstiftelsen 800 000, og resten er dugnad og gaver.',
+        ),
         pullquote('Vi har lagt 3 400 dugnadstimer i denne løypa. Nå skal vi gå på ski i den.', 'Bente Aasen'),
-        factbox('Lysløypa på Storåsen', ul(['Lengde: 5,0 km', 'Lyspunkter: 118 LED-armaturer', 'Lys: 06–23 i vintersesongen', 'Åpning: 1. desember'])),
+        factbox(
+          'Lysløypa på Storåsen',
+          ul([
+            'Lengde: 5,0 km',
+            'Lyspunkter: 118 LED-armaturer',
+            'Lys: 06–23 i vintersesongen',
+            'Åpning: 1. desember',
+          ]),
+        ),
         related([ctx.ids.nekrolog_kvernmo!]),
       ),
   },
@@ -685,7 +834,12 @@ export const ARTICLES: ArticleSpec[] = [
     body: () =>
       doc(
         p('Utkast – mangler bilder og intervju med turlaget.'),
-        ol(['Gå tidlig – parkeringsplassen er full etter klokka 11 i helgene', 'Ta med hodelykt fra oktober', 'Prøv rundturen via Furuhaugen', 'Ta en pause ved Myrtjernet']),
+        ol([
+          'Gå tidlig – parkeringsplassen er full etter klokka 11 i helgene',
+          'Ta med hodelykt fra oktober',
+          'Prøv rundturen via Furuhaugen',
+          'Ta en pause ved Myrtjernet',
+        ]),
       ),
   },
 
@@ -708,16 +862,34 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ingrid',
     body: (ctx) =>
       doc(
-        p('Fredag, lørdag og søndag var elveparken fylt til randen. Ifølge festivalsjef Lars Røed ble det solgt 9 012 billetter, mot 6 400 i fjor.'),
+        p(
+          'Fredag, lørdag og søndag var elveparken fylt til randen. Ifølge festivalsjef Lars Røed ble det solgt 9 012 billetter, mot 6 400 i fjor.',
+        ),
         image(ctx.images.kulturhus!, { size: 'wide' }),
-        p('– Det største vi har gjort, og det ble gjennomført uten alvorlige hendelser. Det er jeg mest stolt av, sier Røed.'),
+        p(
+          '– Det største vi har gjort, og det ble gjennomført uten alvorlige hendelser. Det er jeg mest stolt av, sier Røed.',
+        ),
         h2('Lokale artister trakk mest'),
-        p('Overraskelsen var at den lokale duoen Elvekanten samlet flest folk foran hovedscenen lørdag, foran headlineren fra Oslo.'),
+        p(
+          'Overraskelsen var at den lokale duoen Elvekanten samlet flest folk foran hovedscenen lørdag, foran headlineren fra Oslo.',
+        ),
         youtube('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'Elvekanten på hovedscenen'),
         h2('Blir i elveparken'),
-        p('Naboene har klaget på støy, og festivalen har vurdert å flytte til Bekkelund. Nå er det avgjort: festivalen blir i elveparken i 2027, men med lavere lydnivå etter klokka 23.'),
-        blockquote('– Vi har hatt gode møter med naboene og kommunen. Vi tror vi har funnet en løsning alle kan leve med, sier Røed.'),
-        factbox('Elvefestivalen 2026', ul(['9 012 solgte billetter', '31 konserter på tre scener', '210 frivillige', 'Omsetning: ca. 11 millioner kroner'])),
+        p(
+          'Naboene har klaget på støy, og festivalen har vurdert å flytte til Bekkelund. Nå er det avgjort: festivalen blir i elveparken i 2027, men med lavere lydnivå etter klokka 23.',
+        ),
+        blockquote(
+          '– Vi har hatt gode møter med naboene og kommunen. Vi tror vi har funnet en løsning alle kan leve med, sier Røed.',
+        ),
+        factbox(
+          'Elvefestivalen 2026',
+          ul([
+            '9 012 solgte billetter',
+            '31 konserter på tre scener',
+            '210 frivillige',
+            'Omsetning: ca. 11 millioner kroner',
+          ]),
+        ),
       ),
   },
   {
@@ -735,10 +907,16 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ingrid',
     body: (ctx) =>
       doc(
-        p('Elvebyen bibliotek utvider åpningstidene fra 1. oktober. Biblioteket er da betjent mandag til fredag klokka 09–21 og lørdag 10–15.'),
-        p('Samtidig innføres meråpent bibliotek: Lånere over 18 år kan låse seg inn med lånekort og PIN-kode alle dager klokka 07–23.'),
+        p(
+          'Elvebyen bibliotek utvider åpningstidene fra 1. oktober. Biblioteket er da betjent mandag til fredag klokka 09–21 og lørdag 10–15.',
+        ),
+        p(
+          'Samtidig innføres meråpent bibliotek: Lånere over 18 år kan låse seg inn med lånekort og PIN-kode alle dager klokka 07–23.',
+        ),
         image(ctx.images.bibliotek!),
-        p('– Vi ser at mange studenter og skiftarbeidere ønsker å bruke biblioteket på kveldstid, sier biblioteksjef Guro Sand.'),
+        p(
+          '– Vi ser at mange studenter og skiftarbeidere ønsker å bruke biblioteket på kveldstid, sier biblioteksjef Guro Sand.',
+        ),
       ),
   },
   {
@@ -757,10 +935,14 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ingrid',
     body: (ctx) =>
       doc(
-        p('– Folk spør om jeg ikke blir lei. Men elva er aldri den samme to dager på rad, sier Solveig Brattli (71).'),
+        p(
+          '– Folk spør om jeg ikke blir lei. Men elva er aldri den samme to dager på rad, sier Solveig Brattli (71).',
+        ),
         image(ctx.images.elv!),
         h2('Fra 1986 til i dag'),
-        p('Det eldste bildet i utstillingen er malt i 1986, fra brygga nedenfor huset der hun fortsatt bor. Det nyeste ble ferdig forrige uke.'),
+        p(
+          'Det eldste bildet i utstillingen er malt i 1986, fra brygga nedenfor huset der hun fortsatt bor. Det nyeste ble ferdig forrige uke.',
+        ),
         pullquote('Jeg maler ikke elva. Jeg maler lyset som treffer den.', 'Solveig Brattli'),
         p('Utstillingen «Elva – 40 år» åpner lørdag klokka 13 og står til 15. november. Gratis inngang.'),
       ),
@@ -781,14 +963,22 @@ export const ARTICLES: ArticleSpec[] = [
     bylines: [{ author: 'jonas' }],
     createdBy: 'jonas',
     customFields: {
+      startsAt: eventStart(14, 10),
       venue: 'Torget, Elvebyen sentrum',
       ticketUrl: 'https://example.com/hostmarked',
     },
     body: (ctx) =>
       doc(
-        p('Elvebyen handelsstand og Bondens marked inviterer til høstmarked på Torget. Ta med egne epler og få dem presset til most – eller kjøp av de 20 produsentene som kommer.'),
+        p(
+          'Elvebyen handelsstand og Bondens marked inviterer til høstmarked på Torget. Ta med egne epler og få dem presset til most – eller kjøp av de 20 produsentene som kommer.',
+        ),
         image(ctx.images.marked!),
-        ul(['Klokka 10: Markedet åpner', 'Klokka 12: Eplekonkurranse for barn', 'Klokka 13: Konsert med Elvebyen skolekorps', 'Klokka 15: Markedet stenger']),
+        ul([
+          'Klokka 10: Markedet åpner',
+          'Klokka 12: Eplekonkurranse for barn',
+          'Klokka 13: Konsert med Elvebyen skolekorps',
+          'Klokka 15: Markedet stenger',
+        ]),
         p('Gratis inngang. Parkering på Bruplassen.'),
       ),
   },
@@ -813,15 +1003,30 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ingrid',
     body: (ctx) =>
       doc(
-        p('Nyheten ble sluppet for de 140 ansatte i kantina onsdag morgen. Elvebyen Trevare bygger en ny produksjonshall på 6 000 kvadratmeter og investerer 60 millioner kroner i en ny linje for prefabrikkerte veggelementer.'),
+        p(
+          'Nyheten ble sluppet for de 140 ansatte i kantina onsdag morgen. Elvebyen Trevare bygger en ny produksjonshall på 6 000 kvadratmeter og investerer 60 millioner kroner i en ny linje for prefabrikkerte veggelementer.',
+        ),
         image(ctx.images.fabrikk!),
-        p('– Vi har vurdert Sverige. Men kompetansen er her, og kommunen har stilt opp med tomt og regulering på rekordtid, sier Haug.'),
+        p(
+          '– Vi har vurdert Sverige. Men kompetansen er her, og kommunen har stilt opp med tomt og regulering på rekordtid, sier Haug.',
+        ),
         h2('Flere lærlinger'),
         p('Av de 25 nye stillingene er åtte lærlingplasser i samarbeid med Elvebyen videregående skole.'),
-        pullquote('Vi trenger unge folk som vil lære et fag. Det er de som skal drive dette stedet om tjue år.', 'Kristin Haug'),
+        pullquote(
+          'Vi trenger unge folk som vil lære et fag. Det er de som skal drive dette stedet om tjue år.',
+          'Kristin Haug',
+        ),
         h2('Slik blir hallen'),
         ol(['Byggestart november 2026', 'Ferdig høsten 2027', 'Produksjonsstart januar 2028']),
-        factbox('Elvebyen Trevare AS', ul(['Grunnlagt 1948', '140 ansatte', 'Omsetning 2025: 310 millioner kroner', 'Eid av familien Haug'])),
+        factbox(
+          'Elvebyen Trevare AS',
+          ul([
+            'Grunnlagt 1948',
+            '140 ansatte',
+            'Omsetning 2025: 310 millioner kroner',
+            'Eid av familien Haug',
+          ]),
+        ),
         related([ctx.ids.havn_fisk!]),
       ),
   },
@@ -841,12 +1046,20 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'ola',
     body: (ctx) =>
       doc(
-        p('Ostebonden fra Dalsbygda var utsolgt klokka 12. Honningen fra Furuhaugen var borte en time senere.'),
+        p(
+          'Ostebonden fra Dalsbygda var utsolgt klokka 12. Honningen fra Furuhaugen var borte en time senere.',
+        ),
         image(ctx.images.marked!),
-        p('– Vi hadde 34 boder, og flere på venteliste. Torgdagen er blitt den viktigste handledagen i måneden for sentrum, sier leder i handelsstanden, Bjørn Eide.'),
+        p(
+          '– Vi hadde 34 boder, og flere på venteliste. Torgdagen er blitt den viktigste handledagen i måneden for sentrum, sier leder i handelsstanden, Bjørn Eide.',
+        ),
         h2('Omsetningen opp 20 prosent'),
-        p('Butikkene rundt Torget melder om 20 prosent høyere omsetning på torgdager sammenlignet med en vanlig lørdag.'),
-        blockquote('– Folk kommer fra Fjellstad og Dalsbygda. Det er ikke bare markedet, det er hele byen som lever, sier Eide.'),
+        p(
+          'Butikkene rundt Torget melder om 20 prosent høyere omsetning på torgdager sammenlignet med en vanlig lørdag.',
+        ),
+        blockquote(
+          '– Folk kommer fra Fjellstad og Dalsbygda. Det er ikke bare markedet, det er hele byen som lever, sier Eide.',
+        ),
       ),
   },
   {
@@ -866,11 +1079,20 @@ export const ARTICLES: ArticleSpec[] = [
     createdBy: 'jonas',
     body: (ctx) =>
       doc(
-        p([bold('Dette er annonsørinnhold produsert av Elvebyen Sparebank. '), 'Redaksjonen i Elvebyen Tidende har ikke vært involvert i produksjonen.']),
-        p('Boligprisene i Elvebyen har steget 12 prosent på to år. Da gjelder det å komme tidlig i gang med sparingen, sier rådgiver Petter Solli.'),
+        p([
+          bold('Dette er annonsørinnhold produsert av Elvebyen Sparebank. '),
+          'Redaksjonen i Elvebyen Tidende har ikke vært involvert i produksjonen.',
+        ]),
+        p(
+          'Boligprisene i Elvebyen har steget 12 prosent på to år. Da gjelder det å komme tidlig i gang med sparingen, sier rådgiver Petter Solli.',
+        ),
         image(ctx.images.raadhus!, { caption: 'Elvebyen Sparebank holder til ved Torget.' }),
         h2('Tre tips fra rådgiveren'),
-        ol(['Start med BSU så tidlig som mulig', 'Sett opp fast trekk den dagen lønna kommer', 'Ta en samtale med banken før du begynner å lete']),
+        ol([
+          'Start med BSU så tidlig som mulig',
+          'Sett opp fast trekk den dagen lønna kommer',
+          'Ta en samtale med banken før du begynner å lete',
+        ]),
         p('Bestill gratis rådgivningstime på bankens nettsider.'),
       ),
   },
@@ -895,12 +1117,20 @@ export const ARTICLES: ArticleSpec[] = [
     customFields: { standpoint: 'leder' },
     body: (ctx) =>
       doc(
-        p('Det er lett å forstå jubelen. Elvebyen har vært uten svømmehall siden 2021, og svømmeopplæringen har foregått med buss til Fjellstad. At kommunestyret nå vedtar en ny hall, er riktig.'),
-        p('Men et budsjett er mer enn ett vedtak. Det er en prioritering. Og prioriteringen flertallet gjorde torsdag, er at svømmehall er viktigere enn klasserom.'),
+        p(
+          'Det er lett å forstå jubelen. Elvebyen har vært uten svømmehall siden 2021, og svømmeopplæringen har foregått med buss til Fjellstad. At kommunestyret nå vedtar en ny hall, er riktig.',
+        ),
+        p(
+          'Men et budsjett er mer enn ett vedtak. Det er en prioritering. Og prioriteringen flertallet gjorde torsdag, er at svømmehall er viktigere enn klasserom.',
+        ),
         h2('Regningen'),
-        p('Eiendomsskatten øker fra 2,8 til 4,0 promille. Det er den største økningen i kommunens historie. Flertallet kaller det nødvendig. Vi kaller det en konsekvens av å love mer enn man har råd til.'),
+        p(
+          'Eiendomsskatten øker fra 2,8 til 4,0 promille. Det er den største økningen i kommunens historie. Flertallet kaller det nødvendig. Vi kaller det en konsekvens av å love mer enn man har råd til.',
+        ),
         pullquote('Politikerne bygger svømmehall før de bygger klasserom.', 'Siri Moen, FAU-leder'),
-        p('Bekkelund skole underviser i gangen. Planleggingsmidlene til en ny skole falt med én stemme. Én. Det bør flertallet tenke på når skolebruksplanen kommer i mars.'),
+        p(
+          'Bekkelund skole underviser i gangen. Planleggingsmidlene til en ny skole falt med én stemme. Én. Det bør flertallet tenke på når skolebruksplanen kommer i mars.',
+        ),
         p(['Elvebyen Tidende mener: ', bold('Svømmehallen er riktig. Rekkefølgen er feil.')]),
         related([ctx.ids.budsjett!, ctx.ids.skole_elevtall!]),
       ),
@@ -922,12 +1152,20 @@ export const ARTICLES: ArticleSpec[] = [
     customFields: { standpoint: 'kommentar' },
     body: (ctx) =>
       doc(
-        p('I 2023 fant inspektørene sprekker i to bærebjelker. I 2024 ble saken utsatt. I 2025 ble den utsatt igjen, fordi fylket og kommunen kranglet om regningen. I 2026 stenger brua i åtte måneder.'),
-        p('Tre år. Det er tida det tok å bli enige om hvem som skulle betale for å reparere en bru som 4 200 biler kjører over hver dag.'),
+        p(
+          'I 2023 fant inspektørene sprekker i to bærebjelker. I 2024 ble saken utsatt. I 2025 ble den utsatt igjen, fordi fylket og kommunen kranglet om regningen. I 2026 stenger brua i åtte måneder.',
+        ),
+        p(
+          'Tre år. Det er tida det tok å bli enige om hvem som skulle betale for å reparere en bru som 4 200 biler kjører over hver dag.',
+        ),
         h2('Et mønster'),
-        p('Dette er ikke første gang. Svømmehallen stengte i 2021 og får erstatning i 2028. Bekkelund skole har vært full siden 2024. Elvebyen er flink til å utrede og dårlig til å bestemme.'),
+        p(
+          'Dette er ikke første gang. Svømmehallen stengte i 2021 og får erstatning i 2028. Bekkelund skole har vært full siden 2024. Elvebyen er flink til å utrede og dårlig til å bestemme.',
+        ),
         pullquote('Elvebyen er flink til å utrede og dårlig til å bestemme.'),
-        p('Når brua åpner igjen 17. mai, håper jeg noen står på den og tenker: Dette skal vi ikke gjøre igjen.'),
+        p(
+          'Når brua åpner igjen 17. mai, håper jeg noen står på den og tenker: Dette skal vi ikke gjøre igjen.',
+        ),
         related([ctx.ids.gamlebrua!]),
       ),
   },
@@ -949,10 +1187,18 @@ export const ARTICLES: ArticleSpec[] = [
     body: (ctx) =>
       doc(
         p([italic('Av Siri Moen og Tor Moen, foreldre og FAU-medlemmer ved Bekkelund skole')]),
-        p('Datteren vår har mattetime i gangen. Sønnen vår har musikk i gymsalen. Den yngste starter neste høst, og vi vet ikke hvor hun skal sitte.'),
-        p('Kommunen har visst om veksten på Bekkelund siden reguleringsplanen for Furuhaugen ble vedtatt i 2019. Det er sju år siden.'),
+        p(
+          'Datteren vår har mattetime i gangen. Sønnen vår har musikk i gymsalen. Den yngste starter neste høst, og vi vet ikke hvor hun skal sitte.',
+        ),
+        p(
+          'Kommunen har visst om veksten på Bekkelund siden reguleringsplanen for Furuhaugen ble vedtatt i 2019. Det er sju år siden.',
+        ),
         h2('Vi ber om tre ting'),
-        ol(['Modulbygg på plass til skolestart 2027', 'Planleggingsmidler til ny skole i revidert budsjett', 'At politikerne besøker skolen i en vanlig uke – ikke på 17. mai']),
+        ol([
+          'Modulbygg på plass til skolestart 2027',
+          'Planleggingsmidler til ny skole i revidert budsjett',
+          'At politikerne besøker skolen i en vanlig uke – ikke på 17. mai',
+        ]),
         p('Vi er ikke imot svømmehall. Vi er imot å vente.'),
         related([ctx.ids.skole_elevtall!]),
       ),
@@ -974,13 +1220,21 @@ export const ARTICLES: ArticleSpec[] = [
     customFields: { born: '1938-03-02', died: '2026-08-14' },
     body: (ctx) =>
       doc(
-        p('Arne ble født på Kvernmo gård ved Kvernfossen i 1938, som den yngste av fem søsken. Han gikk på ski før han kunne lese, pleide han å si, og han sluttet aldri.'),
-        p('I 1961 var han med og stiftet skigruppa i Elvebyen IL. Han satt i styret i 44 år, var leder i 19 av dem, og kjørte løypemaskinen selv til han var 82.'),
+        p(
+          'Arne ble født på Kvernmo gård ved Kvernfossen i 1938, som den yngste av fem søsken. Han gikk på ski før han kunne lese, pleide han å si, og han sluttet aldri.',
+        ),
+        p(
+          'I 1961 var han med og stiftet skigruppa i Elvebyen IL. Han satt i styret i 44 år, var leder i 19 av dem, og kjørte løypemaskinen selv til han var 82.',
+        ),
         image(ctx.images.skog!, { caption: 'Storåsen, der Arne Kvernmo la tusenvis av dugnadstimer.' }),
         h2('Lysløypa'),
-        p('De siste ti årene av livet brukte han på én sak: lysløypa på Storåsen. Han skrev søknader, ringte politikere og arrangerte dugnader. Da kommunestyret bevilget pengene i juni, satt han på tilhørerbenken. Han fikk ikke oppleve åpningen.'),
+        p(
+          'De siste ti årene av livet brukte han på én sak: lysløypa på Storåsen. Han skrev søknader, ringte politikere og arrangerte dugnader. Da kommunestyret bevilget pengene i juni, satt han på tilhørerbenken. Han fikk ikke oppleve åpningen.',
+        ),
         pullquote('Det er ikke løypa som er viktig. Det er at ungene kommer seg ut.', 'Arne Kvernmo, 2024'),
-        p('Arne etterlater seg kona Solveig, tre barn og sju barnebarn – alle på ski. Vi lyser fred over hans minne.'),
+        p(
+          'Arne etterlater seg kona Solveig, tre barn og sju barnebarn – alle på ski. Vi lyser fred over hans minne.',
+        ),
         related([ctx.ids.lysloype!]),
       ),
   },
@@ -1002,7 +1256,12 @@ export const LIVE_BLOG = {
       isKeyEvent: false,
       isPinned: false,
       author: 'jonas' as AuthorKey,
-      body: () => doc(p('Ordfører Kari Brekke har åpnet møtet. 35 representanter er til stede. Første sak er budsjettet for 2027 – vi følger debatten her.')),
+      body: () =>
+        doc(
+          p(
+            'Ordfører Kari Brekke har åpnet møtet. 35 representanter er til stede. Første sak er budsjettet for 2027 – vi følger debatten her.',
+          ),
+        ),
     },
     {
       minutesAgo: 355,
@@ -1010,7 +1269,12 @@ export const LIVE_BLOG = {
       isKeyEvent: false,
       isPinned: false,
       author: 'jonas' as AuthorKey,
-      body: () => doc(p('Rådmann Petter Aas legger fram budsjettet. Han sier kommunen har hatt merforbruk i eldreomsorgen tre år på rad, og at eiendomsskatten må opp «uansett svømmehall eller ikke».')),
+      body: () =>
+        doc(
+          p(
+            'Rådmann Petter Aas legger fram budsjettet. Han sier kommunen har hatt merforbruk i eldreomsorgen tre år på rad, og at eiendomsskatten må opp «uansett svømmehall eller ikke».',
+          ),
+        ),
     },
     {
       minutesAgo: 290,
@@ -1018,7 +1282,13 @@ export const LIVE_BLOG = {
       isKeyEvent: true,
       isPinned: false,
       author: 'ingrid' as AuthorKey,
-      body: () => doc(p('Erik Nordvik (H) fremmer et alternativt budsjett uten økt eiendomsskatt. Svømmehallen utsettes til 2030 i Høyres forslag.'), p([bold('Nøkkelhendelse: '), 'Alternativt budsjett fra H, FrP og Bylista.'])),
+      body: () =>
+        doc(
+          p(
+            'Erik Nordvik (H) fremmer et alternativt budsjett uten økt eiendomsskatt. Svømmehallen utsettes til 2030 i Høyres forslag.',
+          ),
+          p([bold('Nøkkelhendelse: '), 'Alternativt budsjett fra H, FrP og Bylista.']),
+        ),
     },
     {
       minutesAgo: 180,
@@ -1026,7 +1296,12 @@ export const LIVE_BLOG = {
       isKeyEvent: false,
       isPinned: false,
       author: 'jonas' as AuthorKey,
-      body: () => doc(p('Møtet tar pause til klokka 18.30. Representantene spiser pizza på gangen, og FAU fra Bekkelund har møtt opp med plakater.')),
+      body: () =>
+        doc(
+          p(
+            'Møtet tar pause til klokka 18.30. Representantene spiser pizza på gangen, og FAU fra Bekkelund har møtt opp med plakater.',
+          ),
+        ),
     },
     {
       minutesAgo: 95,
@@ -1034,7 +1309,13 @@ export const LIVE_BLOG = {
       isKeyEvent: true,
       isPinned: false,
       author: 'ingrid' as AuthorKey,
-      body: () => doc(p('Forslaget om planleggingsmidler til ny skole på Bekkelund falt med 17 mot 18 stemmer. KrF stemte med flertallet.'), p('– Skuffende, sier FAU-leder Siri Moen til Elvebyen Tidende.')),
+      body: () =>
+        doc(
+          p(
+            'Forslaget om planleggingsmidler til ny skole på Bekkelund falt med 17 mot 18 stemmer. KrF stemte med flertallet.',
+          ),
+          p('– Skuffende, sier FAU-leder Siri Moen til Elvebyen Tidende.'),
+        ),
     },
     {
       minutesAgo: 20,
@@ -1042,7 +1323,13 @@ export const LIVE_BLOG = {
       isKeyEvent: true,
       isPinned: true,
       author: 'jonas' as AuthorKey,
-      body: () => doc(p([bold('Vedtatt med 21 mot 14 stemmer.'), ' Elvebyen får ny svømmehall i 2028, og eiendomsskatten øker til 4,0 promille. Les hele saken i lenken over.'])),
+      body: () =>
+        doc(
+          p([
+            bold('Vedtatt med 21 mot 14 stemmer.'),
+            ' Elvebyen får ny svømmehall i 2028, og eiendomsskatten øker til 4,0 promille. Les hele saken i lenken over.',
+          ]),
+        ),
     },
   ],
 };
@@ -1053,8 +1340,10 @@ export function assertContentIntegrity(): void {
   const sectionKeys = new Set(SECTIONS.map((s) => s.key));
   const tagSlugs = new Set(TAGS.map((t) => t.slug));
   for (const a of ARTICLES) {
-    if (!typeKeys.has(a.contentType)) throw new Error(`Article ${a.key}: unknown content type ${a.contentType}`);
-    if (a.section && !sectionKeys.has(a.section)) throw new Error(`Article ${a.key}: unknown section ${a.section}`);
+    if (!typeKeys.has(a.contentType))
+      throw new Error(`Article ${a.key}: unknown content type ${a.contentType}`);
+    if (a.section && !sectionKeys.has(a.section))
+      throw new Error(`Article ${a.key}: unknown section ${a.section}`);
     for (const t of a.tags) if (!tagSlugs.has(t)) throw new Error(`Article ${a.key}: unknown tag ${t}`);
   }
 }

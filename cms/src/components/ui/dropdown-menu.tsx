@@ -13,7 +13,7 @@
  */
 import { Check, ChevronRight, Circle } from 'lucide-react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
-import type { ComponentProps, ReactNode } from 'react';
+import { cloneElement, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -44,7 +44,11 @@ export function DropdownMenuContent({
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
         collisionPadding={8}
-        className={cn(menuContentClass, 'max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto', className)}
+        className={cn(
+          menuContentClass,
+          'max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto',
+          className,
+        )}
         {...props}
       />
     </DropdownMenuPrimitive.Portal>
@@ -65,22 +69,35 @@ export function DropdownMenuItem({
   icon,
   shortcut,
   inset,
+  asChild,
   children,
   ...props
 }: DropdownMenuItemProps) {
-  return (
-    <DropdownMenuPrimitive.Item
-      className={cn(
-        menuItemClass,
-        inset && 'pl-8',
-        destructive && 'text-danger data-[highlighted]:bg-danger-soft [&_svg]:text-danger',
-        className,
-      )}
-      {...props}
-    >
+  const classes = cn(
+    menuItemClass,
+    inset && 'pl-8',
+    destructive && 'text-danger data-[highlighted]:bg-danger-soft [&_svg]:text-danger',
+    className,
+  );
+  const inner = (label: ReactNode) => (
+    <>
       {icon}
-      <span className="flex-1 truncate">{children}</span>
+      <span className="flex-1 truncate">{label}</span>
       {shortcut ? <span className="text-subtle ml-auto pl-4 text-xs tracking-wide">{shortcut}</span> : null}
+    </>
+  );
+  // asChild: render the single child (e.g. a Link) as the item and move icon/label inside it.
+  if (asChild && isValidElement<{ children?: ReactNode }>(children)) {
+    const child = children as ReactElement<{ children?: ReactNode }>;
+    return (
+      <DropdownMenuPrimitive.Item asChild className={classes} {...props}>
+        {cloneElement(child, undefined, inner(child.props.children))}
+      </DropdownMenuPrimitive.Item>
+    );
+  }
+  return (
+    <DropdownMenuPrimitive.Item className={classes} {...props}>
+      {inner(children)}
     </DropdownMenuPrimitive.Item>
   );
 }
@@ -92,7 +109,11 @@ export function DropdownMenuCheckboxItem({
   ...props
 }: ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
   return (
-    <DropdownMenuPrimitive.CheckboxItem className={cn(menuItemClass, 'pl-8', className)} checked={checked} {...props}>
+    <DropdownMenuPrimitive.CheckboxItem
+      className={cn(menuItemClass, 'pl-8', className)}
+      checked={checked}
+      {...props}
+    >
       <span className="absolute left-2 flex size-4 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <Check className="size-4" aria-hidden />
@@ -133,8 +154,13 @@ export function DropdownMenuLabel({
   );
 }
 
-export function DropdownMenuSeparator({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
-  return <DropdownMenuPrimitive.Separator className={cn('bg-border -mx-1 my-1 h-px', className)} {...props} />;
+export function DropdownMenuSeparator({
+  className,
+  ...props
+}: ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+  return (
+    <DropdownMenuPrimitive.Separator className={cn('bg-border -mx-1 my-1 h-px', className)} {...props} />
+  );
 }
 
 export function DropdownMenuSubTrigger({
@@ -154,7 +180,10 @@ export function DropdownMenuSubTrigger({
   );
 }
 
-export function DropdownMenuSubContent({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+export function DropdownMenuSubContent({
+  className,
+  ...props
+}: ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.SubContent className={cn(menuContentClass, className)} {...props} />

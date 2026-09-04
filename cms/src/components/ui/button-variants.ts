@@ -46,7 +46,14 @@ export type ButtonVariantProps = VariantProps<typeof buttonVariants>;
 export type ButtonVariant = NonNullable<ButtonVariantProps['variant']>;
 export type ButtonSize = NonNullable<ButtonVariantProps['size']>;
 
-export const BUTTON_VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'outline', 'ghost', 'danger', 'link'];
+export const BUTTON_VARIANTS: ButtonVariant[] = [
+  'primary',
+  'secondary',
+  'outline',
+  'ghost',
+  'danger',
+  'link',
+];
 export const BUTTON_SIZES: ButtonSize[] = ['sm', 'md', 'lg', 'icon'];
 
 /** Icon-only sizes: square boxes matching the text button heights. */

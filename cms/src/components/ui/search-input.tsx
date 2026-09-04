@@ -30,14 +30,19 @@ export function SearchInput({
 }: SearchInputProps) {
   const t = useT();
   const [local, setLocal] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef(onChange);
-  latest.current = onChange;
 
-  // Sync when the parent resets the value (e.g. "Nullstill filtre").
   useEffect(() => {
+    latest.current = onChange;
+  }, [onChange]);
+
+  // Sync when the parent resets the value (e.g. "Nullstill filtre") — derived state during render.
+  if (value !== syncedValue) {
+    setSyncedValue(value);
     setLocal(value);
-  }, [value]);
+  }
 
   useEffect(
     () => () => {
@@ -65,7 +70,10 @@ export function SearchInput({
   return (
     <div className={cn('relative w-full', className)}>
       <Search
-        className={cn('text-muted pointer-events-none absolute top-1/2 -translate-y-1/2', size === 'sm' ? 'left-2.5 size-3.5' : 'left-3 size-4')}
+        className={cn(
+          'text-muted pointer-events-none absolute top-1/2 -translate-y-1/2',
+          size === 'sm' ? 'left-2.5 size-3.5' : 'left-3 size-4',
+        )}
         aria-hidden
       />
       <input
@@ -94,7 +102,7 @@ export function SearchInput({
           type="button"
           onClick={clear}
           aria-label={t('ui.clear')}
-          className="text-muted hover:text-text hover:bg-surface-2 absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+          className="text-muted hover:text-text hover:bg-surface-2 focus-visible:outline-ring absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-1"
         >
           <X className="size-3.5" aria-hidden />
         </button>

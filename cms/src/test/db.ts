@@ -128,8 +128,20 @@ export async function seedMinimal(db: Db): Promise<SeedMinimalResult> {
   const userSpecs = [
     { key: 'admin', email: 'admin@test.local', name: 'Anne Admin', role: 'admin', isSuperadmin: true },
     { key: 'editor', email: 'editor@test.local', name: 'Erik Redaktør', role: 'editor', isSuperadmin: false },
-    { key: 'journalist', email: 'journalist@test.local', name: 'Julie Journalist', role: 'journalist', isSuperadmin: false },
-    { key: 'contributor', email: 'contributor@test.local', name: 'Frida Frilans', role: 'contributor', isSuperadmin: false },
+    {
+      key: 'journalist',
+      email: 'journalist@test.local',
+      name: 'Julie Journalist',
+      role: 'journalist',
+      isSuperadmin: false,
+    },
+    {
+      key: 'contributor',
+      email: 'contributor@test.local',
+      name: 'Frida Frilans',
+      role: 'contributor',
+      isSuperadmin: false,
+    },
   ] as const;
 
   const insertedUsers = await db
@@ -158,14 +170,22 @@ export async function seedMinimal(db: Db): Promise<SeedMinimalResult> {
     contributor: pick('contributor'),
   };
 
-  await db.insert(memberships).values(
-    userSpecs.map((u) => ({ userId: pick(u.key).id, siteId: site.id, role: u.role })),
-  );
+  await db
+    .insert(memberships)
+    .values(userSpecs.map((u) => ({ userId: pick(u.key).id, siteId: site.id, role: u.role })));
 
   const insertedTypes = await db
     .insert(contentTypes)
     .values([
-      { siteId: site.id, key: 'article', name: 'Artikkel', template: 'article', isDefault: true, sortOrder: 0, icon: 'FileText' },
+      {
+        siteId: site.id,
+        key: 'article',
+        name: 'Artikkel',
+        template: 'article',
+        isDefault: true,
+        sortOrder: 0,
+        icon: 'FileText',
+      },
       {
         siteId: site.id,
         key: 'opinion',
@@ -248,7 +268,11 @@ export async function seedMinimal(db: Db): Promise<SeedMinimalResult> {
     ...seededUsers,
     site,
     contentType: typeByKey('article'),
-    contentTypes: { article: typeByKey('article'), opinion: typeByKey('opinion'), notice: typeByKey('notice') },
+    contentTypes: {
+      article: typeByKey('article'),
+      opinion: typeByKey('opinion'),
+      notice: typeByKey('notice'),
+    },
     section: sectionBySlug('nyheter'),
     sections: { nyheter: sectionBySlug('nyheter'), sport: sectionBySlug('sport') },
     tags: insertedTags,

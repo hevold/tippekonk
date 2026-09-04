@@ -1,7 +1,7 @@
 /**
  * Kbd — keyboard key cap, e.g. <Kbd>⌘</Kbd><Kbd>K</Kbd>.
  */
-import type { ComponentProps } from 'react';
+import { useSyncExternalStore, type ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -17,9 +17,19 @@ export function Kbd({ className, ...props }: ComponentProps<'kbd'>) {
   );
 }
 
+const noSubscribe = () => () => {};
+
+/** Hydration-safe hook: "Ctrl" during SSR/hydration, then the platform's modifier label. */
+export function useModKeyLabel(): string {
+  return useSyncExternalStore(noSubscribe, modKeyLabel, () => 'Ctrl');
+}
+
 /** Platform-aware modifier label: "⌘" on macOS, "Ctrl" elsewhere. Safe on the server (defaults to Ctrl). */
 export function modKeyLabel(): string {
   if (typeof navigator === 'undefined') return 'Ctrl';
-  const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? '';
+  const platform =
+    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+    navigator.platform ??
+    '';
   return /mac|iphone|ipad|ipod/i.test(platform) ? '⌘' : 'Ctrl';
 }

@@ -8,7 +8,10 @@ import { cn } from '@/lib/utils';
 export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('bg-surface border-border text-text flex flex-col rounded-lg border shadow-xs', className)}
+      className={cn(
+        'bg-surface border-border text-text flex flex-col rounded-lg border shadow-xs',
+        className,
+      )}
       {...props}
     />
   );

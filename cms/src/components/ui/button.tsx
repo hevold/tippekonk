@@ -56,7 +56,10 @@ export function Button({
     >
       {loading ? (
         <span className="text-text absolute inset-0 flex items-center justify-center" aria-hidden>
-          <Spinner size="sm" className={variant === 'primary' || variant === 'danger' ? 'text-white' : undefined} />
+          <Spinner
+            size="sm"
+            className={variant === 'primary' || variant === 'danger' ? 'text-white' : undefined}
+          />
         </span>
       ) : null}
       {leftIcon}

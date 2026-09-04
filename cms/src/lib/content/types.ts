@@ -45,15 +45,7 @@ export type EmbedProvider =
   | 'generic';
 
 export type MarkType =
-  | 'bold'
-  | 'italic'
-  | 'underline'
-  | 'strike'
-  | 'subscript'
-  | 'superscript'
-  | 'highlight'
-  | 'link'
-  | 'code';
+  'bold' | 'italic' | 'underline' | 'strike' | 'subscript' | 'superscript' | 'highlight' | 'link' | 'code';
 
 export type Mark = {
   type: MarkType;

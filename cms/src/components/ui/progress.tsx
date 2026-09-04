@@ -39,7 +39,11 @@ export function Progress({
       aria-valuemin={0}
       aria-valuemax={max}
       aria-valuenow={indeterminate ? undefined : Math.round(value)}
-      className={cn('bg-surface-3 relative w-full overflow-hidden rounded-full', size === 'sm' ? 'h-1' : 'h-2', className)}
+      className={cn(
+        'bg-surface-3 relative w-full overflow-hidden rounded-full',
+        size === 'sm' ? 'h-1' : 'h-2',
+        className,
+      )}
       {...props}
     >
       <div

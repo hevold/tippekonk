@@ -27,9 +27,22 @@ export type FormFieldProps = {
   children: ReactNode;
 };
 
-type DescribableProps = { 'aria-describedby'?: string; 'aria-invalid'?: boolean | 'true' | 'false'; id?: string };
+type DescribableProps = {
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean | 'true' | 'false';
+  id?: string;
+};
 
-export function FormField({ label, htmlFor, help, error, required, horizontal, className, children }: FormFieldProps) {
+export function FormField({
+  label,
+  htmlFor,
+  help,
+  error,
+  required,
+  horizontal,
+  className,
+  children,
+}: FormFieldProps) {
   const autoId = useId();
   const controlId = htmlFor ?? `${autoId}-control`;
   const helpId = help ? `${autoId}-help` : undefined;

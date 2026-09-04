@@ -16,7 +16,7 @@ export const inputClassName = cn(
   'file:text-text file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium',
 );
 
-export type InputProps = ComponentProps<'input'> & {
+export type InputProps = Omit<ComponentProps<'input'>, 'size'> & {
   invalid?: boolean;
   /** Compact variant used in toolbars and tables. */
   size?: 'sm' | 'md';

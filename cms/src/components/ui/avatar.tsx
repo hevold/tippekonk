@@ -35,7 +35,10 @@ export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
       {src ? <AvatarPrimitive.Image src={src} alt={name} className="size-full object-cover" /> : null}
       <AvatarPrimitive.Fallback
         delayMs={src ? 300 : 0}
-        className={cn('flex size-full items-center justify-center font-semibold tracking-wide', avatarTint(name))}
+        className={cn(
+          'flex size-full items-center justify-center font-semibold tracking-wide',
+          avatarTint(name),
+        )}
         aria-label={name}
       >
         {initials(name)}

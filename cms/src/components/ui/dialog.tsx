@@ -59,7 +59,7 @@ export function DialogContent({ className, size = 'md', hideClose, children, ...
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          'bg-surface border-border text-text fixed top-1/2 left-1/2 z-50 flex w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border shadow-lg outline-none',
+          'bg-surface border-border text-text fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border shadow-lg outline-none',
           'animate-zoom-in data-[state=closed]:animate-zoom-out',
           dialogSizeClass[size],
           className,
@@ -71,7 +71,7 @@ export function DialogContent({ className, size = 'md', hideClose, children, ...
           <DialogPrimitive.Close
             className={cn(
               'text-muted hover:bg-surface-2 hover:text-text absolute top-3 right-3 inline-flex size-7 items-center justify-center rounded-md transition-colors',
-              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+              'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
             )}
             aria-label={t('ui.close')}
           >
@@ -146,7 +146,9 @@ export function Dialog({
               {description}
             </DialogPrimitive.Description>
           ) : (
-            <DialogPrimitive.Description className="sr-only">{typeof title === 'string' ? title : ''}</DialogPrimitive.Description>
+            <DialogPrimitive.Description className="sr-only">
+              {typeof title === 'string' ? title : ''}
+            </DialogPrimitive.Description>
           )}
         </DialogHeader>
         <DialogBody className={cn(flush && 'px-0 py-0', !footer && 'pb-5')}>{children}</DialogBody>

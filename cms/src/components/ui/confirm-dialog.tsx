@@ -68,7 +68,9 @@ export function ConfirmDialog({
             'animate-zoom-in data-[state=closed]:animate-zoom-out',
           )}
         >
-          <AlertDialogPrimitive.Title className="text-base leading-6 font-semibold">{title}</AlertDialogPrimitive.Title>
+          <AlertDialogPrimitive.Title className="text-base leading-6 font-semibold">
+            {title}
+          </AlertDialogPrimitive.Title>
           {description ? (
             <AlertDialogPrimitive.Description className="text-muted mt-1 text-sm leading-5">
               {description}
@@ -81,7 +83,12 @@ export function ConfirmDialog({
                 {cancelLabel ?? t('ui.cancel')}
               </Button>
             </AlertDialogPrimitive.Cancel>
-            <Button variant={destructive ? 'danger' : 'primary'} loading={pending} onClick={handleConfirm} autoFocus>
+            <Button
+              variant={destructive ? 'danger' : 'primary'}
+              loading={pending}
+              onClick={handleConfirm}
+              autoFocus
+            >
               {confirmLabel ?? t('ui.confirm')}
             </Button>
           </div>

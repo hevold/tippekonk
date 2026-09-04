@@ -145,7 +145,7 @@ export function DataTable<T>({
                       onClick={() => toggleSort(col)}
                       className={cn(
                         'hover:text-text -mx-1 inline-flex items-center gap-1 rounded-sm px-1 py-0.5 transition-colors',
-                        'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
+                        'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-1',
                         active && 'text-text',
                       )}
                     >
@@ -207,7 +207,7 @@ export function DataTable<T>({
                     }
                     className={cn(
                       interactive &&
-                        'cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
+                        'focus-visible:outline-ring cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px]',
                       rowClassName?.(row),
                     )}
                   >

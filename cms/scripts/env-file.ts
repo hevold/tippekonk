@@ -39,7 +39,10 @@ export function parseEnvFile(source: string): Record<string, string> {
 }
 
 /** Load env files into process.env. Returns the names of the files that were read. */
-export function loadEnvFiles(cwd: string = process.cwd(), files: string[] = ['.env.local', '.env']): string[] {
+export function loadEnvFiles(
+  cwd: string = process.cwd(),
+  files: string[] = ['.env.local', '.env'],
+): string[] {
   const loaded: string[] = [];
   for (const name of files) {
     const file = path.join(cwd, name);

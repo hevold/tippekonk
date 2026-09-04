@@ -44,6 +44,9 @@ async function createDb(): Promise<Db> {
   }
   const { drizzle } = await import('drizzle-orm/pglite');
   const { PGlite } = await import('@electric-sql/pglite');
+  // PGlite only creates the leaf directory; make sure the parents exist (./data/pglite on a fresh checkout).
+  const { mkdirSync } = await import('node:fs');
+  mkdirSync(env.PGLITE_DIR, { recursive: true });
   const client = new PGlite(env.PGLITE_DIR);
   await client.waitReady;
   holder.driver = 'pglite';

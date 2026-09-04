@@ -31,13 +31,24 @@ const itemClass = cn(
 );
 const activeClass = 'bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary';
 
-export function Pagination({ page, pageCount, hrefFor, onPageChange, showSummary = true, className }: PaginationProps) {
+export function Pagination({
+  page,
+  pageCount,
+  hrefFor,
+  onPageChange,
+  showSummary = true,
+  className,
+}: PaginationProps) {
   const t = useT();
   if (pageCount <= 1) return null;
   const current = Math.min(Math.max(1, page), pageCount);
   const tokens = paginationRange(current, pageCount);
 
-  const renderItem = (target: number, label: ReactNode, opts: { ariaLabel?: string; active?: boolean; disabled?: boolean }) => {
+  const renderItem = (
+    target: number,
+    label: ReactNode,
+    opts: { ariaLabel?: string; active?: boolean; disabled?: boolean },
+  ) => {
     const cls = cn(itemClass, opts.active && activeClass);
     if (hrefFor && !opts.disabled) {
       return (

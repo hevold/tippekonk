@@ -33,7 +33,7 @@ export function NativeSelect({
         className={cn(
           'bg-surface text-text w-full cursor-pointer appearance-none rounded-md border pr-8 pl-3 shadow-xs',
           'border-border hover:border-border-strong transition-colors',
-          'focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring',
+          'focus-visible:border-ring focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-0',
           'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger',
           'disabled:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-70',
           size === 'sm' ? 'h-8 text-sm' : 'h-9 text-[15px]',

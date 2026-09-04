@@ -29,7 +29,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
               {item.href && !last ? (
                 <Link
                   href={item.href}
-                  className="hover:text-text rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className="hover:text-text focus-visible:outline-ring rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
                 >
                   {item.label}
                 </Link>
@@ -60,7 +60,16 @@ export type PageHeaderProps = {
   children?: ReactNode;
 };
 
-export function PageHeader({ title, description, breadcrumbs, actions, eyebrow, sticky, className, children }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  breadcrumbs,
+  actions,
+  eyebrow,
+  sticky,
+  className,
+  children,
+}: PageHeaderProps) {
   return (
     <header
       className={cn(

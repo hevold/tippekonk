@@ -27,7 +27,15 @@ export const badgeVariants = cva(
 export type BadgeVariantProps = VariantProps<typeof badgeVariants>;
 export type BadgeVariant = NonNullable<BadgeVariantProps['variant']>;
 
-export const BADGE_VARIANTS: BadgeVariant[] = ['default', 'success', 'warning', 'danger', 'info', 'outline', 'muted'];
+export const BADGE_VARIANTS: BadgeVariant[] = [
+  'default',
+  'success',
+  'warning',
+  'danger',
+  'info',
+  'outline',
+  'muted',
+];
 
 export const ARTICLE_STATUSES: ArticleStatus[] = [
   'draft',
@@ -61,9 +69,9 @@ export const statusDotClass: Record<ArticleStatus, string> = {
   archived: 'bg-status-archived-fg',
 };
 
-/** i18n key for each status label ("Utkast", "Til gjennomsyn", …). */
+/** i18n key for each status label ("Utkast", "Til gjennomsyn", …) — shared vocabulary in messages/nb/common.ts. */
 export function statusLabelKey(status: ArticleStatus): string {
-  return `ui.status.${status}`;
+  return `common.status.${status}`;
 }
 
 export function isArticleStatus(value: unknown): value is ArticleStatus {

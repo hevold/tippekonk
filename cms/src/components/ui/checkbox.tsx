@@ -28,7 +28,7 @@ export function Checkbox({ className, label, description, invalid, id, ...props 
       className={cn(
         'peer bg-surface border-border-strong flex size-4 shrink-0 items-center justify-center rounded-xs border shadow-xs transition-colors',
         'hover:border-primary',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
         'data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground',
         'data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground',
         'aria-invalid:border-danger',

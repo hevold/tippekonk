@@ -25,7 +25,7 @@ export function Switch({ className, label, description, size = 'md', id, ...prop
       aria-describedby={descId}
       className={cn(
         'peer bg-border-strong relative inline-flex shrink-0 cursor-pointer items-center rounded-full transition-colors',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
         'data-[state=checked]:bg-primary',
         'disabled:cursor-not-allowed disabled:opacity-50',
         size === 'sm' ? 'h-4 w-7' : 'h-5 w-9',

@@ -41,7 +41,7 @@ export function RadioGroup({ options, inline = false, invalid, className, ...pro
                 className={cn(
                   'bg-surface border-border-strong flex size-4 shrink-0 items-center justify-center rounded-full border shadow-xs transition-colors',
                   'hover:border-primary',
-                  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                  'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
                   'data-[state=checked]:border-primary',
                   'disabled:cursor-not-allowed disabled:opacity-50',
                   invalid && 'border-danger',

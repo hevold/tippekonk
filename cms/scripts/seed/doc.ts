@@ -165,7 +165,11 @@ export function readingTimeMinutes(words: number): number {
   return Math.max(1, Math.ceil(words / 200));
 }
 
-export function textStats(document: ContentDoc): { bodyText: string; wordCount: number; readingTimeMin: number } {
+export function textStats(document: ContentDoc): {
+  bodyText: string;
+  wordCount: number;
+  readingTimeMin: number;
+} {
   const bodyText = docToPlainText(document);
   const words = wordCount(bodyText);
   return { bodyText, wordCount: words, readingTimeMin: readingTimeMinutes(words) };

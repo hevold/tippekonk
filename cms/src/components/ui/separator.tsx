@@ -11,13 +11,22 @@ export type SeparatorProps = ComponentProps<'div'> & {
   decorative?: boolean;
 };
 
-export function Separator({ className, orientation = 'horizontal', decorative = true, ...props }: SeparatorProps) {
+export function Separator({
+  className,
+  orientation = 'horizontal',
+  decorative = true,
+  ...props
+}: SeparatorProps) {
   return (
     <div
       role={decorative ? undefined : 'separator'}
       aria-hidden={decorative || undefined}
       aria-orientation={decorative ? undefined : orientation}
-      className={cn('bg-border shrink-0', orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px', className)}
+      className={cn(
+        'bg-border shrink-0',
+        orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
+        className,
+      )}
       {...props}
     />
   );

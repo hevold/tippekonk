@@ -46,7 +46,8 @@ export function Toaster(props: ToasterProps) {
           content: 'min-w-0 flex-1',
           actionButton:
             'bg-primary text-primary-foreground hover:bg-primary-hover ml-auto shrink-0 rounded-md px-2.5 py-1 text-xs font-medium',
-          cancelButton: 'bg-surface-2 text-text hover:bg-surface-3 ml-2 shrink-0 rounded-md px-2.5 py-1 text-xs font-medium',
+          cancelButton:
+            'bg-surface-2 text-text hover:bg-surface-3 ml-2 shrink-0 rounded-md px-2.5 py-1 text-xs font-medium',
           closeButton:
             'bg-surface border-border text-muted hover:text-text hover:bg-surface-2 absolute -top-2 -left-2 flex size-6 items-center justify-center rounded-full border shadow-xs',
           error: '[&_[data-title]]:text-danger',

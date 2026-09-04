@@ -46,7 +46,11 @@ export function SavingIndicator({ state, savedAt, error, className }: SavingIndi
       role="status"
       aria-live={state === 'error' ? 'assertive' : 'polite'}
       aria-atomic
-      className={cn('inline-flex min-h-5 items-center gap-1.5 text-xs font-medium tabular-nums', tone, className)}
+      className={cn(
+        'inline-flex min-h-5 items-center gap-1.5 text-xs font-medium tabular-nums',
+        tone,
+        className,
+      )}
     >
       {icon}
       {text}

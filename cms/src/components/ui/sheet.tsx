@@ -30,6 +30,8 @@ export type SheetProps = {
   footer?: ReactNode;
   /** Visually hide the header (title stays for screen readers). */
   hideHeader?: boolean;
+  /** Remove body padding (e.g. for a navigation list). */
+  flush?: boolean;
   className?: string;
   children?: ReactNode;
 };
@@ -43,6 +45,7 @@ export function Sheet({
   size = 'md',
   footer,
   hideHeader,
+  flush,
   className,
   children,
 }: SheetProps) {
@@ -51,14 +54,17 @@ export function Sheet({
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
-          className={cn('bg-overlay fixed inset-0 z-50', 'animate-fade-in data-[state=closed]:animate-fade-out')}
+          className={cn(
+            'bg-overlay fixed inset-0 z-50',
+            'animate-fade-in data-[state=closed]:animate-fade-out',
+          )}
         />
         <DialogPrimitive.Content
           className={cn(
             'bg-surface text-text fixed inset-y-0 z-50 flex h-full w-full flex-col shadow-lg outline-none',
             side === 'right'
-              ? 'border-border right-0 border-l animate-slide-in-right data-[state=closed]:animate-slide-out-right'
-              : 'border-border left-0 border-r animate-slide-in-left data-[state=closed]:animate-slide-out-left',
+              ? 'border-border animate-slide-in-right data-[state=closed]:animate-slide-out-right right-0 border-l'
+              : 'border-border animate-slide-in-left data-[state=closed]:animate-slide-out-left left-0 border-r',
             sizeClass[size],
             className,
           )}
@@ -70,7 +76,9 @@ export function Sheet({
             )}
           >
             <div className="min-w-0">
-              <DialogPrimitive.Title className="text-base leading-6 font-semibold">{title}</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="text-base leading-6 font-semibold">
+                {title}
+              </DialogPrimitive.Title>
               {description ? (
                 <DialogPrimitive.Description className="text-muted mt-0.5 text-sm leading-5">
                   {description}
@@ -84,7 +92,7 @@ export function Sheet({
             <DialogPrimitive.Close
               className={cn(
                 'text-muted hover:bg-surface-2 hover:text-text -mt-1 -mr-2 inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
               )}
               aria-label={t('ui.close')}
             >
@@ -95,14 +103,14 @@ export function Sheet({
             <DialogPrimitive.Close
               className={cn(
                 'text-muted hover:bg-surface-2 hover:text-text absolute top-3 right-3 z-10 inline-flex size-7 items-center justify-center rounded-md transition-colors',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
               )}
               aria-label={t('ui.close')}
             >
               <X className="size-4" aria-hidden />
             </DialogPrimitive.Close>
           ) : null}
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+          <div className={cn('min-h-0 flex-1 overflow-y-auto', !flush && 'px-5 py-4')}>{children}</div>
           {footer ? (
             <div className="border-border flex flex-col-reverse gap-2 border-t px-5 py-3 sm:flex-row sm:justify-end">
               {footer}

@@ -28,7 +28,11 @@ export function TabsList({ className, ...props }: ComponentProps<typeof TabsPrim
 export function TabsTrigger({ className, ...props }: ComponentProps<typeof TabsPrimitive.Trigger>) {
   return (
     <TabsPrimitive.Trigger
-      className={cn(triggerClass, 'data-[state=active]:border-primary data-[state=active]:text-text', className)}
+      className={cn(
+        triggerClass,
+        'data-[state=active]:border-primary data-[state=active]:text-text',
+        className,
+      )}
       {...props}
     />
   );
@@ -37,7 +41,7 @@ export function TabsTrigger({ className, ...props }: ComponentProps<typeof TabsP
 export function TabsContent({ className, ...props }: ComponentProps<typeof TabsPrimitive.Content>) {
   return (
     <TabsPrimitive.Content
-      className={cn('pt-4 outline-none focus-visible:outline-2 focus-visible:outline-ring', className)}
+      className={cn('focus-visible:outline-ring pt-4 outline-none focus-visible:outline-2', className)}
       {...props}
     />
   );
