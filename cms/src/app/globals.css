@@ -194,6 +194,16 @@
   --animate-slide-out-left: slide-out-left 180ms var(--ease-out-soft);
   --animate-slide-down: slide-down 140ms var(--ease-out-soft);
   --animate-spin-slow: spin 1.2s linear infinite;
+  --animate-progress-slide: progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
 }
 
 @keyframes fade-in {
