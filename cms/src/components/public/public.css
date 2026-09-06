@@ -1,0 +1,111 @@
+/*
+ * Public site styles that are not expressible as Tailwind utilities:
+ * theme-driven font families, the content container, the live dot
+ * animation and the print stylesheet. `.prose-article` (reading
+ * typography) lives in globals.css and picks up the --site-* variables set
+ * by the theme <style> in <SiteShell>.
+ */
+
+.site-root {
+  font-family: var(--site-font-body, var(--font-sans));
+}
+
+.font-heading {
+  font-family: var(--site-font-heading, var(--font-serif));
+}
+
+.font-body {
+  font-family: var(--site-font-body, var(--font-sans));
+}
+
+.site-container {
+  width: 100%;
+  max-width: var(--site-content-width, 1200px);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  .site-container {
+    padding-inline: 1.5rem;
+  }
+}
+
+/* Teaser titles inherit the heading font and the accent underline on hover. */
+.teaser a:focus-visible {
+  outline-offset: 3px;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-dot {
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
+/* Search result highlights. */
+.search-hit mark {
+  background: color-mix(in srgb, var(--site-accent) 22%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 0.1em;
+}
+
+/* --------------------------------------------------------------------------
+ * Print: the article reads like a newspaper clipping — masthead name, title,
+ * bylines, body; no navigation, no share buttons, no ads, links in black.
+ * -------------------------------------------------------------------------- */
+@media print {
+  .site-root {
+    background: #fff;
+    color: #000;
+  }
+  .site-masthead nav,
+  .site-masthead form,
+  .site-breaking,
+  .site-footer,
+  .paywall-box,
+  [data-block-type='ad'] {
+    display: none !important;
+  }
+  .site-masthead {
+    border-bottom: 1px solid #000;
+    margin-bottom: 1rem;
+  }
+  .site-container {
+    max-width: none;
+    padding-inline: 0;
+  }
+  .site-article h1 {
+    font-size: 24pt;
+  }
+  .site-article a {
+    color: #000;
+    text-decoration: none;
+  }
+  .site-article a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.8em;
+    color: #444;
+  }
+  .site-article img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+  .site-article aside {
+    display: none;
+  }
+}
