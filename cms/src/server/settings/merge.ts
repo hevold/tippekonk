@@ -44,9 +44,7 @@ export function mergeSettingsSection(
     if (!(key in payload)) continue;
     const incoming = payload[key];
     if (!isPlainObject(incoming)) {
-      throw new z.ZodError([
-        { code: 'custom', path: [key], message: 'Ugyldig format', input: incoming },
-      ]);
+      throw new z.ZodError([{ code: 'custom', path: [key], message: 'Ugyldig format', input: incoming }]);
     }
     const base = isPlainObject(current[key as SettingsKey]) ? (current[key as SettingsKey] as object) : {};
     const merged: Record<string, unknown> = { ...base, ...incoming };
@@ -99,8 +97,10 @@ export function describeChanges(changes: SettingsChange[]): {
   const values: Record<string, { before: unknown; after: unknown }> = {};
   for (const c of changes) {
     if (SECRET_KEY_RE.test(c.key)) continue;
-    const scalar = (v: unknown) => v === null || v === undefined || ['string', 'number', 'boolean'].includes(typeof v);
-    if (scalar(c.before) && scalar(c.after)) values[c.key] = { before: c.before ?? null, after: c.after ?? null };
+    const scalar = (v: unknown) =>
+      v === null || v === undefined || ['string', 'number', 'boolean'].includes(typeof v);
+    if (scalar(c.before) && scalar(c.after))
+      values[c.key] = { before: c.before ?? null, after: c.after ?? null };
   }
   return { changed: changes.map((c) => c.key), values };
 }

@@ -58,10 +58,7 @@ export async function updateSiteSettings(
     const after = mergeSettingsSection(before, section, payload);
     const changes = settingsDiff(before, after);
     if (changes.length > 0) {
-      await tx
-        .update(sites)
-        .set({ settings: after, updatedAt: new Date() })
-        .where(eq(sites.id, ctx.site.id));
+      await tx.update(sites).set({ settings: after, updatedAt: new Date() }).where(eq(sites.id, ctx.site.id));
     }
     return { after, changes };
   });

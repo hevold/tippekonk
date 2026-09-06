@@ -22,97 +22,24 @@ import type { AdminContext } from '@/server/auth/context';
 import { assertCan } from '@/server/auth/guards';
 import { revalidatePublic } from '@/server/cache';
 
-export const REDIRECT_STATUS_CODES = [301, 302, 307, 308] as const;
-export type RedirectStatusCode = (typeof REDIRECT_STATUS_CODES)[number];
+import {
+  MAX_CHAIN,
+  isAbsoluteHttpUrl,
+  normalizeRedirectPath,
+  normalizeRedirectTarget,
+  REDIRECT_STATUS_CODES,
+  redirectInputSchema,
+  redirectListSchema,
+  type CsvIssue,
+  type CsvRow,
+  type ImportResult,
+  type RedirectLookup,
+  type RedirectPage,
+  type RedirectStatusCode,
+  type ResolvedRedirect,
+} from './schema';
 
-export type ResolvedRedirect = { toPath: string; statusCode: RedirectStatusCode };
-
-const MAX_PATH = 500;
-const MAX_CHAIN = 25;
-
-/** Leading slash, no trailing slash, no query/hash, percent-decoded, no doubled slashes. */
-export function normalizeRedirectPath(path: string): string {
-  let p = (path ?? '').trim().split('?')[0]?.split('#')[0] ?? '/';
-  if (!p.startsWith('/')) p = `/${p}`;
-  try {
-    p = decodeURIComponent(p);
-  } catch {
-    // Not valid percent-encoding: keep the raw value.
-  }
-  p = p.replace(/\/{2,}/g, '/');
-  if (p.length > 1) p = p.replace(/\/+$/, '');
-  return p;
-}
-
-export function isAbsoluteHttpUrl(value: string): boolean {
-  try {
-    const u = new URL(value);
-    return u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-/** Normalise a target: site paths like fromPath, absolute URLs untouched (trimmed). */
-export function normalizeRedirectTarget(value: string): string {
-  const v = value.trim();
-  if (isAbsoluteHttpUrl(v)) return v;
-  return normalizeRedirectPath(v);
-}
-
-export const fromPathSchema = z
-  .string()
-  .trim()
-  .min(1, 'Fra-sti må fylles ut')
-  .max(MAX_PATH, `Maks ${MAX_PATH} tegn`)
-  .refine((v) => v.startsWith('/'), 'Fra-sti må starte med /')
-  .refine((v) => !/\s/.test(v), 'Fra-sti kan ikke inneholde mellomrom')
-  .transform(normalizeRedirectPath)
-  .refine((v) => v !== '/', 'Forsiden kan ikke omdirigeres')
-  .refine((v) => !v.startsWith('/admin') && !v.startsWith('/api') && !v.startsWith('/media'), {
-    error: 'Stier under /admin, /api og /media kan ikke omdirigeres',
-  });
-
-export const toPathSchema = z
-  .string()
-  .trim()
-  .min(1, 'Til-sti må fylles ut')
-  .max(2000, 'Maks 2000 tegn')
-  .refine((v) => !/\s/.test(v), 'Til-sti kan ikke inneholde mellomrom')
-  .refine((v) => v.startsWith('/') || isAbsoluteHttpUrl(v), {
-    error: 'Til-sti må starte med / eller være en full adresse (https://…)',
-  })
-  .transform(normalizeRedirectTarget);
-
-export const statusCodeSchema = z.coerce
-  .number()
-  .int()
-  .refine((v): v is RedirectStatusCode => (REDIRECT_STATUS_CODES as readonly number[]).includes(v), {
-    error: 'Statuskode må være 301, 302, 307 eller 308',
-  });
-
-export const redirectInputSchema = z
-  .object({
-    fromPath: fromPathSchema,
-    toPath: toPathSchema,
-    statusCode: statusCodeSchema.default(301),
-  })
-  .refine((v) => v.fromPath !== v.toPath, {
-    error: 'Fra- og til-sti kan ikke være like',
-    path: ['toPath'],
-  });
-export type RedirectInput = z.input<typeof redirectInputSchema>;
-export type RedirectOutput = z.output<typeof redirectInputSchema>;
-
-export const redirectListSchema = z.object({
-  q: z.string().trim().max(200).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  perPage: z.coerce.number().int().min(1).max(200).default(50),
-  sort: z.enum(['created', 'hits', 'from']).default('created'),
-});
-export type RedirectListQuery = z.input<typeof redirectListSchema>;
-
-export type RedirectPage = { items: Redirect[]; total: number; page: number; perPage: number };
+export * from './schema';
 
 /* -------------------------------------------------------------------------- */
 /*  Lookup                                                                     */
@@ -153,14 +80,6 @@ export async function resolveRedirect(siteId: string, path: string): Promise<Res
   void recordRedirectHit(row.id);
   return { toPath: row.toPath, statusCode: toStatus(row.statusCode) };
 }
-
-export type RedirectLookup = {
-  matched: Redirect | null;
-  /** The full chain the visitor would follow, first hop first (at most MAX_CHAIN). */
-  chain: { fromPath: string; toPath: string; statusCode: number }[];
-  finalPath: string;
-  loops: boolean;
-};
 
 /** Preview what `resolveRedirect` would do, following chains, without counting hits. */
 export async function lookupRedirect(siteId: string, path: string): Promise<RedirectLookup> {
@@ -228,7 +147,12 @@ export function createsLoop(
   return true; // chain longer than MAX_CHAIN: treat as a loop
 }
 
-async function assertNoLoop(siteId: string, fromPath: string, toPath: string, excludeId?: string): Promise<void> {
+async function assertNoLoop(
+  siteId: string,
+  fromPath: string,
+  toPath: string,
+  excludeId?: string,
+): Promise<void> {
   const existing = await db
     .select({ id: redirects.id, fromPath: redirects.fromPath, toPath: redirects.toPath })
     .from(redirects)
@@ -283,7 +207,10 @@ export async function listRedirects(siteId: string, query: unknown = {}): Promis
       .orderBy(...order)
       .limit(q.perPage)
       .offset((q.page - 1) * q.perPage),
-    db.select({ total: sql<number>`count(*)::int` }).from(redirects).where(where),
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(redirects)
+      .where(where),
   ]);
   return { items, total: count?.total ?? 0, page: q.page, perPage: q.perPage };
 }
@@ -308,7 +235,12 @@ export async function createRedirect(ctx: AdminContext, input: unknown): Promise
   await assertNoLoop(ctx.site.id, data.fromPath, data.toPath);
   const [row] = await db
     .insert(redirects)
-    .values({ siteId: ctx.site.id, fromPath: data.fromPath, toPath: data.toPath, statusCode: data.statusCode })
+    .values({
+      siteId: ctx.site.id,
+      fromPath: data.fromPath,
+      toPath: data.toPath,
+      statusCode: data.statusCode,
+    })
     .returning();
   if (!row) throw new ConflictError('Kunne ikke opprette omdirigeringen.');
   await auditFromContext(ctx, {
@@ -372,9 +304,6 @@ export async function deleteRedirect(ctx: AdminContext, id: unknown): Promise<vo
 /*  CSV import                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export type CsvRow = { line: number; fromPath: string; toPath: string; statusCode: RedirectStatusCode };
-export type CsvIssue = { line: number; message: string };
-
 const HEADER_WORDS = new Set(['from', 'fra', 'frompath', 'from_path', 'kilde', 'source', 'old', 'gammel']);
 
 /**
@@ -414,12 +343,13 @@ export function parseRedirectCsv(text: string): { rows: CsvRow[]; issues: CsvIss
   return { rows, issues };
 }
 
-export type ImportResult = { created: number; updated: number; issues: CsvIssue[] };
-
 /** Import parsed CSV rows: new fromPaths are created, existing ones updated, loops and duplicates reported. */
 export async function importRedirects(ctx: AdminContext, text: unknown): Promise<ImportResult> {
   assertCan(ctx, 'settings:manage');
-  const csv = z.string().max(500_000, 'For mye data (maks 500 kB)').parse(text ?? '');
+  const csv = z
+    .string()
+    .max(500_000, 'For mye data (maks 500 kB)')
+    .parse(text ?? '');
   const { rows, issues } = parseRedirectCsv(csv);
   if (rows.length === 0 && issues.length === 0) {
     throw new ActionError('Ingen linjer å importere.', 'validation');
@@ -463,7 +393,8 @@ export async function importRedirects(ctx: AdminContext, text: unknown): Promise
             statusCode: row.statusCode,
           })
           .returning({ id: redirects.id });
-        if (inserted) byFrom.set(row.fromPath, { id: inserted.id, fromPath: row.fromPath, toPath: row.toPath });
+        if (inserted)
+          byFrom.set(row.fromPath, { id: inserted.id, fromPath: row.fromPath, toPath: row.toPath });
         created += 1;
       }
     }

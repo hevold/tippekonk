@@ -42,7 +42,9 @@
     ".next-newsroom/types/**/*.ts",
     ".next-newsroom/dev/types/**/*.ts",
     ".next-integrations/types/**/*.ts",
-    ".next-integrations/dev/types/**/*.ts"
+    ".next-integrations/dev/types/**/*.ts",
+    ".next-settings/types/**/*.ts",
+    ".next-settings/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
