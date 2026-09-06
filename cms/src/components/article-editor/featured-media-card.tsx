@@ -32,7 +32,16 @@ export type FeaturedMediaCardProps = {
   error?: string;
 };
 
-export function FeaturedMediaCard({ values, update, disabled, media, onMediaPicked, canUpload, canEditMedia, error }: FeaturedMediaCardProps) {
+export function FeaturedMediaCard({
+  values,
+  update,
+  disabled,
+  media,
+  onMediaPicked,
+  canUpload,
+  canEditMedia,
+  error,
+}: FeaturedMediaCardProps) {
   const t = useT();
   const [picking, setPicking] = useState(false);
   const missingAlt = media && !media.alt?.trim();
@@ -41,10 +50,21 @@ export function FeaturedMediaCard({ values, update, disabled, media, onMediaPick
     <div className="grid gap-3">
       {values.featuredMediaId && media ? (
         <figure className="grid gap-2">
-          <MediaImage media={media} aspect="16/9" sizes="320px" targetWidth={640} className="overflow-hidden rounded-md" />
+          <MediaImage
+            media={media}
+            aspect="16/9"
+            sizes="320px"
+            targetWidth={640}
+            className="overflow-hidden rounded-md"
+          />
           <figcaption className="text-muted flex items-center justify-between gap-2 text-xs">
             <span className="truncate">{media.filename}</span>
-            <a href={adminPaths.mediaItem(media.id)} target="_blank" rel="noreferrer" className="text-primary shrink-0 hover:underline">
+            <a
+              href={adminPaths.mediaItem(media.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary shrink-0 hover:underline"
+            >
               {t('articles.featured.openInLibrary')}
             </a>
           </figcaption>
@@ -61,11 +81,21 @@ export function FeaturedMediaCard({ values, update, disabled, media, onMediaPick
       {error ? <Alert variant="danger">{error}</Alert> : null}
       {!disabled ? (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" leftIcon={values.featuredMediaId ? <Replace /> : <ImageIcon />} onClick={() => setPicking(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={values.featuredMediaId ? <Replace /> : <ImageIcon />}
+            onClick={() => setPicking(true)}
+          >
             {values.featuredMediaId ? t('articles.featured.replace') : t('articles.featured.choose')}
           </Button>
           {values.featuredMediaId ? (
-            <Button size="sm" variant="ghost" leftIcon={<X />} onClick={() => update({ featuredMediaId: null, featuredCaption: '', featuredCredit: '' })}>
+            <Button
+              size="sm"
+              variant="ghost"
+              leftIcon={<X />}
+              onClick={() => update({ featuredMediaId: null, featuredCaption: '', featuredCredit: '' })}
+            >
               {t('articles.featured.remove')}
             </Button>
           ) : null}
@@ -73,7 +103,13 @@ export function FeaturedMediaCard({ values, update, disabled, media, onMediaPick
       ) : null}
       {values.featuredMediaId ? (
         <>
-          <FormField label={t('articles.featured.caption')} htmlFor="featured-caption" help={media?.caption ? t('articles.featured.captionDefault', { value: media.caption }) : undefined}>
+          <FormField
+            label={t('articles.featured.caption')}
+            htmlFor="featured-caption"
+            help={
+              media?.caption ? t('articles.featured.captionDefault', { value: media.caption }) : undefined
+            }
+          >
             <Textarea
               id="featured-caption"
               rows={2}
@@ -84,7 +120,11 @@ export function FeaturedMediaCard({ values, update, disabled, media, onMediaPick
               onChange={(e) => update({ featuredCaption: e.target.value })}
             />
           </FormField>
-          <FormField label={t('articles.featured.credit')} htmlFor="featured-credit" help={media?.credit ? t('articles.featured.creditDefault', { value: media.credit }) : undefined}>
+          <FormField
+            label={t('articles.featured.credit')}
+            htmlFor="featured-credit"
+            help={media?.credit ? t('articles.featured.creditDefault', { value: media.credit }) : undefined}
+          >
             <Input
               id="featured-credit"
               value={values.featuredCredit}

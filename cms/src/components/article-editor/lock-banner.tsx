@@ -61,9 +61,7 @@ export function LockBanner({ lock, released, busy, onTakeOver, onRetry }: LockBa
         </>
       }
     >
-      {lock.stale
-        ? t('articles.lock.staleBody', { since })
-        : t('articles.lock.lockedBody', { since })}
+      {lock.stale ? t('articles.lock.staleBody', { since }) : t('articles.lock.lockedBody', { since })}
     </Alert>
   );
 }

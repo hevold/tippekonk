@@ -31,15 +31,30 @@ function sectionLabel(section: EditorSection, all: EditorSection[]): string {
   return parent ? `${parent.name} / ${section.name}` : section.name;
 }
 
-export function TaxonomyCard({ values, update, disabled, sections, tagOptions, errors = {}, canCreateTags }: TaxonomyCardProps) {
+export function TaxonomyCard({
+  values,
+  update,
+  disabled,
+  sections,
+  tagOptions,
+  errors = {},
+  canCreateTags,
+}: TaxonomyCardProps) {
   const t = useT();
   const [extraTags, setExtraTags] = useState<EditorTag[]>([]);
   const allTags = [...tagOptions, ...extraTags.filter((e) => !tagOptions.some((o) => o.id === e.id))];
-  const options: ComboboxOption[] = allTags.map((tag) => ({ value: tag.id, label: tag.name, keywords: [tag.slug] }));
+  const options: ComboboxOption[] = allTags.map((tag) => ({
+    value: tag.id,
+    label: tag.name,
+    keywords: [tag.slug],
+  }));
 
   const sectionOptions = sections
     .filter((s) => s.isActive || s.id === values.sectionId)
-    .map((s) => ({ value: s.id, label: sectionLabel(s, sections) + (s.isActive ? '' : ` (${t('articles.taxonomy.inactive')})`) }));
+    .map((s) => ({
+      value: s.id,
+      label: sectionLabel(s, sections) + (s.isActive ? '' : ` (${t('articles.taxonomy.inactive')})`),
+    }));
 
   async function createTag(label: string) {
     const res = await createTagAction(label);
@@ -65,7 +80,11 @@ export function TaxonomyCard({ values, update, disabled, sections, tagOptions, e
           onChange={(e) => update({ sectionId: e.target.value || null })}
         />
       </FormField>
-      <FormField label={t('common.tags')} htmlFor="article-tags" help={canCreateTags ? t('articles.taxonomy.tagsHelp') : undefined}>
+      <FormField
+        label={t('common.tags')}
+        htmlFor="article-tags"
+        help={canCreateTags ? t('articles.taxonomy.tagsHelp') : undefined}
+      >
         <Combobox
           id="article-tags"
           multiple

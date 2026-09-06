@@ -34,7 +34,18 @@ import type { PickerArticle } from '@/server/articles/queries';
 
 export type ResolvedMedia = Pick<
   Media,
-  'id' | 'storageKey' | 'variants' | 'kind' | 'mime' | 'width' | 'height' | 'alt' | 'focalX' | 'focalY' | 'dominantColor' | 'filename'
+  | 'id'
+  | 'storageKey'
+  | 'variants'
+  | 'kind'
+  | 'mime'
+  | 'width'
+  | 'height'
+  | 'alt'
+  | 'focalX'
+  | 'focalY'
+  | 'dominantColor'
+  | 'filename'
 >;
 export type ResolvedArticle = { id: string; title: string };
 
@@ -232,7 +243,13 @@ export function CustomFieldsForm({
             {mediaId ? (
               <div className="border-border flex items-center gap-3 rounded-md border p-2">
                 {media && media.kind === 'image' ? (
-                  <MediaImage media={media} aspect="4/3" sizes="80px" targetWidth={320} className="w-20 shrink-0 overflow-hidden rounded-sm" />
+                  <MediaImage
+                    media={media}
+                    aspect="4/3"
+                    sizes="80px"
+                    targetWidth={320}
+                    className="w-20 shrink-0 overflow-hidden rounded-sm"
+                  />
                 ) : (
                   <span className="bg-surface-2 text-muted flex size-14 shrink-0 items-center justify-center rounded-sm">
                     <ImageIcon className="size-5" aria-hidden />
@@ -242,14 +259,25 @@ export function CustomFieldsForm({
                   {media?.filename ?? t('articles.customFields.mediaChosen')}
                 </span>
                 {!disabled ? (
-                  <Button variant="ghost" size="sm" leftIcon={<X />} onClick={() => set(field.key, undefined)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<X />}
+                    onClick={() => set(field.key, undefined)}
+                  >
                     {t('articles.customFields.remove')}
                   </Button>
                 ) : null}
               </div>
             ) : null}
             {!disabled ? (
-              <Button id={id} variant="outline" size="sm" leftIcon={<ImageIcon />} onClick={() => setPickingMediaFor(field.key)}>
+              <Button
+                id={id}
+                variant="outline"
+                size="sm"
+                leftIcon={<ImageIcon />}
+                onClick={() => setPickingMediaFor(field.key)}
+              >
                 {mediaId ? t('articles.customFields.changeMedia') : t('articles.customFields.chooseMedia')}
               </Button>
             ) : null}
@@ -264,17 +292,32 @@ export function CustomFieldsForm({
             {articleId ? (
               <div className="border-border flex items-center gap-3 rounded-md border p-2 text-sm">
                 <FileText className="text-muted size-4 shrink-0" aria-hidden />
-                <span className="min-w-0 flex-1 truncate">{article?.title ?? t('articles.customFields.articleChosen')}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {article?.title ?? t('articles.customFields.articleChosen')}
+                </span>
                 {!disabled ? (
-                  <Button variant="ghost" size="sm" leftIcon={<X />} onClick={() => set(field.key, undefined)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<X />}
+                    onClick={() => set(field.key, undefined)}
+                  >
                     {t('articles.customFields.remove')}
                   </Button>
                 ) : null}
               </div>
             ) : null}
             {!disabled ? (
-              <Button id={id} variant="outline" size="sm" leftIcon={<FileText />} onClick={() => setPickingArticleFor(field.key)}>
-                {articleId ? t('articles.customFields.changeArticle') : t('articles.customFields.chooseArticle')}
+              <Button
+                id={id}
+                variant="outline"
+                size="sm"
+                leftIcon={<FileText />}
+                onClick={() => setPickingArticleFor(field.key)}
+              >
+                {articleId
+                  ? t('articles.customFields.changeArticle')
+                  : t('articles.customFields.chooseArticle')}
               </Button>
             ) : null}
           </div>

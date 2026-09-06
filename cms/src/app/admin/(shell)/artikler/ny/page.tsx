@@ -42,7 +42,10 @@ export default async function NewArticleRoute({ searchParams }: { searchParams: 
     <>
       <PageHeader
         title={t('articles.new.title')}
-        breadcrumbs={[{ label: t('nav.articles'), href: adminPaths.articles() }, { label: t('articles.new.title') }]}
+        breadcrumbs={[
+          { label: t('nav.articles'), href: adminPaths.articles() },
+          { label: t('articles.new.title') },
+        ]}
       />
       <NewArticleLauncher types={types} preselectedKey={typeParam?.trim() || null} />
     </>

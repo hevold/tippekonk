@@ -83,8 +83,11 @@ export function PublishDialog({
 
   const errors = (issues ?? []).filter((i) => i.level === 'error' && !i.field?.startsWith('checklist.'));
   const warnings = (issues ?? []).filter((i) => i.level === 'warning');
-  const checklistErrors = (issues ?? []).filter((i) => i.level === 'error' && i.field?.startsWith('checklist.'));
-  const blocked = loading || errors.length > 0 || checklistErrors.length > 0 || (mode === 'schedule' && !scheduledAt);
+  const checklistErrors = (issues ?? []).filter(
+    (i) => i.level === 'error' && i.field?.startsWith('checklist.'),
+  );
+  const blocked =
+    loading || errors.length > 0 || checklistErrors.length > 0 || (mode === 'schedule' && !scheduledAt);
 
   async function confirm() {
     setConfirming(true);
@@ -99,7 +102,9 @@ export function PublishDialog({
     <Dialog
       open={open}
       onOpenChange={confirming ? () => {} : onOpenChange}
-      title={mode === 'schedule' ? t('articles.publishDialog.scheduleTitle') : t('articles.publishDialog.title')}
+      title={
+        mode === 'schedule' ? t('articles.publishDialog.scheduleTitle') : t('articles.publishDialog.title')
+      }
       description={title || t('articles.untitled')}
       size="md"
       footer={
@@ -126,7 +131,12 @@ export function PublishDialog({
       <div className="grid gap-4 pb-2">
         {mode === 'schedule' ? (
           <FormField label={t('articles.publishDialog.scheduledAt')} htmlFor="publish-dialog-time" required>
-            <DateTimeInput id="publish-dialog-time" value={scheduledAt} onChange={onScheduledAtChange} min={new Date()} />
+            <DateTimeInput
+              id="publish-dialog-time"
+              value={scheduledAt}
+              onChange={onScheduledAtChange}
+              min={new Date()}
+            />
           </FormField>
         ) : null}
 
@@ -186,7 +196,9 @@ export function PublishDialog({
                     <span className={cn(missing && 'text-danger')}>
                       {item.label}
                       {item.required ? ' *' : ''}
-                      {item.vvpRef ? <span className="text-muted ml-1.5 text-xs font-normal">VVP {item.vvpRef}</span> : null}
+                      {item.vvpRef ? (
+                        <span className="text-muted ml-1.5 text-xs font-normal">VVP {item.vvpRef}</span>
+                      ) : null}
                     </span>
                   }
                   description={item.help}

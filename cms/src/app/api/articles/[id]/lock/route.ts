@@ -81,7 +81,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     const lock = await heartbeatLock(admin, articleId);
     return Response.json({ ok: lock.mine, lock });
   } catch (err) {
-    if (err instanceof ActionError) return errorResponse(STATUS_BY_CODE[err.code] ?? 500, err.code, err.message);
+    if (err instanceof ActionError)
+      return errorResponse(STATUS_BY_CODE[err.code] ?? 500, err.code, err.message);
     console.error('[articles] lock', err);
     return errorResponse(500, 'internal', 'Noe gikk galt.');
   }

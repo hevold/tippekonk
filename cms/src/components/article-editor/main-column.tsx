@@ -41,7 +41,10 @@ function Counter({ value, soft, hard, id }: { value: number; soft: number; hard:
   return (
     <span
       id={id}
-      className={cn('text-xs tabular-nums', overHard ? 'text-danger' : overSoft ? 'text-warning' : 'text-muted')}
+      className={cn(
+        'text-xs tabular-nums',
+        overHard ? 'text-danger' : overSoft ? 'text-warning' : 'text-muted',
+      )}
       aria-live="polite"
     >
       {value}/{soft}
@@ -110,7 +113,12 @@ export function MainColumn({
           <label htmlFor="article-title" className="sr-only">
             {t('articles.fields.title')}
           </label>
-          <Counter id="article-title-counter" value={titleLength} soft={settings.editor.titleMaxLength} hard={TITLE_MAX} />
+          <Counter
+            id="article-title-counter"
+            value={titleLength}
+            soft={settings.editor.titleMaxLength}
+            hard={TITLE_MAX}
+          />
         </div>
         <Textarea
           id="article-title"
@@ -139,7 +147,12 @@ export function MainColumn({
           <label htmlFor="article-lead" className="sr-only">
             {t('articles.fields.lead')}
           </label>
-          <Counter id="article-lead-counter" value={leadLength} soft={settings.editor.leadMaxLength} hard={LEAD_MAX} />
+          <Counter
+            id="article-lead-counter"
+            value={leadLength}
+            soft={settings.editor.leadMaxLength}
+            hard={LEAD_MAX}
+          />
         </div>
         <Textarea
           id="article-lead"

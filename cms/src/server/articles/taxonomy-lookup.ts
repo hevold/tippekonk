@@ -32,9 +32,11 @@ export async function listTags(siteId: string): Promise<TagOption[]> {
  * a newsroom expects "nytt stikkord" to work mid-sentence.
  */
 export async function createTagQuick(ctx: AdminContext, name: string): Promise<Tag> {
-  if (!ctx.can('article:create')) throw new ActionError('Du har ikke tilgang til å opprette stikkord.', 'forbidden');
+  if (!ctx.can('article:create'))
+    throw new ActionError('Du har ikke tilgang til å opprette stikkord.', 'forbidden');
   const trimmed = name.trim().replace(/\s+/g, ' ');
-  if (!trimmed) throw new ActionError('Skriv et navn på stikkordet.', 'validation', { name: ['Navn må fylles ut'] });
+  if (!trimmed)
+    throw new ActionError('Skriv et navn på stikkordet.', 'validation', { name: ['Navn må fylles ut'] });
   if (trimmed.length > 80) throw new ActionError('Navnet kan ikke være lengre enn 80 tegn.', 'validation');
   const base = slugify(trimmed) || 'stikkord';
 
@@ -45,7 +47,9 @@ export async function createTagQuick(ctx: AdminContext, name: string): Promise<T
     .limit(1);
   if (existing[0]) return existing[0];
   const byName = await db.select().from(tags).where(eq(tags.siteId, ctx.site.id));
-  const sameName = byName.find((t) => t.name.toLocaleLowerCase('nb-NO') === trimmed.toLocaleLowerCase('nb-NO'));
+  const sameName = byName.find(
+    (t) => t.name.toLocaleLowerCase('nb-NO') === trimmed.toLocaleLowerCase('nb-NO'),
+  );
   if (sameName) return sameName;
 
   const slug = await uniqueSlug(base, async (candidate) => {
@@ -87,21 +91,39 @@ export async function resolveSnapshotValue(
   }
   const [sectionRows, tagRows, authorRows, mediaRows] = await Promise.all([
     sectionIds.size
-      ? db.select({ id: sections.id, name: sections.name }).from(sections).where(and(eq(sections.siteId, siteId), inArray(sections.id, [...sectionIds])))
+      ? db
+          .select({ id: sections.id, name: sections.name })
+          .from(sections)
+          .where(and(eq(sections.siteId, siteId), inArray(sections.id, [...sectionIds])))
       : [],
     tagIds.size
-      ? db.select({ id: tags.id, name: tags.name }).from(tags).where(and(eq(tags.siteId, siteId), inArray(tags.id, [...tagIds])))
+      ? db
+          .select({ id: tags.id, name: tags.name })
+          .from(tags)
+          .where(and(eq(tags.siteId, siteId), inArray(tags.id, [...tagIds])))
       : [],
     authorIds.size
-      ? db.select({ id: authors.id, name: authors.name }).from(authors).where(and(eq(authors.siteId, siteId), inArray(authors.id, [...authorIds])))
+      ? db
+          .select({ id: authors.id, name: authors.name })
+          .from(authors)
+          .where(and(eq(authors.siteId, siteId), inArray(authors.id, [...authorIds])))
       : [],
     mediaIds.size
-      ? db.select({ id: media.id, name: media.filename }).from(media).where(and(eq(media.siteId, siteId), inArray(media.id, [...mediaIds])))
+      ? db
+          .select({ id: media.id, name: media.filename })
+          .from(media)
+          .where(and(eq(media.siteId, siteId), inArray(media.id, [...mediaIds])))
       : [],
   ]);
   const names = new Map<string, string>();
   for (const r of [...sectionRows, ...tagRows, ...authorRows, ...mediaRows]) names.set(r.id, r.name);
-  const ROLE: Record<string, string> = { text: 'tekst', photo: 'foto', video: 'video', graphics: 'grafikk', other: 'annet' };
+  const ROLE: Record<string, string> = {
+    text: 'tekst',
+    photo: 'foto',
+    video: 'video',
+    graphics: 'grafikk',
+    other: 'annet',
+  };
 
   return (field, value) => {
     if (value === null || value === undefined) return '';
@@ -110,7 +132,9 @@ export async function resolveSnapshotValue(
       case 'featuredMediaId':
         return typeof value === 'string' ? (names.get(value) ?? value) : String(value);
       case 'tagIds':
-        return Array.isArray(value) ? value.map((v) => names.get(String(v)) ?? String(v)).join(', ') : String(value);
+        return Array.isArray(value)
+          ? value.map((v) => names.get(String(v)) ?? String(v)).join(', ')
+          : String(value);
       case 'bylines':
         return Array.isArray(value)
           ? value

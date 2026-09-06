@@ -25,7 +25,14 @@ export type RelatedCardProps = {
   onResolved: (article: EditorRelated) => void;
 };
 
-export function RelatedCard({ relatedIds, onChange, disabled, known, currentId, onResolved }: RelatedCardProps) {
+export function RelatedCard({
+  relatedIds,
+  onChange,
+  disabled,
+  known,
+  currentId,
+  onResolved,
+}: RelatedCardProps) {
   const t = useT();
   const [picking, setPicking] = useState(false);
   const byId = new Map(known.map((k) => [k.id, k]));
@@ -48,22 +55,43 @@ export function RelatedCard({ relatedIds, onChange, disabled, known, currentId, 
           {relatedIds.map((id, index) => {
             const item = byId.get(id);
             return (
-              <li key={id} className="border-border flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm">
+              <li
+                key={id}
+                className="border-border flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
+              >
                 <span className="min-w-0 flex-1">
-                  <Link href={adminPaths.article(id)} className="text-text block truncate hover:underline" target="_blank">
+                  <Link
+                    href={adminPaths.article(id)}
+                    className="text-text block truncate hover:underline"
+                    target="_blank"
+                  >
                     {item?.title || t('articles.related.unknown')}
                   </Link>
                   {item ? <StatusBadge status={item.status} compact className="text-xs" /> : null}
                 </span>
                 {!disabled ? (
                   <>
-                    <IconButton size="sm" label={t('articles.related.moveUp')} disabled={index === 0} onClick={() => move(index, -1)}>
+                    <IconButton
+                      size="sm"
+                      label={t('articles.related.moveUp')}
+                      disabled={index === 0}
+                      onClick={() => move(index, -1)}
+                    >
                       <ArrowUp />
                     </IconButton>
-                    <IconButton size="sm" label={t('articles.related.moveDown')} disabled={index === relatedIds.length - 1} onClick={() => move(index, 1)}>
+                    <IconButton
+                      size="sm"
+                      label={t('articles.related.moveDown')}
+                      disabled={index === relatedIds.length - 1}
+                      onClick={() => move(index, 1)}
+                    >
                       <ArrowDown />
                     </IconButton>
-                    <IconButton size="sm" label={t('articles.related.remove')} onClick={() => onChange(relatedIds.filter((r) => r !== id))}>
+                    <IconButton
+                      size="sm"
+                      label={t('articles.related.remove')}
+                      onClick={() => onChange(relatedIds.filter((r) => r !== id))}
+                    >
                       <X />
                     </IconButton>
                   </>

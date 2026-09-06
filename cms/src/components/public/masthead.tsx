@@ -97,11 +97,7 @@ export function Masthead({ site, settings, logo, menu, currentPath, tipsHref }: 
     <header className="site-masthead border-border bg-surface relative border-b print:border-0" role="banner">
       <div className="site-container flex items-center justify-between gap-4 py-3 md:py-5">
         <div className="text-muted hidden min-w-0 flex-1 flex-col text-xs md:flex">
-          {showDate ? (
-            <time dateTime={toIso(now).slice(0, 10)} className="capitalize">
-              {formatDate(now, 'weekday')}
-            </time>
-          ) : null}
+          {showDate ? <time dateTime={toIso(now).slice(0, 10)}>{formatDate(now, 'weekday')}</time> : null}
           {showTagline ? <span>{site.tagline}</span> : null}
         </div>
         <div className="flex min-w-0 flex-1 justify-start md:justify-center">

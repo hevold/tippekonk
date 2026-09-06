@@ -52,7 +52,11 @@ export function ContentTypeCard({
 
   return (
     <div className="grid gap-4">
-      <FormField label={t('articles.contentType.label')} htmlFor="article-content-type" help={contentType.description ?? undefined}>
+      <FormField
+        label={t('articles.contentType.label')}
+        htmlFor="article-content-type"
+        help={contentType.description ?? undefined}
+      >
         <NativeSelect
           id="article-content-type"
           value={contentType.id}

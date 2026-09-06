@@ -116,7 +116,13 @@ export type SaveKind = 'autosave' | 'manual';
 
 export type SaveOutcome =
   | { ok: true; version: number; savedAt: Date; slug: string }
-  | { ok: false; code: string; message: string; fieldErrors?: Record<string, string[]>; currentVersion?: number };
+  | {
+      ok: false;
+      code: string;
+      message: string;
+      fieldErrors?: Record<string, string[]>;
+      currentVersion?: number;
+    };
 
 /** Norwegian labels for snapshot fields shown in the revision diff. */
 const FIELD_LABELS: Record<string, string> = {

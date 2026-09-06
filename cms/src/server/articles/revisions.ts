@@ -268,9 +268,7 @@ function scalarToText(value: unknown): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return String(value);
   if (Array.isArray(value)) {
-    return value
-      .map((v) => (v && typeof v === 'object' ? JSON.stringify(v) : scalarToText(v)))
-      .join(', ');
+    return value.map((v) => (v && typeof v === 'object' ? JSON.stringify(v) : scalarToText(v))).join(', ');
   }
   return JSON.stringify(value, null, 0);
 }

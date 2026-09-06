@@ -67,7 +67,11 @@ export function NewArticleLauncher({ types, preselectedKey }: NewArticleLauncher
 
   return (
     <div className="grid gap-4">
-      {error ? <Alert variant="danger" live>{error}</Alert> : null}
+      {error ? (
+        <Alert variant="danger" live>
+          {error}
+        </Alert>
+      ) : null}
       <p className="text-muted text-sm">{t('articles.new.chooseType')}</p>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="list">
         {types.map((type) => (
@@ -82,9 +86,13 @@ export function NewArticleLauncher({ types, preselectedKey }: NewArticleLauncher
               <span className="flex items-center gap-2 font-semibold">
                 <FileText className="size-4" aria-hidden />
                 {type.name}
-                {type.isDefault ? <span className="text-muted text-xs font-normal">({t('articles.new.default')})</span> : null}
+                {type.isDefault ? (
+                  <span className="text-muted text-xs font-normal">({t('articles.new.default')})</span>
+                ) : null}
               </span>
-              {type.description ? <span className="text-muted text-sm font-normal">{type.description}</span> : null}
+              {type.description ? (
+                <span className="text-muted text-sm font-normal">{type.description}</span>
+              ) : null}
             </Button>
           </li>
         ))}

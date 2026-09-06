@@ -39,7 +39,16 @@ function Counter({ value, max }: { value: number; max: number }) {
   );
 }
 
-export function SeoCard({ values, update, disabled, sectionSlug, articleId, published, errors = {}, siteTitleSuffix }: SeoCardProps) {
+export function SeoCard({
+  values,
+  update,
+  disabled,
+  sectionSlug,
+  articleId,
+  published,
+  errors = {},
+  siteTitleSuffix,
+}: SeoCardProps) {
   const t = useT();
   const [editingSlug, setEditingSlug] = useState(false);
   const [slugDraft, setSlugDraft] = useState(values.slug);
@@ -77,7 +86,12 @@ export function SeoCard({ values, update, disabled, sectionSlug, articleId, publ
         <span className="text-text text-sm font-medium">{t('articles.seo.url')}</span>
         {editingSlug ? (
           <div className="grid gap-2">
-            <FormField label={t('articles.seo.slug')} htmlFor="article-slug" error={slugError ?? errors.slug} help={t('articles.seo.slugHelp')}>
+            <FormField
+              label={t('articles.seo.slug')}
+              htmlFor="article-slug"
+              error={slugError ?? errors.slug}
+              help={t('articles.seo.slugHelp')}
+            >
               <Input
                 id="article-slug"
                 value={slugDraft}
@@ -111,12 +125,17 @@ export function SeoCard({ values, update, disabled, sectionSlug, articleId, publ
               ) : null}
             </div>
             {slugDraft && slugify(slugDraft) !== slugDraft ? (
-              <p className="text-muted text-xs">{t('articles.seo.slugPreview', { slug: slugify(slugDraft) })}</p>
+              <p className="text-muted text-xs">
+                {t('articles.seo.slugPreview', { slug: slugify(slugDraft) })}
+              </p>
             ) : null}
           </div>
         ) : (
           <div className="flex items-start gap-2">
-            <code className="bg-surface-2 text-text min-w-0 flex-1 truncate rounded-md px-2 py-1.5 text-[13px]" title={previewPath}>
+            <code
+              className="bg-surface-2 text-text min-w-0 flex-1 truncate rounded-md px-2 py-1.5 text-[13px]"
+              title={previewPath}
+            >
               {previewPath}
             </code>
             {!disabled ? (
@@ -142,7 +161,14 @@ export function SeoCard({ values, update, disabled, sectionSlug, articleId, publ
         help={t('articles.seo.titleHelp', { suffix: siteTitleSuffix || '' })}
         error={errors.seoTitle}
       >
-        <Input id="seo-title" value={values.seoTitle} disabled={disabled} maxLength={SEO_TITLE_MAX + 20} placeholder={values.title} onChange={(e) => update({ seoTitle: e.target.value })} />
+        <Input
+          id="seo-title"
+          value={values.seoTitle}
+          disabled={disabled}
+          maxLength={SEO_TITLE_MAX + 20}
+          placeholder={values.title}
+          onChange={(e) => update({ seoTitle: e.target.value })}
+        />
       </FormField>
       <FormField
         label={
@@ -155,10 +181,31 @@ export function SeoCard({ values, update, disabled, sectionSlug, articleId, publ
         help={t('articles.seo.descriptionHelp')}
         error={errors.seoDescription}
       >
-        <Textarea id="seo-description" rows={3} autoResize value={values.seoDescription} disabled={disabled} maxLength={SEO_DESCRIPTION_MAX + 50} placeholder={values.lead} onChange={(e) => update({ seoDescription: e.target.value })} />
+        <Textarea
+          id="seo-description"
+          rows={3}
+          autoResize
+          value={values.seoDescription}
+          disabled={disabled}
+          maxLength={SEO_DESCRIPTION_MAX + 50}
+          placeholder={values.lead}
+          onChange={(e) => update({ seoDescription: e.target.value })}
+        />
       </FormField>
-      <FormField label={t('articles.seo.canonical')} htmlFor="seo-canonical" help={t('articles.seo.canonicalHelp')} error={errors.canonicalUrl}>
-        <Input id="seo-canonical" type="url" value={values.canonicalUrl} disabled={disabled} placeholder="https://…" onChange={(e) => update({ canonicalUrl: e.target.value })} />
+      <FormField
+        label={t('articles.seo.canonical')}
+        htmlFor="seo-canonical"
+        help={t('articles.seo.canonicalHelp')}
+        error={errors.canonicalUrl}
+      >
+        <Input
+          id="seo-canonical"
+          type="url"
+          value={values.canonicalUrl}
+          disabled={disabled}
+          placeholder="https://…"
+          onChange={(e) => update({ canonicalUrl: e.target.value })}
+        />
       </FormField>
     </div>
   );

@@ -39,7 +39,11 @@ export type UseLock = {
   release: () => Promise<void>;
 };
 
-async function post(articleId: string, body: Record<string, unknown>, keepalive = false): Promise<LockResponse | null> {
+async function post(
+  articleId: string,
+  body: Record<string, unknown>,
+  keepalive = false,
+): Promise<LockResponse | null> {
   try {
     const res = await fetch(`/api/articles/${articleId}/lock`, {
       method: 'POST',
@@ -96,7 +100,15 @@ export function useLock({ articleId, initial, enabled, onLost }: UseLockOptions)
     mineRef.current = false;
     const res = await post(articleId, { action: 'release' });
     if (res) setLock(normalize(res.lock));
-    else setLock((prev) => ({ ...prev, lockedBy: null, lockedAt: null, mine: false, stale: false, canTakeOver: false }));
+    else
+      setLock((prev) => ({
+        ...prev,
+        lockedBy: null,
+        lockedAt: null,
+        mine: false,
+        stale: false,
+        canTakeOver: false,
+      }));
   }, [articleId]);
 
   // Acquire on mount when the lock is free, ours, or stale.

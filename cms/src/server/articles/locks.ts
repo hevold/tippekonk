@@ -129,7 +129,11 @@ export async function acquireLock(
 }
 
 /** Refresh my lock's timestamp. Returns the resulting state (not mine when someone else holds it). */
-export async function heartbeatLock(ctx: AdminContext, id: string, now: Date = new Date()): Promise<LockState> {
+export async function heartbeatLock(
+  ctx: AdminContext,
+  id: string,
+  now: Date = new Date(),
+): Promise<LockState> {
   const row = await loadLockRow(ctx, id);
   if (row.lockedBy === ctx.user.id) {
     await db
@@ -150,7 +154,11 @@ export async function releaseLock(ctx: AdminContext, id: string): Promise<void> 
 }
 
 /** Current lock state for an article id (loads the row). */
-export async function getLockState(ctx: AdminContext, id: string, now: Date = new Date()): Promise<LockState> {
+export async function getLockState(
+  ctx: AdminContext,
+  id: string,
+  now: Date = new Date(),
+): Promise<LockState> {
   const row = await loadLockRow(ctx, id);
   return lockState(ctx, row, now);
 }

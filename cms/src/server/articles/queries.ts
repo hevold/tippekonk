@@ -24,7 +24,7 @@ import {
   type ContentType,
   type Media,
 } from '@/db/schema';
-import { docMediaIds } from '@/lib/content/text';
+import { docArticleIds, docMediaIds } from '@/lib/content/text';
 import type { FieldDef } from '@/lib/validation/site';
 import { ForbiddenError, NotFoundError } from '@/server/actions';
 import type { AdminContext } from '@/server/auth/context';
@@ -37,7 +37,13 @@ import { allowedTransitions, validateForPublish, type PublishIssue } from './val
 
 export type EditorPerson = { id: string; name: string };
 
-export type EditorSection = { id: string; name: string; slug: string; parentId: string | null; isActive: boolean };
+export type EditorSection = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  isActive: boolean;
+};
 export type EditorTag = { id: string; name: string; slug: string };
 export type EditorAuthor = { id: string; name: string; userId: string | null; title: string | null };
 export type EditorContentType = {
@@ -69,7 +75,20 @@ export type EditorChecklistItem = {
 /** The image rows the publish preview needs (featured + body), keyed by id. */
 export type EditorMediaInfo = Pick<
   Media,
-  'id' | 'alt' | 'credit' | 'caption' | 'filename' | 'storageKey' | 'variants' | 'kind' | 'mime' | 'width' | 'height' | 'focalX' | 'focalY' | 'dominantColor'
+  | 'id'
+  | 'alt'
+  | 'credit'
+  | 'caption'
+  | 'filename'
+  | 'storageKey'
+  | 'variants'
+  | 'kind'
+  | 'mime'
+  | 'width'
+  | 'height'
+  | 'focalX'
+  | 'focalY'
+  | 'dominantColor'
 >;
 
 export type ArticleEditModel = {
@@ -83,6 +102,8 @@ export type ArticleEditModel = {
   bylines: { authorId: string; role: BylineRole }[];
   authorOptions: EditorAuthor[];
   related: EditorRelated[];
+  /** Titles for articles referenced by "Les også" nodes in the body (display only). */
+  bodyArticles: EditorRelated[];
   featuredMedia: Media | null;
   /** Media rows referenced by the body, keyed by id (for alt/credit checks and the picker). */
   bodyMedia: Record<string, EditorMediaInfo>;
@@ -123,7 +144,11 @@ function toContentType(row: ContentType): EditorContentType {
 
 async function person(id: string | null): Promise<EditorPerson | null> {
   if (!id) return null;
-  const [u] = await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.id, id)).limit(1);
+  const [u] = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1);
   return u ?? null;
 }
 
@@ -163,11 +188,19 @@ export async function listTagOptions(siteId: string): Promise<EditorTag[]> {
 
 export async function listAuthorOptions(siteId: string): Promise<EditorAuthor[]> {
   const rows = await db
-    .select({ id: authors.id, name: authors.name, userId: authors.userId, title: authors.title, isActive: authors.isActive })
+    .select({
+      id: authors.id,
+      name: authors.name,
+      userId: authors.userId,
+      title: authors.title,
+      isActive: authors.isActive,
+    })
     .from(authors)
     .where(eq(authors.siteId, siteId))
     .orderBy(asc(authors.sortOrder), asc(authors.name));
-  return rows.filter((a) => a.isActive).map((a) => ({ id: a.id, name: a.name, userId: a.userId, title: a.title }));
+  return rows
+    .filter((a) => a.isActive)
+    .map((a) => ({ id: a.id, name: a.name, userId: a.userId, title: a.title }));
 }
 
 export async function listContentTypes(siteId: string): Promise<EditorContentType[]> {
@@ -252,10 +285,15 @@ export async function searchArticlesForPicker(
 }
 
 /** The article row for the editor, enforcing site scope and the contributor "own articles only" rule. */
-export async function getEditableArticle(ctx: AdminContext, id: string, opts: { includeTrashed?: boolean } = {}): Promise<Article> {
+export async function getEditableArticle(
+  ctx: AdminContext,
+  id: string,
+  opts: { includeTrashed?: boolean } = {},
+): Promise<Article> {
   const article = await loadArticle(ctx.site.id, id, { includeTrashed: opts.includeTrashed });
   if (!article) throw new NotFoundError('Fant ikke saken.');
-  if (!canEditArticle(ctx, article) && !ctx.can('article:review')) {
+  // Journalists and up may open everything; viewers get a read-only view; contributors only their own.
+  if (!canEditArticle(ctx, article) && !ctx.can('article:review') && ctx.role !== 'viewer') {
     throw new ForbiddenError('Du har ikke tilgang til denne saken.');
   }
   return article;
@@ -266,25 +304,44 @@ export async function getArticleForEdit(ctx: AdminContext, id: string): Promise<
   const article = await getEditableArticle(ctx, id, { includeTrashed: true });
   const relations = await loadRelations(db, article.id);
 
-  const [allContentTypes, allSections, tagOptions, authorOptions, related, notes, revisionCount, revisions, members, lock, createdBy, updatedBy, assignedTo, publicPath] =
-    await Promise.all([
-      listContentTypes(ctx.site.id),
-      listSections(ctx.site.id),
-      listTagOptions(ctx.site.id),
-      listAuthorOptions(ctx.site.id),
-      getArticleTitles(ctx.site.id, relations.relatedIds),
-      listNotes(article.id),
-      countRevisions(article.id),
-      listRevisions(article.id, 1),
-      listSiteMembers(ctx.site.id),
-      lockState(ctx, article),
-      person(article.createdBy),
-      person(article.updatedBy),
-      person(article.assignedTo),
-      canonicalPath(db, article),
-    ]);
+  const [
+    allContentTypes,
+    allSections,
+    tagOptions,
+    authorOptions,
+    related,
+    bodyArticles,
+    notes,
+    revisionCount,
+    revisions,
+    members,
+    lock,
+    createdBy,
+    updatedBy,
+    assignedTo,
+    publicPath,
+  ] = await Promise.all([
+    listContentTypes(ctx.site.id),
+    listSections(ctx.site.id),
+    listTagOptions(ctx.site.id),
+    listAuthorOptions(ctx.site.id),
+    getArticleTitles(ctx.site.id, relations.relatedIds),
+    getArticleTitles(ctx.site.id, docArticleIds(article.body)),
+    listNotes(article.id),
+    countRevisions(article.id),
+    listRevisions(article.id, 1),
+    listSiteMembers(ctx.site.id),
+    lockState(ctx, article),
+    person(article.createdBy),
+    person(article.updatedBy),
+    person(article.assignedTo),
+    canonicalPath(db, article),
+  ]);
 
-  const mediaIds = [...docMediaIds(article.body), ...(article.featuredMediaId ? [article.featuredMediaId] : [])];
+  const mediaIds = [
+    ...docMediaIds(article.body),
+    ...(article.featuredMediaId ? [article.featuredMediaId] : []),
+  ];
   const mediaMap = await getMediaMany(ctx.site.id, mediaIds);
   const featuredMedia = article.featuredMediaId ? (mediaMap.get(article.featuredMediaId) ?? null) : null;
   const bodyMedia: Record<string, EditorMediaInfo> = {};
@@ -359,6 +416,7 @@ export async function getArticleForEdit(ctx: AdminContext, id: string): Promise<
     bylines: relations.bylines,
     authorOptions,
     related,
+    bodyArticles,
     featuredMedia,
     bodyMedia,
     revisions: { count: revisionCount, latest: revisions[0] ?? null },

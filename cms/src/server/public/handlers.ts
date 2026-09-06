@@ -6,42 +6,25 @@
  */
 import 'server-only';
 
-import { docToHtml } from '@/lib/content/html';
-import type { RenderContext } from '@/lib/content/render';
 import { t } from '@/lib/i18n';
 
 import { getPublicPageContext } from './context';
 import { buildRss } from './feeds';
+import { docToFeedHtml } from './html';
 import { getSectionBySlug, listFeedArticles, listSitemapArticles, type FeedArticle } from './queries';
 import { buildRobots, buildSitemap, buildUrlSet, articleEntries } from './sitemap';
-import { absoluteUrl } from './urls';
 
 const XML_HEADERS = { 'Content-Type': 'application/xml; charset=utf-8' };
 const RSS_HEADERS = { 'Content-Type': 'application/rss+xml; charset=utf-8' };
 const TEXT_HEADERS = { 'Content-Type': 'text/plain; charset=utf-8' };
 
-/** Make root-relative media and link URLs absolute inside rendered HTML (feed readers have no base URL). */
-export function absolutizeHtml(html: string, baseUrl: string): string {
-  const base = baseUrl.replace(/\/+$/, '');
-  return html
-    .replace(/(src|href)="\/(?!\/)/g, `$1="${base}/`)
-    .replace(
-      /srcset="([^"]*)"/g,
-      (_m, list: string) => `srcset="${list.replace(/(^|,\s*)\/(?!\/)/g, `$1${base}/`)}"`,
-    );
-}
-
 function renderBodyFor(baseUrl: string) {
-  return (article: FeedArticle): string => {
-    const ctx: RenderContext = {
+  return (article: FeedArticle): string =>
+    docToFeedHtml(article.body, {
+      baseUrl,
       media: new Map(Object.entries(article.bodyMedia)),
       articles: new Map(Object.entries(article.bodyArticles)),
-      embeds: 'placeholder',
-      imageSizes: '100vw',
-      linkResolver: (href) => absoluteUrl(baseUrl, href),
-    };
-    return absolutizeHtml(docToHtml(article.body, ctx), baseUrl);
-  };
+    });
 }
 
 export async function rssResponse(sectionSlug?: string): Promise<Response> {

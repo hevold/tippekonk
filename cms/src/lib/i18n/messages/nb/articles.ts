@@ -47,7 +47,8 @@ const messages: Record<string, string> = {
 
   /* ---- editor page ---- */
   'articles.editor.title': 'Rediger sak',
-  'articles.editor.forbidden': 'Du har ikke tilgang til denne saken. Bidragsytere kan bare åpne sine egne saker.',
+  'articles.editor.forbidden':
+    'Du har ikke tilgang til denne saken. Bidragsytere kan bare åpne sine egne saker.',
   'articles.leaveConfirm': 'Du har ulagrede endringer. Vil du forlate siden uten å lagre?',
 
   'articles.topbar.back': 'Saker',
@@ -148,7 +149,8 @@ const messages: Record<string, string> = {
 
   'articles.featured.none': 'Ingen hovedbilde valgt',
   'articles.featured.missing': 'Hovedbildet finnes ikke lenger i mediearkivet. Velg et annet.',
-  'articles.featured.missingAlt': 'Bildet mangler alternativ tekst. Legg den inn i mediearkivet før publisering.',
+  'articles.featured.missingAlt':
+    'Bildet mangler alternativ tekst. Legg den inn i mediearkivet før publisering.',
   'articles.featured.choose': 'Velg bilde',
   'articles.featured.replace': 'Bytt bilde',
   'articles.featured.remove': 'Fjern',
@@ -161,7 +163,8 @@ const messages: Record<string, string> = {
   'articles.contentType.label': 'Innholdstype',
   'articles.contentType.noFields': 'Denne innholdstypen har ingen egne felt.',
   'articles.contentType.changeTitle': 'Bytte til «{name}»?',
-  'articles.contentType.changeBody': 'Felt som finnes i begge innholdstypene beholdes. Andre feltverdier fjernes.',
+  'articles.contentType.changeBody':
+    'Felt som finnes i begge innholdstypene beholdes. Andre feltverdier fjernes.',
   'articles.contentType.changeConfirm': 'Bytt innholdstype',
 
   'articles.customFields.booleanOn': 'Ja',
@@ -181,7 +184,8 @@ const messages: Record<string, string> = {
   'articles.seo.slugApply': 'Bruk',
   'articles.seo.slugAuto': 'Lag fra tittelen',
   'articles.seo.slugPreview': 'Blir: {slug}',
-  'articles.seo.slugPublishedHelp': 'Saken er publisert. Endrer du adressen, lages en videresending fra den gamle.',
+  'articles.seo.slugPublishedHelp':
+    'Saken er publisert. Endrer du adressen, lages en videresending fra den gamle.',
   'articles.seo.noSection': 'Uten seksjon får saken kortadressen /a/<id>.',
   'articles.seo.title': 'SEO-tittel',
   'articles.seo.titleHelp': 'Vises i søkeresultater og nettleserfanen. Tom = sakens tittel. {suffix}',
@@ -194,7 +198,8 @@ const messages: Record<string, string> = {
   'articles.planning.unassigned': 'Ikke tildelt',
   'articles.planning.deadline': 'Frist',
   'articles.planning.plannedAt': 'Planlagt i redaksjonsplanen',
-  'articles.planning.plannedHelp': 'Vises i kalenderen. Publiseres ikke automatisk – bruk «Planlegg» for det.',
+  'articles.planning.plannedHelp':
+    'Vises i kalenderen. Publiseres ikke automatisk – bruk «Planlegg» for det.',
 
   'articles.checklist.disabled': 'Sjekklisten er slått av i innstillingene.',
   'articles.checklist.empty': 'Sjekklisten er tom.',
@@ -242,7 +247,8 @@ const messages: Record<string, string> = {
   'articles.revisions.kind.restore': 'Gjenopprettet',
   'articles.revisions.restore': 'Gjenopprett',
   'articles.revisions.restoreTitle': 'Gjenopprette versjon {version}?',
-  'articles.revisions.restoreBody': 'Innholdet fra versjonen legges inn som en ny versjon. Ingenting slettes.',
+  'articles.revisions.restoreBody':
+    'Innholdet fra versjonen legges inn som en ny versjon. Ingenting slettes.',
   'articles.revisions.restored': 'Versjon {version} er gjenopprettet.',
   'articles.revisions.comparing': 'Versjon {from} → {to}',
   'articles.revisions.added': 'lagt til',
@@ -269,13 +275,15 @@ const messages: Record<string, string> = {
   'articles.publishDialog.scheduleConfirmNoTime': 'Velg et tidspunkt',
 
   'articles.conflict.title': 'Saken er endret av noen andre',
-  'articles.conflict.body': 'Last inn på nytt for å se den nyeste versjonen (dine ulagrede endringer forsvinner), eller overskriv med dine endringer.',
+  'articles.conflict.body':
+    'Last inn på nytt for å se den nyeste versjonen (dine ulagrede endringer forsvinner), eller overskriv med dine endringer.',
   'articles.conflict.reload': 'Last inn på nytt',
   'articles.conflict.overwrite': 'Overskriv med mine endringer',
   'articles.conflict.keepEditing': 'Fortsett å redigere',
 
   'articles.lock.lockedTitle': '{name} redigerer denne saken',
-  'articles.lock.lockedBody': 'Saken er skrivebeskyttet for deg mens noen andre redigerer. Låsen ble sist fornyet {since}.',
+  'articles.lock.lockedBody':
+    'Saken er skrivebeskyttet for deg mens noen andre redigerer. Låsen ble sist fornyet {since}.',
   'articles.lock.staleBody': 'Låsen ble sist fornyet {since} og regnes som forlatt. Du kan overta.',
   'articles.lock.takeOver': 'Overta',
   'articles.lock.retry': 'Prøv igjen',
@@ -297,7 +305,8 @@ const messages: Record<string, string> = {
   'articles.confirm.destroyTitle': 'Slette saken permanent?',
   'articles.confirm.destroyBody': 'Alle versjoner og notater slettes. Dette kan ikke angres.',
   'articles.confirm.unpublishTitle': 'Avpublisere saken?',
-  'articles.confirm.unpublishBody': 'Saken fjernes fra nettsiden med én gang. Den kan publiseres igjen senere.',
+  'articles.confirm.unpublishBody':
+    'Saken fjernes fra nettsiden med én gang. Den kan publiseres igjen senere.',
   'articles.confirm.archiveTitle': 'Arkivere saken?',
   'articles.confirm.archiveBody': 'Arkiverte saker skjules fra arbeidslistene, men beholdes.',
 

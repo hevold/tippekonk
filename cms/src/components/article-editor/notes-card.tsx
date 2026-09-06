@@ -44,7 +44,13 @@ export function NotesCard({ articleId, notes, onNotesChange, currentUser, disabl
     }
     onNotesChange([
       ...notes,
-      { id: res.data.id, body: res.data.body, createdAt: new Date(res.data.createdAt), resolvedAt: null, user: currentUser },
+      {
+        id: res.data.id,
+        body: res.data.body,
+        createdAt: new Date(res.data.createdAt),
+        resolvedAt: null,
+        user: currentUser,
+      },
     ]);
     setDraft('');
   }
@@ -55,7 +61,13 @@ export function NotesCard({ articleId, notes, onNotesChange, currentUser, disabl
       toast.error(res.error);
       return;
     }
-    onNotesChange(notes.map((n) => (n.id === note.id ? { ...n, resolvedAt: res.data.resolvedAt ? new Date(res.data.resolvedAt) : null } : n)));
+    onNotesChange(
+      notes.map((n) =>
+        n.id === note.id
+          ? { ...n, resolvedAt: res.data.resolvedAt ? new Date(res.data.resolvedAt) : null }
+          : n,
+      ),
+    );
   }
 
   function renderNote(note: EditorNote) {
@@ -70,7 +82,11 @@ export function NotesCard({ articleId, notes, onNotesChange, currentUser, disabl
               {formatRelative(note.createdAt)}
             </time>
           </div>
-          <p className={cn('text-text mt-0.5 text-sm break-words whitespace-pre-wrap', done && 'line-through')}>{note.body}</p>
+          <p
+            className={cn('text-text mt-0.5 text-sm break-words whitespace-pre-wrap', done && 'line-through')}
+          >
+            {note.body}
+          </p>
         </div>
         {!disabled ? (
           <IconButton
@@ -87,11 +103,23 @@ export function NotesCard({ articleId, notes, onNotesChange, currentUser, disabl
 
   return (
     <div className="grid gap-3">
-      {open.length === 0 ? <p className="text-muted text-sm">{t('articles.notes.empty')}</p> : <ul className="grid gap-3">{open.map(renderNote)}</ul>}
+      {open.length === 0 ? (
+        <p className="text-muted text-sm">{t('articles.notes.empty')}</p>
+      ) : (
+        <ul className="grid gap-3">{open.map(renderNote)}</ul>
+      )}
       {resolved.length > 0 ? (
         <div className="grid gap-2">
-          <Button variant="link" size="sm" className="justify-start" onClick={() => setShowResolved((v) => !v)} aria-expanded={showResolved}>
-            {showResolved ? t('articles.notes.hideResolved', { count: resolved.length }) : t('articles.notes.showResolved', { count: resolved.length })}
+          <Button
+            variant="link"
+            size="sm"
+            className="justify-start"
+            onClick={() => setShowResolved((v) => !v)}
+            aria-expanded={showResolved}
+          >
+            {showResolved
+              ? t('articles.notes.hideResolved', { count: resolved.length })
+              : t('articles.notes.showResolved', { count: resolved.length })}
           </Button>
           {showResolved ? <ul className="grid gap-3">{resolved.map(renderNote)}</ul> : null}
         </div>

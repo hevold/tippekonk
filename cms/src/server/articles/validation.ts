@@ -48,7 +48,10 @@ export function checklistFlag(itemId: string): string {
   return `${CHECKLIST_FLAG_PREFIX}${itemId}`;
 }
 
-export function isChecklistItemDone(flags: Record<string, boolean> | null | undefined, itemId: string): boolean {
+export function isChecklistItemDone(
+  flags: Record<string, boolean> | null | undefined,
+  itemId: string,
+): boolean {
   return Boolean(flags?.[checklistFlag(itemId)]);
 }
 

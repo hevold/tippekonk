@@ -68,7 +68,16 @@ export type ArticleEditorPageProps = {
 
 type Meta = Pick<
   Article,
-  'status' | 'version' | 'updatedAt' | 'publishedAt' | 'firstPublishedAt' | 'scheduledAt' | 'wordCount' | 'readingTimeMin' | 'deletedAt' | 'updatedBy'
+  | 'status'
+  | 'version'
+  | 'updatedAt'
+  | 'publishedAt'
+  | 'firstPublishedAt'
+  | 'scheduledAt'
+  | 'wordCount'
+  | 'readingTimeMin'
+  | 'deletedAt'
+  | 'updatedBy'
 > & { updatedByName: string | null };
 
 function metaFromModel(model: ArticleEditModel): Meta {
@@ -104,7 +113,13 @@ function metaFromArticle(article: Article, updatedByName: string | null): Meta {
   };
 }
 
-export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia, canEditMedia }: ArticleEditorPageProps) {
+export function ArticleEditorPage({
+  model,
+  settings,
+  currentUser,
+  canUploadMedia,
+  canEditMedia,
+}: ArticleEditorPageProps) {
   const t = useT();
   const router = useRouter();
   const articleId = model.article.id;
@@ -116,13 +131,21 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
   const versionRef = useRef(model.article.version);
   const [notes, setNotes] = useState<EditorNote[]>(model.notes);
   const [mediaCache, setMediaCache] = useState<Record<string, EditorMediaInfo | Media>>(model.bodyMedia);
-  const [relatedKnown, setRelatedKnown] = useState<EditorRelated[]>(model.related);
+  const [relatedKnown, setRelatedKnown] = useState<EditorRelated[]>(() => [
+    ...model.related,
+    ...model.bodyArticles.filter((b) => !model.related.some((r) => r.id === b.id)),
+  ]);
   const [articleTitles, setArticleTitles] = useState<Record<string, ResolvedArticle>>({});
   const [conflict, setConflict] = useState<{ message: string; currentVersion?: number } | null>(null);
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
-  const [publishDialog, setPublishDialog] = useState<{ open: boolean; mode: PublishDialogMode }>({ open: false, mode: 'publish' });
+  const [publishDialog, setPublishDialog] = useState<{ open: boolean; mode: PublishDialogMode }>({
+    open: false,
+    mode: 'publish',
+  });
   const [scheduledDraft, setScheduledDraft] = useState<Date | null>(model.article.scheduledAt);
-  const [confirmAction, setConfirmAction] = useState<'trash' | 'destroy' | 'unpublish' | 'archive' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'trash' | 'destroy' | 'unpublish' | 'archive' | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [attemptedPublish, setAttemptedPublish] = useState(false);
   const [issuesRefresh, setIssuesRefresh] = useState(0);
@@ -171,7 +194,13 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
       savedValuesRef.current = { ...sent, slug };
       setSavedKey(payloadKey === serializeForm(sent) ? serializeForm({ ...sent, slug }) : payloadKey);
       setValues((prev) => (prev.slug === slug ? prev : { ...prev, slug }));
-      setMeta((prev) => ({ ...prev, version, updatedAt: savedAt, updatedBy: currentUser.id, updatedByName: currentUser.name }));
+      setMeta((prev) => ({
+        ...prev,
+        version,
+        updatedAt: savedAt,
+        updatedBy: currentUser.id,
+        updatedByName: currentUser.name,
+      }));
       setServerErrors({});
       if (kind === 'manual') setIssuesRefresh((n) => n + 1);
     },
@@ -223,8 +252,9 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
     const ours = model.article.updatedBy === currentUser.id;
     setNotes(model.notes);
     setRelatedKnown((prev) => {
-      const ids = new Set(model.related.map((r) => r.id));
-      return [...model.related, ...prev.filter((p) => !ids.has(p.id))];
+      const fresh = [...model.related, ...model.bodyArticles];
+      const ids = new Set(fresh.map((r) => r.id));
+      return [...fresh, ...prev.filter((p) => !ids.has(p.id))];
     });
     setMediaCache((prev) => ({ ...prev, ...model.bodyMedia }));
     if (!dirtyRef.current || ours) {
@@ -272,12 +302,15 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
   const previewErrors = previewIssues.filter((i) => i.level === 'error');
   const fieldErrors = useMemo(() => {
     const out: Record<string, string> = { ...serverErrors };
-    if (attemptedPublish) for (const issue of previewErrors) if (issue.field && !out[issue.field]) out[issue.field] = issue.message;
+    if (attemptedPublish)
+      for (const issue of previewErrors)
+        if (issue.field && !out[issue.field]) out[issue.field] = issue.message;
     return out;
   }, [serverErrors, attemptedPublish, previewErrors]);
   const customFieldErrors = useMemo(() => {
     const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(fieldErrors)) if (k.startsWith('customFields.')) out[k.slice('customFields.'.length)] = v;
+    for (const [k, v] of Object.entries(fieldErrors))
+      if (k.startsWith('customFields.')) out[k.slice('customFields.'.length)] = v;
     return out;
   }, [fieldErrors]);
 
@@ -336,7 +369,11 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
     }
     adopt(res.data);
     setPublishDialog((p) => ({ ...p, open: false }));
-    toast.success(publishDialog.mode === 'schedule' ? t('articles.toast.transition.scheduled') : t('articles.toast.transition.published'));
+    toast.success(
+      publishDialog.mode === 'schedule'
+        ? t('articles.toast.transition.scheduled')
+        : t('articles.toast.transition.published'),
+    );
     router.refresh();
   }
 
@@ -352,7 +389,10 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
       return;
     }
     // The server stored it too, so the saved snapshot carries the same flags.
-    savedValuesRef.current = { ...savedValuesRef.current, flags: { ...savedValuesRef.current.flags, [key]: checked } };
+    savedValuesRef.current = {
+      ...savedValuesRef.current,
+      flags: { ...savedValuesRef.current.flags, [key]: checked },
+    };
     setSavedKey(serializeForm(savedValuesRef.current));
   }
 
@@ -374,7 +414,11 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
       return;
     }
     adopt(res.data);
-    const next = { ...valuesRef.current, contentTypeId: res.data.contentTypeId, customFields: res.data.customFields ?? {} };
+    const next = {
+      ...valuesRef.current,
+      contentTypeId: res.data.contentTypeId,
+      customFields: res.data.customFields ?? {},
+    };
     savedValuesRef.current = next;
     setValues(next);
     setSavedKey(serializeForm(next));
@@ -426,44 +470,116 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
   const transitions: TransitionButton[] = [];
   if (canEdit) {
     if (canTransition(meta.status, 'in_review')) {
-      transitions.push({ key: 'in_review', label: t('articles.actions.sendToDesk'), icon: <Send />, onClick: () => void runTransition('in_review') });
+      transitions.push({
+        key: 'in_review',
+        label: t('articles.actions.sendToDesk'),
+        icon: <Send />,
+        onClick: () => void runTransition('in_review'),
+      });
     }
     if (perms.publish && canTransition(meta.status, 'approved')) {
-      transitions.push({ key: 'approved', label: t('articles.actions.approve'), icon: <Check />, onClick: () => void runTransition('approved') });
+      transitions.push({
+        key: 'approved',
+        label: t('articles.actions.approve'),
+        icon: <Check />,
+        onClick: () => void runTransition('approved'),
+      });
     }
     if (perms.publish && canTransition(meta.status, 'published')) {
-      transitions.push({ key: 'published', label: t('articles.actions.publish'), variant: 'primary', icon: <CheckCheck />, onClick: () => void openPublishDialog('publish') });
+      transitions.push({
+        key: 'published',
+        label: t('articles.actions.publish'),
+        variant: 'primary',
+        icon: <CheckCheck />,
+        onClick: () => void openPublishDialog('publish'),
+      });
     }
     if (perms.publish && canTransition(meta.status, 'scheduled')) {
-      transitions.push({ key: 'scheduled', label: meta.status === 'scheduled' ? t('articles.actions.reschedule') : t('articles.actions.schedule'), icon: <CalendarClock />, onClick: () => void openPublishDialog('schedule') });
+      transitions.push({
+        key: 'scheduled',
+        label:
+          meta.status === 'scheduled' ? t('articles.actions.reschedule') : t('articles.actions.schedule'),
+        icon: <CalendarClock />,
+        onClick: () => void openPublishDialog('schedule'),
+      });
     }
     if (perms.publish && meta.status === 'published') {
-      transitions.push({ key: 'unpublished', label: t('articles.actions.unpublish'), variant: 'outline', icon: <Undo2 />, onClick: () => setConfirmAction('unpublish') });
+      transitions.push({
+        key: 'unpublished',
+        label: t('articles.actions.unpublish'),
+        variant: 'outline',
+        icon: <Undo2 />,
+        onClick: () => setConfirmAction('unpublish'),
+      });
     }
-    if (canTransition(meta.status, 'draft') && (meta.status === 'in_review' || meta.status === 'approved' || (perms.publish && (meta.status === 'scheduled' || meta.status === 'unpublished' || meta.status === 'archived')))) {
+    if (
+      canTransition(meta.status, 'draft') &&
+      (meta.status === 'in_review' ||
+        meta.status === 'approved' ||
+        (perms.publish &&
+          (meta.status === 'scheduled' || meta.status === 'unpublished' || meta.status === 'archived')))
+    ) {
       transitions.push({
         key: 'draft',
-        label: meta.status === 'scheduled' ? t('articles.actions.cancelSchedule') : t('articles.actions.backToDraft'),
+        label:
+          meta.status === 'scheduled'
+            ? t('articles.actions.cancelSchedule')
+            : t('articles.actions.backToDraft'),
         variant: 'ghost',
         icon: <RotateCcw />,
         onClick: () => void runTransition('draft'),
       });
     }
     if (perms.publish && canTransition(meta.status, 'archived')) {
-      transitions.push({ key: 'archived', label: t('articles.actions.archive'), variant: 'ghost', icon: <Archive />, onClick: () => setConfirmAction('archive') });
+      transitions.push({
+        key: 'archived',
+        label: t('articles.actions.archive'),
+        variant: 'ghost',
+        icon: <Archive />,
+        onClick: () => setConfirmAction('archive'),
+      });
     }
   }
 
-  const relatedTitles = useMemo(() => Object.fromEntries(relatedKnown.map((r) => [r.id, r.title])), [relatedKnown]);
+  const relatedTitles = useMemo(
+    () => Object.fromEntries(relatedKnown.map((r) => [r.id, r.title])),
+    [relatedKnown],
+  );
   const sectionSlug = model.sections.find((s) => s.id === values.sectionId)?.slug ?? null;
   const featuredMedia = values.featuredMediaId ? (mediaCache[values.featuredMediaId] ?? null) : null;
-  const cacheMedia = useCallback((media: Media) => setMediaCache((prev) => ({ ...prev, [media.id]: media })), []);
+  const cacheMedia = useCallback(
+    (media: Media) => setMediaCache((prev) => ({ ...prev, [media.id]: media })),
+    [],
+  );
 
-  const confirmCopy: Record<NonNullable<typeof confirmAction>, { title: string; description: string; confirm: string; destructive: boolean }> = {
-    trash: { title: t('articles.confirm.trashTitle'), description: t('articles.confirm.trashBody'), confirm: t('articles.menu.trash'), destructive: true },
-    destroy: { title: t('articles.confirm.destroyTitle'), description: t('articles.confirm.destroyBody'), confirm: t('articles.trash.destroy'), destructive: true },
-    unpublish: { title: t('articles.confirm.unpublishTitle'), description: t('articles.confirm.unpublishBody'), confirm: t('articles.actions.unpublish'), destructive: false },
-    archive: { title: t('articles.confirm.archiveTitle'), description: t('articles.confirm.archiveBody'), confirm: t('articles.actions.archive'), destructive: false },
+  const confirmCopy: Record<
+    NonNullable<typeof confirmAction>,
+    { title: string; description: string; confirm: string; destructive: boolean }
+  > = {
+    trash: {
+      title: t('articles.confirm.trashTitle'),
+      description: t('articles.confirm.trashBody'),
+      confirm: t('articles.menu.trash'),
+      destructive: true,
+    },
+    destroy: {
+      title: t('articles.confirm.destroyTitle'),
+      description: t('articles.confirm.destroyBody'),
+      confirm: t('articles.trash.destroy'),
+      destructive: true,
+    },
+    unpublish: {
+      title: t('articles.confirm.unpublishTitle'),
+      description: t('articles.confirm.unpublishBody'),
+      confirm: t('articles.actions.unpublish'),
+      destructive: false,
+    },
+    archive: {
+      title: t('articles.confirm.archiveTitle'),
+      description: t('articles.confirm.archiveBody'),
+      confirm: t('articles.actions.archive'),
+      destructive: false,
+    },
   };
 
   return (
@@ -478,7 +594,10 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
         dirty={dirty}
         publicPath={model.publicPath}
         canEdit={editable}
-        canDelete={perms.delete || (perms.edit && meta.status === 'draft' && model.article.createdBy === currentUser.id)}
+        canDelete={
+          perms.delete ||
+          (perms.edit && meta.status === 'draft' && model.article.createdBy === currentUser.id)
+        }
         canCreate={perms.create}
         holdsLock={lock.mine && !lock.released}
         trashed={trashed}
@@ -501,7 +620,12 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
                 <Button size="sm" variant="primary" onClick={() => void restoreFromTrash()}>
                   {t('articles.trash.restore')}
                 </Button>
-                <Button size="sm" variant="danger" leftIcon={<Trash2 />} onClick={() => setConfirmAction('destroy')}>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  leftIcon={<Trash2 />}
+                  onClick={() => setConfirmAction('destroy')}
+                >
                   {t('articles.trash.destroy')}
                 </Button>
               </>
@@ -579,7 +703,12 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
               busy={busy}
             />
             {canEdit && meta.status !== 'published' ? (
-              <p className={previewErrors.length === 0 ? 'text-success mt-3 text-xs' : 'text-muted mt-3 text-xs'} aria-live="polite">
+              <p
+                className={
+                  previewErrors.length === 0 ? 'text-success mt-3 text-xs' : 'text-muted mt-3 text-xs'
+                }
+                aria-live="polite"
+              >
                 {previewErrors.length === 0
                   ? t('articles.status.readyToPublish')
                   : t('articles.status.issuesRemaining', { count: previewErrors.length })}
@@ -616,8 +745,18 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
             />
           </SidebarSection>
 
-          <SidebarSection id="bylines" title={t('articles.sidebar.bylines')} meta={values.bylines.length || undefined}>
-            <BylinesCard values={values} update={update} disabled={disabled} authors={model.authorOptions} error={fieldErrors.bylines} />
+          <SidebarSection
+            id="bylines"
+            title={t('articles.sidebar.bylines')}
+            meta={values.bylines.length || undefined}
+          >
+            <BylinesCard
+              values={values}
+              update={update}
+              disabled={disabled}
+              authors={model.authorOptions}
+              error={fieldErrors.bylines}
+            />
           </SidebarSection>
 
           <SidebarSection id="featured" title={t('articles.sidebar.featured')}>
@@ -644,7 +783,10 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
               disabled={disabled}
               onChangeType={changeType}
               resolvedMedia={mediaCache}
-              resolvedArticles={{ ...Object.fromEntries(relatedKnown.map((r) => [r.id, { id: r.id, title: r.title }])), ...articleTitles }}
+              resolvedArticles={{
+                ...Object.fromEntries(relatedKnown.map((r) => [r.id, { id: r.id, title: r.title }])),
+                ...articleTitles,
+              }}
               onMediaResolved={cacheMedia}
               onArticleResolved={(a) => setArticleTitles((prev) => ({ ...prev, [a.id]: a }))}
             />
@@ -664,34 +806,70 @@ export function ArticleEditorPage({ model, settings, currentUser, canUploadMedia
           </SidebarSection>
 
           <SidebarSection id="planning" title={t('articles.sidebar.planning')} defaultOpen={false}>
-            <PlanningCard values={values} update={update} disabled={disabled} members={model.members} onCommit={(patch) => void commitPlanning(patch)} />
+            <PlanningCard
+              values={values}
+              update={update}
+              disabled={disabled}
+              members={model.members}
+              onCommit={(patch) => void commitPlanning(patch)}
+            />
           </SidebarSection>
 
           <SidebarSection
             id="checklist"
             title={t('articles.sidebar.checklist')}
-            meta={model.checklist.enabled ? `${model.checklist.items.filter((i) => values.flags[`checklist:${i.id}`]).length}/${model.checklist.items.length}` : undefined}
+            meta={
+              model.checklist.enabled
+                ? `${model.checklist.items.filter((i) => values.flags[`checklist:${i.id}`]).length}/${model.checklist.items.length}`
+                : undefined
+            }
           >
-            <ChecklistCard items={model.checklist.items} enabled={model.checklist.enabled} flags={values.flags} disabled={disabled} onToggle={(id, checked) => void toggleChecklist(id, checked)} />
+            <ChecklistCard
+              items={model.checklist.items}
+              enabled={model.checklist.enabled}
+              flags={values.flags}
+              disabled={disabled}
+              onToggle={(id, checked) => void toggleChecklist(id, checked)}
+            />
           </SidebarSection>
 
-          <SidebarSection id="related" title={t('articles.sidebar.related')} meta={values.relatedIds.length || undefined}>
+          <SidebarSection
+            id="related"
+            title={t('articles.sidebar.related')}
+            meta={values.relatedIds.length || undefined}
+          >
             <RelatedCard
               relatedIds={values.relatedIds}
               onChange={(relatedIds) => update({ relatedIds })}
               disabled={disabled}
               known={relatedKnown}
               currentId={articleId}
-              onResolved={(a) => setRelatedKnown((prev) => (prev.some((p) => p.id === a.id) ? prev : [...prev, a]))}
+              onResolved={(a) =>
+                setRelatedKnown((prev) => (prev.some((p) => p.id === a.id) ? prev : [...prev, a]))
+              }
             />
           </SidebarSection>
 
-          <SidebarSection id="notes" title={t('articles.sidebar.notes')} meta={notes.filter((n) => !n.resolvedAt).length || undefined}>
-            <NotesCard articleId={articleId} notes={notes} onNotesChange={setNotes} currentUser={currentUser} disabled={!editable} />
+          <SidebarSection
+            id="notes"
+            title={t('articles.sidebar.notes')}
+            meta={notes.filter((n) => !n.resolvedAt).length || undefined}
+          >
+            <NotesCard
+              articleId={articleId}
+              notes={notes}
+              onNotesChange={setNotes}
+              currentUser={currentUser}
+              disabled={!editable}
+            />
           </SidebarSection>
 
           <SidebarSection id="revisions" title={t('articles.sidebar.revisions')} defaultOpen={false}>
-            <RevisionsCard articleId={articleId} count={model.revisions.count} latest={model.revisions.latest} />
+            <RevisionsCard
+              articleId={articleId}
+              count={model.revisions.count}
+              latest={model.revisions.latest}
+            />
           </SidebarSection>
         </aside>
       </div>

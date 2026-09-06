@@ -75,7 +75,11 @@ export function canEditArticle(
 /*  Text projections                                                           */
 /* -------------------------------------------------------------------------- */
 
-export function textFields(body: ContentDoc): { bodyText: string; wordCount: number; readingTimeMin: number } {
+export function textFields(body: ContentDoc): {
+  bodyText: string;
+  wordCount: number;
+  readingTimeMin: number;
+} {
   const bodyText = docToPlainText(body);
   const wordCount = docWordCount(body);
   return { bodyText, wordCount, readingTimeMin: readingTimeMinutes(wordCount) };
@@ -85,12 +89,21 @@ export function textFields(body: ContentDoc): { bodyText: string; wordCount: num
 /*  Slugs                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function slugExists(tx: Writer, siteId: string, slug: string, excludeId?: string): Promise<boolean> {
+export async function slugExists(
+  tx: Writer,
+  siteId: string,
+  slug: string,
+  excludeId?: string,
+): Promise<boolean> {
   const rows = await tx
     .select({ id: articles.id })
     .from(articles)
     .where(
-      and(eq(articles.siteId, siteId), eq(articles.slug, slug), excludeId ? ne(articles.id, excludeId) : undefined),
+      and(
+        eq(articles.siteId, siteId),
+        eq(articles.slug, slug),
+        excludeId ? ne(articles.id, excludeId) : undefined,
+      ),
     )
     .limit(1);
   return rows.length > 0;
@@ -98,7 +111,11 @@ export async function slugExists(tx: Writer, siteId: string, slug: string, exclu
 
 /** A unique placeholder slug for drafts without a title ("utkast-k3j9x2ab"). */
 export async function placeholderSlug(tx: Writer, siteId: string): Promise<string> {
-  const suffix = randomBytes(6).toString('base64url').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+  const suffix = randomBytes(6)
+    .toString('base64url')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 8);
   return uniqueSlug(`utkast-${suffix || 'ny'}`, (candidate) => slugExists(tx, siteId, candidate));
 }
 
@@ -260,7 +277,11 @@ export async function loadRelations(tx: Writer, articleId: string): Promise<Arti
   const [tagRows, bylineRows, relatedRows] = await Promise.all([
     tx.select({ tagId: articleTags.tagId }).from(articleTags).where(eq(articleTags.articleId, articleId)),
     tx
-      .select({ authorId: articleBylines.authorId, role: articleBylines.role, sortOrder: articleBylines.sortOrder })
+      .select({
+        authorId: articleBylines.authorId,
+        role: articleBylines.role,
+        sortOrder: articleBylines.sortOrder,
+      })
       .from(articleBylines)
       .where(eq(articleBylines.articleId, articleId))
       .orderBy(articleBylines.sortOrder),
@@ -300,7 +321,12 @@ export async function canonicalPath(
  * redirects pointing at the old path are re-targeted so chains never form,
  * and a redirect from the new path (if any) is removed to avoid loops.
  */
-export async function recordRedirect(tx: Writer, siteId: string, fromPath: string, toPath: string): Promise<void> {
+export async function recordRedirect(
+  tx: Writer,
+  siteId: string,
+  fromPath: string,
+  toPath: string,
+): Promise<void> {
   if (!fromPath || !toPath || fromPath === toPath) return;
   await tx.delete(redirects).where(and(eq(redirects.siteId, siteId), eq(redirects.fromPath, toPath)));
   await tx

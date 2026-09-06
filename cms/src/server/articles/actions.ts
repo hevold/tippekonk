@@ -44,10 +44,18 @@ const transitionSchema = z.object({
 
 const scheduleSchema = z.object({ id: uuidSchema, at: z.coerce.date() });
 
-const checklistSchema = z.object({ id: uuidSchema, itemId: z.string().min(1).max(100), checked: z.boolean() });
+const checklistSchema = z.object({
+  id: uuidSchema,
+  itemId: z.string().min(1).max(100),
+  checked: z.boolean(),
+});
 
 const noteSchema = z.object({ id: uuidSchema, body: z.string().trim().min(1, 'Skriv en melding').max(5000) });
-const resolveNoteSchema = z.object({ id: uuidSchema, noteId: uuidSchema, resolved: z.boolean().default(true) });
+const resolveNoteSchema = z.object({
+  id: uuidSchema,
+  noteId: uuidSchema,
+  resolved: z.boolean().default(true),
+});
 
 const assignSchema = z.object({
   id: uuidSchema,
@@ -220,9 +228,13 @@ export async function restoreRevisionAction(input: unknown): Promise<ActionResul
   });
 }
 
-export async function diffRevisionsAction(
-  input: unknown,
-): Promise<ActionResult<{ from: { id: string; version: number }; to: { id: string; version: number }; diff: SnapshotDiff }>> {
+export async function diffRevisionsAction(input: unknown): Promise<
+  ActionResult<{
+    from: { id: string; version: number };
+    to: { id: string; version: number };
+    diff: SnapshotDiff;
+  }>
+> {
   return runAction(async () => {
     const ctx = await requirePermission('admin:access');
     const data = diffSchema.parse(input);
@@ -234,7 +246,9 @@ export async function diffRevisionsAction(
 /*  Checklist, notes, assignment                                               */
 /* -------------------------------------------------------------------------- */
 
-export async function toggleChecklistItemAction(input: unknown): Promise<ActionResult<Record<string, boolean>>> {
+export async function toggleChecklistItemAction(
+  input: unknown,
+): Promise<ActionResult<Record<string, boolean>>> {
   return runAction(async () => {
     const ctx = await requirePermission('admin:access');
     const data = checklistSchema.parse(input);
@@ -275,7 +289,9 @@ export async function assignAction(input: unknown): Promise<ActionResult<Article
 /*  Locks                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function acquireLockAction(input: unknown): Promise<ActionResult<AcquireResult & { state: LockState }>> {
+export async function acquireLockAction(
+  input: unknown,
+): Promise<ActionResult<AcquireResult & { state: LockState }>> {
   return runAction(async () => {
     const ctx = await requirePermission('admin:access');
     const data = lockSchema.parse(input);

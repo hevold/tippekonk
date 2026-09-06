@@ -89,7 +89,12 @@ export function EditorTopBar({
         </a>
       </Button>
       {status === 'published' && publicPath ? (
-        <IconButton label={t('articles.topbar.openPublic')} variant="ghost" size="sm" onClick={() => window.open(publicPath, '_blank', 'noopener')}>
+        <IconButton
+          label={t('articles.topbar.openPublic')}
+          variant="ghost"
+          size="sm"
+          onClick={() => window.open(publicPath, '_blank', 'noopener')}
+        >
           <ExternalLink />
         </IconButton>
       ) : null}

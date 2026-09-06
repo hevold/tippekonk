@@ -64,7 +64,9 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
   const t = useT();
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>(() => revisions.slice(0, 2).map((r) => r.id));
-  const [loaded, setLoaded] = useState<{ key: string; from: number; to: number; diff: SnapshotDiff } | null>(null);
+  const [loaded, setLoaded] = useState<{ key: string; from: number; to: number; diff: SnapshotDiff } | null>(
+    null,
+  );
   const [restoreTarget, setRestoreTarget] = useState<RevisionSummary | null>(null);
 
   const byId = useMemo(() => new Map(revisions.map((r) => [r.id, r])), [revisions]);
@@ -79,7 +81,13 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
     let cancelled = false;
     void diffRevisionsAction({ id: articleId, from, to }).then((res) => {
       if (cancelled) return;
-      if (res.ok) setLoaded({ key: pairKey, from: res.data.from.version, to: res.data.to.version, diff: res.data.diff });
+      if (res.ok)
+        setLoaded({
+          key: pairKey,
+          from: res.data.from.version,
+          to: res.data.to.version,
+          diff: res.data.diff,
+        });
       else toast.error(res.error);
     });
     return () => {
@@ -141,7 +149,9 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
                     </TableCell>
                     <TableCell className="font-medium tabular-nums">
                       v{r.version}
-                      {r.version === currentVersion ? <span className="text-muted ml-1 text-xs">({t('articles.revisions.current')})</span> : null}
+                      {r.version === currentVersion ? (
+                        <span className="text-muted ml-1 text-xs">({t('articles.revisions.current')})</span>
+                      ) : null}
                       {r.note ? <span className="text-muted block text-xs font-normal">{r.note}</span> : null}
                     </TableCell>
                     <TableCell>
@@ -155,7 +165,12 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
                     </TableCell>
                     <TableCell className="text-right">
                       {canRestore && r.version !== currentVersion ? (
-                        <Button size="sm" variant="outline" leftIcon={<RotateCcw />} onClick={() => setRestoreTarget(r)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          leftIcon={<RotateCcw />}
+                          onClick={() => setRestoreTarget(r)}
+                        >
                           {t('articles.revisions.restore')}
                         </Button>
                       ) : null}
@@ -170,7 +185,12 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
 
       <section aria-label={t('articles.revisions.diffLabel')} aria-live="polite" className="min-w-0">
         {!pair ? (
-          <EmptyState compact icon={<GitCompareArrows />} title={t('articles.revisions.pickTwoTitle')} description={t('articles.revisions.pickTwo')} />
+          <EmptyState
+            compact
+            icon={<GitCompareArrows />}
+            title={t('articles.revisions.pickTwoTitle')}
+            description={t('articles.revisions.pickTwo')}
+          />
         ) : loading && !diff ? (
           <div className="flex items-center gap-2 p-6">
             <Spinner size="sm" />
@@ -178,16 +198,23 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
           </div>
         ) : diff ? (
           <div className="grid gap-4">
-            <h2 className="text-base font-semibold">{t('articles.revisions.comparing', { from: diff.from, to: diff.to })}</h2>
+            <h2 className="text-base font-semibold">
+              {t('articles.revisions.comparing', { from: diff.from, to: diff.to })}
+            </h2>
             <p className="text-muted flex items-center gap-3 text-xs">
               <span>
-                <ins className="bg-success-soft text-success rounded-xs px-1 no-underline">{t('articles.revisions.added')}</ins>
+                <ins className="bg-success-soft text-success rounded-xs px-1 no-underline">
+                  {t('articles.revisions.added')}
+                </ins>
               </span>
               <span>
-                <del className="bg-danger-soft text-danger rounded-xs px-1">{t('articles.revisions.removed')}</del>
+                <del className="bg-danger-soft text-danger rounded-xs px-1">
+                  {t('articles.revisions.removed')}
+                </del>
               </span>
               <span className="ml-auto">
-                {byId.get(pair[0])?.wordCount ?? 0} → {byId.get(pair[1])?.wordCount ?? 0} {t('articles.revisions.wordsShort')}
+                {byId.get(pair[0])?.wordCount ?? 0} → {byId.get(pair[1])?.wordCount ?? 0}{' '}
+                {t('articles.revisions.wordsShort')}
               </span>
             </p>
             {diff.diff.fields.length > 0 ? (
@@ -196,7 +223,9 @@ export function RevisionsView({ articleId, currentVersion, revisions, canRestore
                 <dl className="grid gap-2">
                   {diff.diff.fields.map((f) => (
                     <div key={f.field} className="grid gap-0.5">
-                      <dt className="text-muted text-xs font-medium tracking-wide uppercase">{fieldLabel(f.field)}</dt>
+                      <dt className="text-muted text-xs font-medium tracking-wide uppercase">
+                        {fieldLabel(f.field)}
+                      </dt>
                       <dd>
                         <DiffText changes={f.changes} />
                       </dd>

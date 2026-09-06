@@ -58,7 +58,9 @@ export function PublishCard({
     <div className="grid gap-4">
       <dl className="text-muted grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         <dt>{t('articles.publish.publishedAt')}</dt>
-        <dd className="text-text">{publishedAt ? formatDateTime(publishedAt) : t('articles.publish.notPublished')}</dd>
+        <dd className="text-text">
+          {publishedAt ? formatDateTime(publishedAt) : t('articles.publish.notPublished')}
+        </dd>
         {firstPublishedAt && publishedAt && firstPublishedAt.getTime() !== publishedAt.getTime() ? (
           <>
             <dt>{t('articles.publish.firstPublishedAt')}</dt>
@@ -68,7 +70,15 @@ export function PublishCard({
       </dl>
 
       {canSchedule ? (
-        <FormField label={t('articles.publish.scheduledAt')} htmlFor="publish-scheduled-at" help={status === 'scheduled' && scheduledAt ? t('articles.publish.scheduledHelp', { time: formatDateTime(scheduledAt) }) : undefined}>
+        <FormField
+          label={t('articles.publish.scheduledAt')}
+          htmlFor="publish-scheduled-at"
+          help={
+            status === 'scheduled' && scheduledAt
+              ? t('articles.publish.scheduledHelp', { time: formatDateTime(scheduledAt) })
+              : undefined
+          }
+        >
           <div className="grid gap-2">
             <DateTimeInput
               id="publish-scheduled-at"
@@ -78,7 +88,13 @@ export function PublishCard({
               disabled={busy}
             />
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" leftIcon={<CalendarClock />} disabled={busy || !draftTime} onClick={() => onSchedule(draftTime)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<CalendarClock />}
+                disabled={busy || !draftTime}
+                onClick={() => onSchedule(draftTime)}
+              >
                 {status === 'scheduled' ? t('articles.publish.reschedule') : t('articles.publish.schedule')}
               </Button>
               {status === 'scheduled' ? (
@@ -91,7 +107,11 @@ export function PublishCard({
         </FormField>
       ) : null}
 
-      <FormField label={t('articles.publish.access')} htmlFor="publish-access" help={paywallEnabled ? undefined : t('articles.publish.paywallOff')}>
+      <FormField
+        label={t('articles.publish.access')}
+        htmlFor="publish-access"
+        help={paywallEnabled ? undefined : t('articles.publish.paywallOff')}
+      >
         <NativeSelect
           id="publish-access"
           value={values.access}

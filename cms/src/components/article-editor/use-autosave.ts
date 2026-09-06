@@ -24,7 +24,13 @@ export type UseAutosaveOptions = {
   isDirty: () => boolean;
   /** Current version, kept in a ref by the host so saves always send the latest. */
   getVersion: () => number;
-  onSaved: (result: { version: number; savedAt: Date; slug: string; payloadKey: string; kind: SaveKind }) => void;
+  onSaved: (result: {
+    version: number;
+    savedAt: Date;
+    slug: string;
+    payloadKey: string;
+    kind: SaveKind;
+  }) => void;
   onConflict: (info: { message: string; currentVersion?: number }) => void;
   onError: (message: string, fieldErrors?: Record<string, string[]>) => void;
 };
@@ -38,7 +44,12 @@ export type UseAutosave = {
 };
 
 type ErrorBody = {
-  error?: { code?: string; message?: string; fieldErrors?: Record<string, string[]>; currentVersion?: number };
+  error?: {
+    code?: string;
+    message?: string;
+    fieldErrors?: Record<string, string[]>;
+    currentVersion?: number;
+  };
 };
 
 export function useAutosave(options: UseAutosaveOptions): UseAutosave {
@@ -88,7 +99,13 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosave {
       } else {
         o.onError(message, body.error?.fieldErrors);
       }
-      return { ok: false, code, message, fieldErrors: body.error?.fieldErrors, currentVersion: body.error?.currentVersion };
+      return {
+        ok: false,
+        code,
+        message,
+        fieldErrors: body.error?.fieldErrors,
+        currentVersion: body.error?.currentVersion,
+      };
     } catch (err) {
       console.error('[articles] save', err);
       const message = 'Mistet kontakt med tjeneren. Endringene er ikke lagret.';
@@ -133,11 +150,14 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosave {
   // Periodic autosave while dirty.
   useEffect(() => {
     if (!options.enabled) return;
-    const timer = window.setInterval(() => {
-      const o = opts.current;
-      if (!o.enabled || !o.isDirty() || inFlight.current) return;
-      void save('autosave');
-    }, Math.max(3000, options.intervalMs));
+    const timer = window.setInterval(
+      () => {
+        const o = opts.current;
+        if (!o.enabled || !o.isDirty() || inFlight.current) return;
+        void save('autosave');
+      },
+      Math.max(3000, options.intervalMs),
+    );
     return () => window.clearInterval(timer);
   }, [options.enabled, options.intervalMs, save]);
 

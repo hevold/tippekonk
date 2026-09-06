@@ -26,7 +26,12 @@ const bodySchema = z.object({
   kind: z.enum(['autosave', 'manual']).default('autosave'),
 });
 
-function errorResponse(status: number, code: string, message: string, extra: Record<string, unknown> = {}): Response {
+function errorResponse(
+  status: number,
+  code: string,
+  message: string,
+  extra: Record<string, unknown> = {},
+): Response {
   return Response.json({ error: { code, message, ...extra } }, { status });
 }
 
@@ -59,6 +64,16 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const parsedId = uuidSchema.safeParse(id);
   if (!parsedId.success) return errorResponse(404, 'not_found', 'Fant ikke saken.');
 
+  // Authenticate before touching the body so anonymous callers learn nothing about validation.
+  let admin;
+  try {
+    admin = await requireAdminContext();
+  } catch (err) {
+    if (err instanceof ActionError)
+      return errorResponse(STATUS_BY_CODE[err.code] ?? 500, err.code, err.message);
+    throw err;
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();
@@ -77,13 +92,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     return errorResponse(422, 'validation', 'Sjekk feltene og prøv igjen.', { fieldErrors });
   }
 
-  let admin;
-  try {
-    admin = await requireAdminContext();
-  } catch (err) {
-    if (err instanceof ActionError) return errorResponse(STATUS_BY_CODE[err.code] ?? 500, err.code, err.message);
-    throw err;
-  }
   try {
     const result = await saveArticle(admin, parsedId.data, input.data, {
       expectedVersion: body.data.expectedVersion,

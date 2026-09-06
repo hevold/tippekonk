@@ -20,7 +20,15 @@ export type ConflictDialogProps = {
   onDismiss: () => void;
 };
 
-export function ConflictDialog({ open, message, busy, canOverwrite, onReload, onOverwrite, onDismiss }: ConflictDialogProps) {
+export function ConflictDialog({
+  open,
+  message,
+  busy,
+  canOverwrite,
+  onReload,
+  onOverwrite,
+  onDismiss,
+}: ConflictDialogProps) {
   const t = useT();
   return (
     <Dialog

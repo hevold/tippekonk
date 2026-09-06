@@ -82,7 +82,9 @@ export function StatusCard({
           </>
         ) : null}
         <dt>{t('articles.status.length')}</dt>
-        <dd className="text-text">{t('articles.status.words', { count: wordCount, minutes: readingTimeMin })}</dd>
+        <dd className="text-text">
+          {t('articles.status.words', { count: wordCount, minutes: readingTimeMin })}
+        </dd>
       </dl>
       {canEdit ? (
         <div className="grid gap-2">
@@ -90,7 +92,13 @@ export function StatusCard({
             {dirty ? t('articles.actions.save') : t('articles.actions.saved')}
           </Button>
           {transitions.map((tr) => (
-            <Button key={tr.key} variant={tr.variant ?? 'secondary'} leftIcon={tr.icon} onClick={tr.onClick} disabled={busy || tr.disabled}>
+            <Button
+              key={tr.key}
+              variant={tr.variant ?? 'secondary'}
+              leftIcon={tr.icon}
+              onClick={tr.onClick}
+              disabled={busy || tr.disabled}
+            >
               {tr.label}
             </Button>
           ))}

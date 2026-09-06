@@ -24,7 +24,12 @@ export type PlanningCardProps = {
 export function PlanningCard({ values, update, disabled, members, onCommit }: PlanningCardProps) {
   const t = useT();
   function commit(patch: Partial<Pick<EditorFormValues, 'assignedTo' | 'deadlineAt' | 'plannedAt'>>) {
-    const next = { assignedTo: values.assignedTo, deadlineAt: values.deadlineAt, plannedAt: values.plannedAt, ...patch };
+    const next = {
+      assignedTo: values.assignedTo,
+      deadlineAt: values.deadlineAt,
+      plannedAt: values.plannedAt,
+      ...patch,
+    };
     update(next);
     onCommit(next);
   }
@@ -41,10 +46,24 @@ export function PlanningCard({ values, update, disabled, members, onCommit }: Pl
         />
       </FormField>
       <FormField label={t('articles.planning.deadline')} htmlFor="plan-deadline">
-        <DateTimeInput id="plan-deadline" value={values.deadlineAt} disabled={disabled} onChange={(d) => commit({ deadlineAt: d })} />
+        <DateTimeInput
+          id="plan-deadline"
+          value={values.deadlineAt}
+          disabled={disabled}
+          onChange={(d) => commit({ deadlineAt: d })}
+        />
       </FormField>
-      <FormField label={t('articles.planning.plannedAt')} htmlFor="plan-planned" help={t('articles.planning.plannedHelp')}>
-        <DateTimeInput id="plan-planned" value={values.plannedAt} disabled={disabled} onChange={(d) => commit({ plannedAt: d })} />
+      <FormField
+        label={t('articles.planning.plannedAt')}
+        htmlFor="plan-planned"
+        help={t('articles.planning.plannedHelp')}
+      >
+        <DateTimeInput
+          id="plan-planned"
+          value={values.plannedAt}
+          disabled={disabled}
+          onChange={(d) => commit({ plannedAt: d })}
+        />
       </FormField>
     </div>
   );

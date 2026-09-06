@@ -41,7 +41,9 @@ export function ChecklistCard({ items, enabled, flags, disabled, onToggle }: Che
                       *
                     </span>
                   ) : null}
-                  {item.vvpRef ? <span className="text-muted ml-1.5 text-xs font-normal">VVP {item.vvpRef}</span> : null}
+                  {item.vvpRef ? (
+                    <span className="text-muted ml-1.5 text-xs font-normal">VVP {item.vvpRef}</span>
+                  ) : null}
                 </span>
               }
               description={item.help}

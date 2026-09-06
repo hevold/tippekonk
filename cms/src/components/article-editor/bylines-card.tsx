@@ -31,7 +31,9 @@ export function BylinesCard({ values, update, disabled, authors, error }: Byline
 
   function setAuthors(ids: string[]) {
     const existing = new Map(values.bylines.map((b) => [b.authorId, b]));
-    update({ bylines: ids.map((authorId) => existing.get(authorId) ?? { authorId, role: 'text' as BylineRole }) });
+    update({
+      bylines: ids.map((authorId) => existing.get(authorId) ?? { authorId, role: 'text' as BylineRole }),
+    });
   }
 
   function setRole(authorId: string, role: BylineRole) {
@@ -71,26 +73,48 @@ export function BylinesCard({ values, update, disabled, authors, error }: Byline
           {values.bylines.map((b, index) => {
             const author = byId.get(b.authorId);
             return (
-              <li key={b.authorId} className="border-border flex items-center gap-2 rounded-md border px-2 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-sm">{author?.name ?? t('articles.bylines.unknown')}</span>
+              <li
+                key={b.authorId}
+                className="border-border flex items-center gap-2 rounded-md border px-2 py-1.5"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {author?.name ?? t('articles.bylines.unknown')}
+                </span>
                 <NativeSelect
                   size="sm"
                   className="w-32"
                   aria-label={t('articles.bylines.roleFor', { name: author?.name ?? '' })}
                   value={b.role}
                   disabled={disabled}
-                  options={BYLINE_ROLES.map((role) => ({ value: role, label: t(`articles.bylines.role.${role}`) }))}
+                  options={BYLINE_ROLES.map((role) => ({
+                    value: role,
+                    label: t(`articles.bylines.role.${role}`),
+                  }))}
                   onChange={(e) => setRole(b.authorId, e.target.value as BylineRole)}
                 />
                 {!disabled ? (
                   <>
-                    <IconButton size="sm" label={t('articles.bylines.moveUp')} disabled={index === 0} onClick={() => move(index, -1)}>
+                    <IconButton
+                      size="sm"
+                      label={t('articles.bylines.moveUp')}
+                      disabled={index === 0}
+                      onClick={() => move(index, -1)}
+                    >
                       <ArrowUp />
                     </IconButton>
-                    <IconButton size="sm" label={t('articles.bylines.moveDown')} disabled={index === values.bylines.length - 1} onClick={() => move(index, 1)}>
+                    <IconButton
+                      size="sm"
+                      label={t('articles.bylines.moveDown')}
+                      disabled={index === values.bylines.length - 1}
+                      onClick={() => move(index, 1)}
+                    >
                       <ArrowDown />
                     </IconButton>
-                    <IconButton size="sm" label={t('articles.bylines.remove')} onClick={() => remove(b.authorId)}>
+                    <IconButton
+                      size="sm"
+                      label={t('articles.bylines.remove')}
+                      onClick={() => remove(b.authorId)}
+                    >
                       <X />
                     </IconButton>
                   </>

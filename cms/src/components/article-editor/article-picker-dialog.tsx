@@ -56,16 +56,18 @@ export function ArticlePickerDialog({
   useEffect(() => {
     if (!open) return;
     const id = ++requestId.current;
-    void searchArticlesForPickerAction({ q, excludeId: currentId ?? null, publishedOnly, limit: 30 }).then((res) => {
-      if (id !== requestId.current) return;
-      if (res.ok) {
-        setItems(res.data);
-        setError(null);
-      } else {
-        setError(res.error);
-      }
-      setLoadedKey(queryKey);
-    });
+    void searchArticlesForPickerAction({ q, excludeId: currentId ?? null, publishedOnly, limit: 30 }).then(
+      (res) => {
+        if (id !== requestId.current) return;
+        if (res.ok) {
+          setItems(res.data);
+          setError(null);
+        } else {
+          setError(res.error);
+        }
+        setLoadedKey(queryKey);
+      },
+    );
   }, [open, q, currentId, publishedOnly, queryKey]);
 
   function handleOpenChange(next: boolean) {
@@ -90,7 +92,10 @@ export function ArticlePickerDialog({
           aria-label={t('articles.picker.search')}
           autoFocus
         />
-        <div className="border-border max-h-[50vh] min-h-40 overflow-y-auto rounded-md border" aria-busy={loading}>
+        <div
+          className="border-border max-h-[50vh] min-h-40 overflow-y-auto rounded-md border"
+          aria-busy={loading}
+        >
           {error ? (
             <p className="text-danger p-4 text-sm">{error}</p>
           ) : loading && items.length === 0 ? (
@@ -124,7 +129,9 @@ export function ArticlePickerDialog({
                         ) : null}
                       </span>
                       <StatusBadge status={item.status} />
-                      {taken ? <span className="text-muted text-xs">{t('articles.picker.alreadyAdded')}</span> : null}
+                      {taken ? (
+                        <span className="text-muted text-xs">{t('articles.picker.alreadyAdded')}</span>
+                      ) : null}
                     </button>
                   </li>
                 );

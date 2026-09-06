@@ -7,7 +7,18 @@
  *
  * `db` is a lazy proxy so that importing this module has no side effects and
  * tests can swap the underlying instance.
+ *
+ * Transactions: `db.transaction(async (tx) => { ... })` stores `tx` in an
+ * AsyncLocalStorage for the duration of the callback, and every access to the
+ * global `db` inside that callback (including in helpers such as audit() or
+ * notify() that were not handed the tx) transparently resolves to the same
+ * transaction. This matters for PGlite, which serialises all queries on one
+ * connection: a query on the root connection while a transaction holds it
+ * would otherwise deadlock forever. Nested `db.transaction()` calls become
+ * savepoints.
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 
@@ -26,7 +37,8 @@ type Holder = {
   close: (() => Promise<void>) | null;
 };
 
-const g = globalThis as unknown as { __deskenDb?: Holder };
+const g = globalThis as unknown as { __deskenDb?: Holder; __deskenTx?: AsyncLocalStorage<Tx> };
+const txStorage: AsyncLocalStorage<Tx> = (g.__deskenTx ??= new AsyncLocalStorage<Tx>());
 const holder: Holder = (g.__deskenDb ??= { instance: null, creating: null, driver: null, close: null });
 
 async function createDb(): Promise<Db> {
@@ -94,13 +106,28 @@ export async function closeDb(): Promise<void> {
  */
 export const db: Db = new Proxy({} as Db, {
   get(_target, prop) {
-    const real = holder.instance;
+    const current = txStorage.getStore();
+    const real: Db | Tx | null = current ?? holder.instance;
     if (!real) {
       throw new Error(
         'Databasen er ikke initialisert. Kall `await getDb()` (gjøres i instrumentation.ts) eller `setDb()` i tester.',
       );
     }
+    if (prop === 'transaction') {
+      // Run the callback with the transaction stored in AsyncLocalStorage so
+      // that nested `db.*` calls (in helpers) reuse it instead of deadlocking.
+      return (fn: (tx: Tx) => Promise<unknown>, config?: unknown) =>
+        (real as Db).transaction(
+          (tx: Tx) => txStorage.run(tx, () => fn(tx)),
+          config as Parameters<Db['transaction']>[1],
+        );
+    }
     const value = (real as unknown as Record<PropertyKey, unknown>)[prop];
     return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(real) : value;
   },
 });
+
+/** The transaction the current async context runs in, if any. */
+export function currentTransaction(): Tx | undefined {
+  return txStorage.getStore();
+}

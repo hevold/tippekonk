@@ -41,7 +41,14 @@ export type SidebarSectionProps = {
   className?: string;
 };
 
-export function SidebarSection({ id, title, meta, defaultOpen = true, children, className }: SidebarSectionProps) {
+export function SidebarSection({
+  id,
+  title,
+  meta,
+  defaultOpen = true,
+  children,
+  className,
+}: SidebarSectionProps) {
   const contentId = useId();
   // Hydration-safe: the server (and first client render) use the default; the stored choice applies after.
   const getSnapshot = useCallback(() => readStored(id) ?? defaultOpen, [id, defaultOpen]);
@@ -58,7 +65,10 @@ export function SidebarSection({ id, title, meta, defaultOpen = true, children, 
   }
 
   return (
-    <section className={cn('bg-surface border-border rounded-lg border shadow-xs', className)} aria-labelledby={`${contentId}-title`}>
+    <section
+      className={cn('bg-surface border-border rounded-lg border shadow-xs', className)}
+      aria-labelledby={`${contentId}-title`}
+    >
       <h2 className="m-0">
         <button
           type="button"
@@ -67,11 +77,17 @@ export function SidebarSection({ id, title, meta, defaultOpen = true, children, 
           aria-controls={contentId}
           className="hover:bg-surface-2 focus-visible:outline-ring flex w-full items-center gap-2 rounded-t-lg px-4 py-2.5 text-left focus-visible:outline-2 focus-visible:-outline-offset-2"
         >
-          <span id={`${contentId}-title`} className="text-text flex-1 text-[13px] font-semibold tracking-wide uppercase">
+          <span
+            id={`${contentId}-title`}
+            className="text-text flex-1 text-[13px] font-semibold tracking-wide uppercase"
+          >
             {title}
           </span>
           {meta ? <span className="text-muted text-xs">{meta}</span> : null}
-          <ChevronDown className={cn('text-muted size-4 shrink-0 transition-transform', !open && '-rotate-90')} aria-hidden />
+          <ChevronDown
+            className={cn('text-muted size-4 shrink-0 transition-transform', !open && '-rotate-90')}
+            aria-hidden
+          />
         </button>
       </h2>
       <div id={contentId} hidden={!open} className="border-border border-t px-4 py-3">

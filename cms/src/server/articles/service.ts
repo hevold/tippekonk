@@ -101,12 +101,14 @@ function titleOf(article: Pick<Article, 'title'>): string {
 
 function assertEditable(ctx: AdminContext, article: Article): void {
   if (!canEditArticle(ctx, article)) throw new ForbiddenError('Du kan ikke redigere denne saken.');
-  if (article.deletedAt) throw new ActionError('Saken ligger i papirkurven. Gjenopprett den først.', 'conflict');
+  if (article.deletedAt)
+    throw new ActionError('Saken ligger i papirkurven. Gjenopprett den først.', 'conflict');
 }
 
 function withoutChecklist(flags: Record<string, boolean>): Record<string, boolean> {
   const out: Record<string, boolean> = {};
-  for (const [k, v] of Object.entries(flags)) if (!k.startsWith('checklist:') && k !== SLUG_LOCKED_FLAG) out[k] = v;
+  for (const [k, v] of Object.entries(flags))
+    if (!k.startsWith('checklist:') && k !== SLUG_LOCKED_FLAG) out[k] = v;
   return out;
 }
 
@@ -139,15 +141,22 @@ async function emitWebhook(ctx: AdminContext, event: WebhookEvent, article: Arti
 /*  Create                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export async function createArticle(ctx: AdminContext, input: Partial<ArticleInputRaw> = {}): Promise<Article> {
+export async function createArticle(
+  ctx: AdminContext,
+  input: Partial<ArticleInputRaw> = {},
+): Promise<Article> {
   assertCan(ctx, 'article:create');
   const data = articleInputSchema.parse(input);
 
-  return db.transaction(async (tx) => {
+  const created = await db.transaction(async (tx) => {
     const contentType = data.contentTypeId
       ? await loadContentType(tx, ctx.site.id, data.contentTypeId)
       : await defaultContentType(tx, ctx.site.id);
-    if (!contentType) throw new ActionError('Nettstedet har ingen innholdstype. Opprett en under Innholdstyper.', 'validation');
+    if (!contentType)
+      throw new ActionError(
+        'Nettstedet har ingen innholdstype. Opprett en under Innholdstyper.',
+        'validation',
+      );
     if (!contentType.isActive && data.contentTypeId) {
       throw new ActionError('Innholdstypen er deaktivert.', 'validation');
     }
@@ -156,9 +165,23 @@ export async function createArticle(ctx: AdminContext, input: Partial<ArticleInp
     }
 
     const slug = data.slug
-      ? await resolveSlug(tx, { siteId: ctx.site.id, articleId: '', current: '', requested: data.slug, title: data.title, locked: false })
+      ? await resolveSlug(tx, {
+          siteId: ctx.site.id,
+          articleId: '',
+          current: '',
+          requested: data.slug,
+          title: data.title,
+          locked: false,
+        })
       : data.title.trim()
-        ? await resolveSlug(tx, { siteId: ctx.site.id, articleId: '', current: '', requested: '', title: data.title, locked: false })
+        ? await resolveSlug(tx, {
+            siteId: ctx.site.id,
+            articleId: '',
+            current: '',
+            requested: '',
+            title: data.title,
+            locked: false,
+          })
         : await placeholderSlug(tx, ctx.site.id);
     const body = data.body ?? EMPTY_DOC;
     const text = textFields(body);
@@ -200,7 +223,13 @@ export async function createArticle(ctx: AdminContext, input: Partial<ArticleInp
     if (!article) throw new Error('Kunne ikke opprette saken.');
 
     const tagIds = await existingTagIds(tx, ctx.site.id, data.tagIds);
-    const authorIds = new Set(await existingAuthorIds(tx, ctx.site.id, data.bylines.map((b) => b.authorId)));
+    const authorIds = new Set(
+      await existingAuthorIds(
+        tx,
+        ctx.site.id,
+        data.bylines.map((b) => b.authorId),
+      ),
+    );
     const bylines: BylineRow[] = data.bylines.filter((b) => authorIds.has(b.authorId));
     const relatedIds = await existingArticleIds(tx, ctx.site.id, data.relatedIds, article.id);
     await syncTags(tx, article.id, tagIds);
@@ -214,16 +243,19 @@ export async function createArticle(ctx: AdminContext, input: Partial<ArticleInp
       userId: ctx.user.id,
       note: 'Opprettet',
     });
-
-    await auditFromContext(ctx, {
-      action: 'article.create',
-      entityType: 'article',
-      entityId: article.id,
-      summary: `Opprettet «${titleOf(article)}»`,
-      data: { contentType: contentType.key },
-    });
-    return article;
+    return { article, contentTypeKey: contentType.key };
   });
+
+  // Audit outside the transaction: the embedded PGlite driver serialises queries on
+  // one connection, so a `db` query inside an open transaction would deadlock.
+  await auditFromContext(ctx, {
+    action: 'article.create',
+    entityType: 'article',
+    entityId: created.article.id,
+    summary: `Opprettet «${titleOf(created.article)}»`,
+    data: { contentType: created.contentTypeKey },
+  });
+  return created.article;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -247,94 +279,109 @@ export async function saveArticle(
   assertEditable(ctx, existing);
   if (existing.version !== opts.expectedVersion) throw await conflictFor(existing);
 
-  const wasPublished = existing.status === 'published';
-  const oldPath = wasPublished ? await canonicalPath(db, existing) : null;
+  // Once an article has been public its address may be bookmarked, so every later
+  // path change (also while unpublished) leaves a redirect behind (SPEC 5.3).
+  const everPublished = Boolean(existing.firstPublishedAt);
+  const oldPath = everPublished ? await canonicalPath(db, existing) : null;
 
-  const result = await db.transaction(async (tx) => {
-    const contentType =
-      (data.contentTypeId && data.contentTypeId !== existing.contentTypeId
-        ? await loadContentType(tx, ctx.site.id, data.contentTypeId)
-        : await loadContentType(tx, ctx.site.id, existing.contentTypeId)) ??
-      (await defaultContentType(tx, ctx.site.id));
-    if (!contentType) throw new ActionError('Innholdstypen finnes ikke.', 'validation');
-    if (data.sectionId && !(await sectionBelongsToSite(tx, ctx.site.id, data.sectionId))) {
-      throw new ActionError('Ugyldig seksjon.', 'validation', { sectionId: ['Ugyldig seksjon'] });
-    }
+  const result = await db
+    .transaction(async (tx) => {
+      const contentType =
+        (data.contentTypeId && data.contentTypeId !== existing.contentTypeId
+          ? await loadContentType(tx, ctx.site.id, data.contentTypeId)
+          : await loadContentType(tx, ctx.site.id, existing.contentTypeId)) ??
+        (await defaultContentType(tx, ctx.site.id));
+      if (!contentType) throw new ActionError('Innholdstypen finnes ikke.', 'validation');
+      if (data.sectionId && !(await sectionBelongsToSite(tx, ctx.site.id, data.sectionId))) {
+        throw new ActionError('Ugyldig seksjon.', 'validation', { sectionId: ['Ugyldig seksjon'] });
+      }
 
-    const flags: Record<string, boolean> = { ...existing.flags, ...data.flags };
-    const explicitSlug = data.slug && data.slug !== existing.slug;
-    if (explicitSlug) flags[SLUG_LOCKED_FLAG] = true;
-    const locked = Boolean(flags[SLUG_LOCKED_FLAG]) || Boolean(existing.firstPublishedAt);
-    const slug = await resolveSlug(tx, {
-      siteId: ctx.site.id,
-      articleId: existing.id,
-      current: existing.slug,
-      requested: data.slug,
-      title: data.title,
-      locked,
-    });
-
-    const text = textFields(data.body);
-    const now = new Date();
-    const nextVersion = existing.version + 1;
-    const [updated] = await tx
-      .update(articles)
-      .set({
-        contentTypeId: contentType.id,
-        sectionId: data.sectionId,
-        kicker: data.kicker,
+      const flags: Record<string, boolean> = { ...existing.flags, ...data.flags };
+      const explicitSlug = data.slug && data.slug !== existing.slug;
+      if (explicitSlug) flags[SLUG_LOCKED_FLAG] = true;
+      const locked = Boolean(flags[SLUG_LOCKED_FLAG]) || Boolean(existing.firstPublishedAt);
+      const slug = await resolveSlug(tx, {
+        siteId: ctx.site.id,
+        articleId: existing.id,
+        current: existing.slug,
+        requested: data.slug,
         title: data.title,
-        lead: data.lead,
-        slug,
-        body: data.body,
-        ...text,
-        customFields: pickKnownCustomFields(contentType.fields, data.customFields),
-        access: data.access,
-        featuredMediaId: data.featuredMediaId,
-        featuredCaption: data.featuredCaption,
-        featuredCredit: data.featuredCredit,
-        seoTitle: data.seoTitle,
-        seoDescription: data.seoDescription,
-        canonicalUrl: data.canonicalUrl,
-        noIndex: data.noIndex,
-        isBreaking: data.isBreaking,
-        isSponsored: data.isSponsored,
-        flags,
-        assignedTo: data.assignedTo,
-        deadlineAt: data.deadlineAt,
-        plannedAt: data.plannedAt,
+        locked,
+      });
+
+      const text = textFields(data.body);
+      const now = new Date();
+      const nextVersion = existing.version + 1;
+      const [updated] = await tx
+        .update(articles)
+        .set({
+          contentTypeId: contentType.id,
+          sectionId: data.sectionId,
+          kicker: data.kicker,
+          title: data.title,
+          lead: data.lead,
+          slug,
+          body: data.body,
+          ...text,
+          customFields: pickKnownCustomFields(contentType.fields, data.customFields),
+          access: data.access,
+          featuredMediaId: data.featuredMediaId,
+          featuredCaption: data.featuredCaption,
+          featuredCredit: data.featuredCredit,
+          seoTitle: data.seoTitle,
+          seoDescription: data.seoDescription,
+          canonicalUrl: data.canonicalUrl,
+          noIndex: data.noIndex,
+          isBreaking: data.isBreaking,
+          isSponsored: data.isSponsored,
+          flags,
+          assignedTo: data.assignedTo,
+          deadlineAt: data.deadlineAt,
+          plannedAt: data.plannedAt,
+          version: nextVersion,
+          updatedBy: ctx.user.id,
+          updatedAt: now,
+        })
+        .where(and(eq(articles.id, existing.id), eq(articles.version, opts.expectedVersion)))
+        .returning();
+      if (!updated) throw new StaleVersionSignal();
+
+      const tagIds = await existingTagIds(tx, ctx.site.id, data.tagIds);
+      const authorIds = new Set(
+        await existingAuthorIds(
+          tx,
+          ctx.site.id,
+          data.bylines.map((b) => b.authorId),
+        ),
+      );
+      const bylines: BylineRow[] = data.bylines.filter((b) => authorIds.has(b.authorId));
+      const relatedIds = await existingArticleIds(tx, ctx.site.id, data.relatedIds, existing.id);
+      await syncTags(tx, updated.id, tagIds);
+      await syncBylines(tx, updated.id, bylines);
+      await syncRelated(tx, updated.id, relatedIds);
+
+      await recordRevision(tx, {
+        articleId: updated.id,
         version: nextVersion,
-        updatedBy: ctx.user.id,
-        updatedAt: now,
-      })
-      .where(and(eq(articles.id, existing.id), eq(articles.version, opts.expectedVersion)))
-      .returning();
-    if (!updated) throw await conflictFor((await loadArticle(ctx.site.id, id)) ?? existing);
+        snapshot: buildSnapshot(updated, tagIds, bylines),
+        kind: opts.kind,
+        userId: ctx.user.id,
+        now,
+      });
 
-    const tagIds = await existingTagIds(tx, ctx.site.id, data.tagIds);
-    const authorIds = new Set(await existingAuthorIds(tx, ctx.site.id, data.bylines.map((b) => b.authorId)));
-    const bylines: BylineRow[] = data.bylines.filter((b) => authorIds.has(b.authorId));
-    const relatedIds = await existingArticleIds(tx, ctx.site.id, data.relatedIds, existing.id);
-    await syncTags(tx, updated.id, tagIds);
-    await syncBylines(tx, updated.id, bylines);
-    await syncRelated(tx, updated.id, relatedIds);
-
-    await recordRevision(tx, {
-      articleId: updated.id,
-      version: nextVersion,
-      snapshot: buildSnapshot(updated, tagIds, bylines),
-      kind: opts.kind,
-      userId: ctx.user.id,
-      now,
+      // An article that has been public and moves keeps its old address working (SPEC 5.3).
+      if (everPublished && oldPath) {
+        const newPath = await canonicalPath(tx, updated);
+        if (newPath !== oldPath) await recordRedirect(tx, ctx.site.id, oldPath, newPath);
+      }
+      return updated;
+    })
+    .catch(async (err: unknown) => {
+      // Someone saved between our version check and the update: report who, outside the transaction.
+      if (err instanceof StaleVersionSignal)
+        throw await conflictFor((await loadArticle(ctx.site.id, id)) ?? existing);
+      throw err;
     });
-
-    // A published article that moves keeps its old address working (SPEC 5.3).
-    if (wasPublished && oldPath) {
-      const newPath = await canonicalPath(tx, updated);
-      if (newPath !== oldPath) await recordRedirect(tx, ctx.site.id, oldPath, newPath);
-    }
-    return updated;
-  });
 
   if (opts.kind === 'manual') {
     await auditFromContext(ctx, {
@@ -351,11 +398,18 @@ export async function saveArticle(
   return { article: result, version: result.version };
 }
 
+/** Thrown inside the save transaction when the conditional update matched no row. */
+class StaleVersionSignal extends Error {}
+
 async function conflictFor(current: Article): Promise<ConflictError> {
   let who = 'noen andre';
   if (current.updatedBy) {
     const { users } = await import('@/db/schema');
-    const [u] = await db.select({ name: users.name }).from(users).where(eq(users.id, current.updatedBy)).limit(1);
+    const [u] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, current.updatedBy))
+      .limit(1);
     if (u) who = u.name;
   }
   return new ConflictError(
@@ -369,7 +423,9 @@ async function conflictFor(current: Article): Promise<ConflictError> {
 
 /** Which permission a transition target needs beyond being able to edit the article. */
 function assertTransitionAllowed(ctx: AdminContext, article: Article, to: ArticleStatus): void {
-  if (!canTransition(article.status, to)) {
+  // Re-scheduling ("Endre tidspunkt") is the one same-state transition that makes sense.
+  const reschedule = to === 'scheduled' && article.status === 'scheduled';
+  if (!reschedule && !canTransition(article.status, to)) {
     throw new ActionError(`Kan ikke gå fra «${article.status}» til «${to}».`, 'validation');
   }
   switch (to) {
@@ -404,7 +460,10 @@ export async function transition(
   if (to === 'published') return publishArticle(ctx, id);
   if (to === 'unpublished') return unpublishArticle(ctx, id);
   if (to === 'scheduled') {
-    if (!opts.scheduledAt) throw new ActionError('Velg et publiseringstidspunkt.', 'validation', { scheduledAt: ['Velg et tidspunkt'] });
+    if (!opts.scheduledAt)
+      throw new ActionError('Velg et publiseringstidspunkt.', 'validation', {
+        scheduledAt: ['Velg et tidspunkt'],
+      });
     return scheduleArticle(ctx, id, opts.scheduledAt);
   }
 
@@ -461,7 +520,8 @@ export async function transition(
       link,
     });
   }
-  if (article.status === 'unpublished' || article.status === 'archived') revalidateArticle(ctx.site.id, article.id);
+  if (article.status === 'unpublished' || article.status === 'archived')
+    revalidateArticle(ctx.site.id, article.id);
   return updated;
 }
 
@@ -470,15 +530,26 @@ export async function transition(
 /* -------------------------------------------------------------------------- */
 
 /** Issues that would block or warn on publish, computed from stored data (used by the publish dialog). */
-export async function getPublishIssues(ctx: AdminContext, id: string, scheduledAt?: Date | null): Promise<PublishIssue[]> {
+export async function getPublishIssues(
+  ctx: AdminContext,
+  id: string,
+  scheduledAt?: Date | null,
+): Promise<PublishIssue[]> {
   const article = await getEditableArticle(ctx, id);
   return computeIssues(ctx, article, scheduledAt ?? null);
 }
 
-async function computeIssues(ctx: AdminContext, article: Article, scheduledAt: Date | null): Promise<PublishIssue[]> {
+async function computeIssues(
+  ctx: AdminContext,
+  article: Article,
+  scheduledAt: Date | null,
+): Promise<PublishIssue[]> {
   const relations = await loadRelations(db, article.id);
   const contentType = await loadContentType(db, ctx.site.id, article.contentTypeId);
-  const mediaIds = [...docMediaIds(article.body), ...(article.featuredMediaId ? [article.featuredMediaId] : [])];
+  const mediaIds = [
+    ...docMediaIds(article.body),
+    ...(article.featuredMediaId ? [article.featuredMediaId] : []),
+  ];
   const media = await getMediaMany(ctx.site.id, mediaIds);
   return validateForPublish(
     {
@@ -504,7 +575,9 @@ function assertPublishable(issues: PublishIssue[]): void {
   if (hasBlockingIssues(issues)) {
     const errors = issues.filter((i) => i.level === 'error');
     throw new ActionError(
-      errors.length === 1 ? `Kan ikke publisere: ${errors[0]!.message}` : `Kan ikke publisere: ${errors.length} ting må rettes først.`,
+      errors.length === 1
+        ? `Kan ikke publisere: ${errors[0]!.message}`
+        : `Kan ikke publisere: ${errors.length} ting må rettes først.`,
       'validation',
       issuesToFieldErrors(issues),
     );
@@ -658,10 +731,14 @@ export async function scheduleArticle(ctx: AdminContext, id: string, at: Date): 
 export async function trashArticle(ctx: AdminContext, id: string): Promise<Article> {
   const article = await loadArticle(ctx.site.id, id);
   if (!article) throw new NotFoundError('Fant ikke saken.');
-  if (!ctx.can('article:delete') && !(ctx.can('article:edit_own') && article.createdBy === ctx.user.id && article.status === 'draft')) {
+  if (
+    !ctx.can('article:delete') &&
+    !(ctx.can('article:edit_own') && article.createdBy === ctx.user.id && article.status === 'draft')
+  ) {
     throw new ForbiddenError('Du kan ikke slette denne saken.');
   }
-  if (!canTrash(article.status)) throw new ActionError('Publiserte saker må avpubliseres før de kan slettes.', 'conflict');
+  if (!canTrash(article.status))
+    throw new ActionError('Publiserte saker må avpubliseres før de kan slettes.', 'conflict');
   const now = new Date();
   const [updated] = await db
     .update(articles)
@@ -705,7 +782,8 @@ export async function destroyArticle(ctx: AdminContext, id: string): Promise<voi
   assertCan(ctx, 'article:delete');
   const article = await loadArticle(ctx.site.id, id, { includeTrashed: true });
   if (!article) throw new NotFoundError('Fant ikke saken.');
-  if (!article.deletedAt) throw new ActionError('Legg saken i papirkurven før du sletter den permanent.', 'conflict');
+  if (!article.deletedAt)
+    throw new ActionError('Legg saken i papirkurven før du sletter den permanent.', 'conflict');
   await db.delete(articles).where(and(eq(articles.id, article.id), eq(articles.siteId, ctx.site.id)));
   await auditFromContext(ctx, {
     action: 'article.destroy',
@@ -726,10 +804,17 @@ export async function duplicateArticle(ctx: AdminContext, id: string): Promise<A
   const source = await getEditableArticle(ctx, id);
   const relations = await loadRelations(db, source.id);
   const title = source.title.trim() ? `Kopi av ${source.title}` : '';
-  return db.transaction(async (tx) => {
+  const copy = await db.transaction(async (tx) => {
     const base = source.title.trim() ? `${source.slug.replace(/-\d+$/, '')}-kopi` : '';
     const slug = base
-      ? await resolveSlug(tx, { siteId: ctx.site.id, articleId: '', current: '', requested: base, title, locked: false })
+      ? await resolveSlug(tx, {
+          siteId: ctx.site.id,
+          articleId: '',
+          current: '',
+          requested: base,
+          title,
+          locked: false,
+        })
       : await placeholderSlug(tx, ctx.site.id);
     const text = textFields(source.body);
     const [copy] = await tx
@@ -766,7 +851,11 @@ export async function duplicateArticle(ctx: AdminContext, id: string): Promise<A
     if (!copy) throw new Error('Kunne ikke lage kopi.');
     await syncTags(tx, copy.id, relations.tagIds);
     await syncBylines(tx, copy.id, relations.bylines);
-    await syncRelated(tx, copy.id, relations.relatedIds.filter((r) => r !== copy.id));
+    await syncRelated(
+      tx,
+      copy.id,
+      relations.relatedIds.filter((r) => r !== copy.id),
+    );
     await recordRevision(tx, {
       articleId: copy.id,
       version: 1,
@@ -775,25 +864,31 @@ export async function duplicateArticle(ctx: AdminContext, id: string): Promise<A
       userId: ctx.user.id,
       note: `Kopi av «${titleOf(source)}»`,
     });
-    await auditFromContext(ctx, {
-      action: 'article.duplicate',
-      entityType: 'article',
-      entityId: copy.id,
-      summary: `Laget kopi av «${titleOf(source)}»`,
-      data: { sourceId: source.id },
-    });
     return copy;
   });
+  await auditFromContext(ctx, {
+    action: 'article.duplicate',
+    entityType: 'article',
+    entityId: copy.id,
+    summary: `Laget kopi av «${titleOf(source)}»`,
+    data: { sourceId: source.id },
+  });
+  return copy;
 }
 
 /** Switch content type, keeping custom field values whose keys exist in the new type. */
-export async function changeContentType(ctx: AdminContext, id: string, contentTypeId: string): Promise<Article> {
+export async function changeContentType(
+  ctx: AdminContext,
+  id: string,
+  contentTypeId: string,
+): Promise<Article> {
   const article = await loadArticle(ctx.site.id, id);
   if (!article) throw new NotFoundError('Fant ikke saken.');
   assertEditable(ctx, article);
   if (article.contentTypeId === contentTypeId) return article;
   const target = await loadContentType(db, ctx.site.id, contentTypeId);
-  if (!target || !target.isActive) throw new ActionError('Innholdstypen finnes ikke eller er deaktivert.', 'validation');
+  if (!target || !target.isActive)
+    throw new ActionError('Innholdstypen finnes ikke eller er deaktivert.', 'validation');
   const now = new Date();
   const nextVersion = article.version + 1;
   const updated = await db.transaction(async (tx) => {
@@ -840,13 +935,16 @@ export async function restoreRevision(ctx: AdminContext, id: string, revisionId:
   const revision = await getRevision(article.id, revisionId);
   if (!revision) throw new NotFoundError('Fant ikke versjonen.');
   const snap = revision.snapshot;
-  const wasPublished = article.status === 'published';
-  const oldPath = wasPublished ? await canonicalPath(db, article) : null;
+  const everPublished = Boolean(article.firstPublishedAt);
+  const oldPath = everPublished ? await canonicalPath(db, article) : null;
 
   const updated = await db.transaction(async (tx) => {
-    const sectionId = snap.sectionId && (await sectionBelongsToSite(tx, ctx.site.id, snap.sectionId)) ? snap.sectionId : null;
+    const sectionId =
+      snap.sectionId && (await sectionBelongsToSite(tx, ctx.site.id, snap.sectionId)) ? snap.sectionId : null;
     const slug =
-      snap.slug === article.slug || !(await slugExists(tx, ctx.site.id, snap.slug, article.id)) ? snap.slug : article.slug;
+      snap.slug === article.slug || !(await slugExists(tx, ctx.site.id, snap.slug, article.id))
+        ? snap.slug
+        : article.slug;
     const contentType = await loadContentType(tx, ctx.site.id, article.contentTypeId);
     const now = new Date();
     const nextVersion = article.version + 1;
@@ -878,7 +976,13 @@ export async function restoreRevision(ctx: AdminContext, id: string, revisionId:
       .returning();
     if (!row) throw new ConflictError();
     const tagIds = await existingTagIds(tx, ctx.site.id, snap.tagIds ?? []);
-    const authorIds = new Set(await existingAuthorIds(tx, ctx.site.id, (snap.bylines ?? []).map((b) => b.authorId)));
+    const authorIds = new Set(
+      await existingAuthorIds(
+        tx,
+        ctx.site.id,
+        (snap.bylines ?? []).map((b) => b.authorId),
+      ),
+    );
     const bylines = (snap.bylines ?? []).filter((b) => authorIds.has(b.authorId));
     await syncTags(tx, row.id, tagIds);
     await syncBylines(tx, row.id, bylines);
@@ -891,7 +995,7 @@ export async function restoreRevision(ctx: AdminContext, id: string, revisionId:
       note: `Gjenopprettet fra versjon ${revision.version}`,
       now,
     });
-    if (wasPublished && oldPath) {
+    if (everPublished && oldPath) {
       const newPath = await canonicalPath(tx, row);
       if (newPath !== oldPath) await recordRedirect(tx, ctx.site.id, oldPath, newPath);
     }
@@ -918,9 +1022,16 @@ export async function diffRevisions(
   id: string,
   fromRevisionId: string,
   toRevisionId: string,
-): Promise<{ from: { id: string; version: number }; to: { id: string; version: number }; diff: SnapshotDiff }> {
+): Promise<{
+  from: { id: string; version: number };
+  to: { id: string; version: number };
+  diff: SnapshotDiff;
+}> {
   const article = await getEditableArticle(ctx, id, { includeTrashed: true });
-  const [from, to] = await Promise.all([getRevision(article.id, fromRevisionId), getRevision(article.id, toRevisionId)]);
+  const [from, to] = await Promise.all([
+    getRevision(article.id, fromRevisionId),
+    getRevision(article.id, toRevisionId),
+  ]);
   if (!from || !to) throw new NotFoundError('Fant ikke versjonen.');
   const { resolveSnapshotValue } = await import('./taxonomy-lookup');
   const resolve = await resolveSnapshotValue(ctx.site.id, [from.snapshot, to.snapshot]);
@@ -937,7 +1048,12 @@ export async function diffRevisions(
 /* -------------------------------------------------------------------------- */
 
 /** Tick or untick a checklist item. Does not bump the version (no content changed). */
-export async function toggleChecklistItem(ctx: AdminContext, id: string, itemId: string, checked: boolean): Promise<Article> {
+export async function toggleChecklistItem(
+  ctx: AdminContext,
+  id: string,
+  itemId: string,
+  checked: boolean,
+): Promise<Article> {
   const article = await loadArticle(ctx.site.id, id);
   if (!article) throw new NotFoundError('Fant ikke saken.');
   assertEditable(ctx, article);
@@ -985,7 +1101,12 @@ export async function addNote(ctx: AdminContext, id: string, body: string): Prom
   return note;
 }
 
-export async function resolveNote(ctx: AdminContext, id: string, noteId: string, resolved = true): Promise<ArticleNote> {
+export async function resolveNote(
+  ctx: AdminContext,
+  id: string,
+  noteId: string,
+  resolved = true,
+): Promise<ArticleNote> {
   const article = await getEditableArticle(ctx, id);
   const [note] = await db
     .update(articleNotes)
@@ -1011,7 +1132,9 @@ export async function assignArticle(ctx: AdminContext, id: string, input: Assign
       .where(and(eq(memberships.siteId, ctx.site.id), eq(memberships.userId, input.assignedTo)))
       .limit(1);
     if (!m && !ctx.user.isSuperadmin) {
-      throw new ActionError('Brukeren er ikke medlem av redaksjonen.', 'validation', { assignedTo: ['Ugyldig bruker'] });
+      throw new ActionError('Brukeren er ikke medlem av redaksjonen.', 'validation', {
+        assignedTo: ['Ugyldig bruker'],
+      });
     }
   }
   const [updated] = await db
@@ -1042,7 +1165,9 @@ export async function assignArticle(ctx: AdminContext, id: string, input: Assign
       siteId: ctx.site.id,
       kind: NOTIFY_KIND.assigned,
       title: `Du er tildelt «${titleOf(updated)}»`,
-      body: input.deadlineAt ? `Frist ${formatDate(input.deadlineAt, 'datetime')}.` : `${ctx.user.name} tildelte deg saken.`,
+      body: input.deadlineAt
+        ? `Frist ${formatDate(input.deadlineAt, 'datetime')}.`
+        : `${ctx.user.name} tildelte deg saken.`,
       link: adminPaths.article(updated.id),
     });
   }
