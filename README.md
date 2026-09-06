@@ -81,3 +81,7 @@ git push -u origin main
 RLS er av på alle `tk_`-tabeller. Hvem som helst med anon-nøkkelen kan lese og skrive. For en lukket vennegjeng er det greit, men ikke del nøkkelen offentlig hvis du er nervøs for at noen tukler med tippene.
 
 PIN hashes med SHA-256 og salt. Det er ikke militær sikkerhet — to spillere med samme PIN får samme hash, og en med tabellen kan brute-force korte PINs. For VM-tipping i en vennegjeng holder det.
+
+## Desken (CMS)
+
+Katalogen `cms/` inneholder **Desken**, et publiseringssystem for små norske redaksjoner. Se [cms/README.md](cms/README.md).
