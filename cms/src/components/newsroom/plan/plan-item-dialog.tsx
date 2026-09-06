@@ -29,7 +29,13 @@ export type PlanItemDialogProps = {
 const toDate = (v: string | null) => (v ? new Date(v) : null);
 const sameInstant = (a: Date | null, b: Date | null) => (a?.getTime() ?? null) === (b?.getTime() ?? null);
 
-export function PlanItemDialog({ open, onOpenChange, article, members, focus = 'plannedAt' }: PlanItemDialogProps) {
+export function PlanItemDialog({
+  open,
+  onOpenChange,
+  article,
+  members,
+  focus = 'plannedAt',
+}: PlanItemDialogProps) {
   const t = useT();
   const [plannedAt, setPlannedAt] = useState<Date | null>(toDate(article.plannedAt));
   const [deadlineAt, setDeadlineAt] = useState<Date | null>(toDate(article.deadlineAt));
@@ -62,17 +68,33 @@ export function PlanItemDialog({ open, onOpenChange, article, members, focus = '
   const title = article.title.trim() || t('plan.untitled');
   const fields = {
     plannedAt: (
-      <FormField key="plannedAt" label={t('plan.field.plannedAt')} htmlFor="plan-planned" help={t('plan.field.plannedHelp')} error={errors.plannedAt?.[0]}>
+      <FormField
+        key="plannedAt"
+        label={t('plan.field.plannedAt')}
+        htmlFor="plan-planned"
+        help={t('plan.field.plannedHelp')}
+        error={errors.plannedAt?.[0]}
+      >
         <DateTimeInput id="plan-planned" value={plannedAt} onChange={setPlannedAt} />
       </FormField>
     ),
     deadlineAt: (
-      <FormField key="deadlineAt" label={t('plan.field.deadlineAt')} htmlFor="plan-deadline" error={errors.deadlineAt?.[0]}>
+      <FormField
+        key="deadlineAt"
+        label={t('plan.field.deadlineAt')}
+        htmlFor="plan-deadline"
+        error={errors.deadlineAt?.[0]}
+      >
         <DateTimeInput id="plan-deadline" value={deadlineAt} onChange={setDeadlineAt} />
       </FormField>
     ),
     assignedTo: (
-      <FormField key="assignedTo" label={t('plan.field.assignedTo')} htmlFor="plan-assignee" error={errors.assignedTo?.[0]}>
+      <FormField
+        key="assignedTo"
+        label={t('plan.field.assignedTo')}
+        htmlFor="plan-assignee"
+        error={errors.assignedTo?.[0]}
+      >
         <NativeSelect
           id="plan-assignee"
           value={assignedTo}
@@ -83,7 +105,10 @@ export function PlanItemDialog({ open, onOpenChange, article, members, focus = '
       </FormField>
     ),
   };
-  const order: (keyof typeof fields)[] = [focus, ...(['plannedAt', 'deadlineAt', 'assignedTo'] as const).filter((k) => k !== focus)];
+  const order: (keyof typeof fields)[] = [
+    focus,
+    ...(['plannedAt', 'deadlineAt', 'assignedTo'] as const).filter((k) => k !== focus),
+  ];
 
   return (
     <Dialog

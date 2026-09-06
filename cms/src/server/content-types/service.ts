@@ -44,7 +44,9 @@ async function otherDefaultExists(tx: Writer, siteId: string, excludeId: string)
   const [row] = await tx
     .select({ id: contentTypes.id })
     .from(contentTypes)
-    .where(and(eq(contentTypes.siteId, siteId), eq(contentTypes.isDefault, true), ne(contentTypes.id, excludeId)))
+    .where(
+      and(eq(contentTypes.siteId, siteId), eq(contentTypes.isDefault, true), ne(contentTypes.id, excludeId)),
+    )
     .limit(1);
   return Boolean(row);
 }
@@ -82,18 +84,23 @@ export async function createContentType(ctx: AdminContext, input: unknown): Prom
   const data = contentTypeInputSchema.parse(input);
   const created = await db.transaction(async (tx) => {
     if (await keyTaken(tx, ctx.site.id, data.key)) {
-      throw new ActionError('Nøkkelen er allerede i bruk.', 'validation', { key: ['Nøkkelen er allerede i bruk'] });
+      throw new ActionError('Nøkkelen er allerede i bruk.', 'validation', {
+        key: ['Nøkkelen er allerede i bruk'],
+      });
     }
     // The first type of a site is always the default.
     const isDefault = data.isDefault || !(await anyDefaultExists(tx, ctx.site.id));
     if (isDefault && !data.isActive) {
-      throw new ActionError('Standardtypen må være aktiv.', 'validation', { isActive: ['Standardtypen må være aktiv'] });
+      throw new ActionError('Standardtypen må være aktiv.', 'validation', {
+        isActive: ['Standardtypen må være aktiv'],
+      });
     }
     const [maxRow] = await tx
       .select({ max: sql<number>`coalesce(max(${contentTypes.sortOrder}), -1)`.mapWith(Number) })
       .from(contentTypes)
       .where(eq(contentTypes.siteId, ctx.site.id));
-    const sortOrder = input && typeof input === 'object' && 'sortOrder' in input ? data.sortOrder : (maxRow?.max ?? -1) + 1;
+    const sortOrder =
+      input && typeof input === 'object' && 'sortOrder' in input ? data.sortOrder : (maxRow?.max ?? -1) + 1;
     const [row] = await tx
       .insert(contentTypes)
       .values({ siteId: ctx.site.id, key: data.key, ...values(data), sortOrder, isDefault })
@@ -122,7 +129,9 @@ export async function updateContentType(ctx: AdminContext, id: string, input: un
     const others = await otherDefaultExists(tx, ctx.site.id, id);
     const isDefault = data.isDefault || !others;
     if (existing.isDefault && !data.isDefault && !others) {
-      throw new ActionError('Velg en annen standardtype først.', 'validation', { isDefault: ['Minst én type må være standard'] });
+      throw new ActionError('Velg en annen standardtype først.', 'validation', {
+        isDefault: ['Minst én type må være standard'],
+      });
     }
     if (isDefault && !data.isActive) {
       throw new ActionError('Standardtypen må være aktiv. Velg en annen standardtype først.', 'validation', {
@@ -138,7 +147,9 @@ export async function updateContentType(ctx: AdminContext, id: string, input: un
     if (isDefault) await clearOtherDefaults(tx, ctx.site.id, id);
     return row;
   });
-  const removedFields = existing.fields.map((f) => f.key).filter((k) => !updated.fields.some((f) => f.key === k));
+  const removedFields = existing.fields
+    .map((f) => f.key)
+    .filter((k) => !updated.fields.some((f) => f.key === k));
   await auditFromContext(ctx, {
     action: 'content_type.update',
     entityType: 'content_type',
@@ -155,7 +166,8 @@ export async function setDefaultContentType(ctx: AdminContext, id: string): Prom
   assertCan(ctx, 'content_type:manage');
   const updated = await db.transaction(async (tx) => {
     const existing = await loadType(tx, ctx.site.id, id);
-    if (!existing.isActive) throw new ActionError('Aktiver innholdstypen før du gjør den til standard.', 'validation');
+    if (!existing.isActive)
+      throw new ActionError('Aktiver innholdstypen før du gjør den til standard.', 'validation');
     const [row] = await tx
       .update(contentTypes)
       .set({ isDefault: true, updatedAt: new Date() })
@@ -180,7 +192,8 @@ export async function deleteContentType(ctx: AdminContext, id: string): Promise<
   assertCan(ctx, 'content_type:manage');
   const name = await db.transaction(async (tx) => {
     const existing = await loadType(tx, ctx.site.id, id);
-    if (existing.isDefault) throw new ActionError('Standardtypen kan ikke slettes. Velg en annen standardtype først.', 'conflict');
+    if (existing.isDefault)
+      throw new ActionError('Standardtypen kan ikke slettes. Velg en annen standardtype først.', 'conflict');
     const [countRow] = await tx
       .select({ value: sql<number>`count(*)`.mapWith(Number) })
       .from(articles)

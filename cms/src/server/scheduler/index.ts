@@ -75,7 +75,11 @@ async function claimDueArticles(now: Date) {
       updatedAt: now,
     })
     .where(
-      and(eq(articles.status, 'scheduled'), lte(articles.scheduledAt, now), sql`${articles.deletedAt} is null`),
+      and(
+        eq(articles.status, 'scheduled'),
+        lte(articles.scheduledAt, now),
+        sql`${articles.deletedAt} is null`,
+      ),
     )
     .returning();
 }
@@ -175,7 +179,10 @@ export async function deleteExpiredSessions(now: Date = new Date()): Promise<num
 }
 
 export async function deleteExpiredTokens(now: Date = new Date()): Promise<number> {
-  const rows = await db.delete(authTokens).where(lt(authTokens.expiresAt, now)).returning({ id: authTokens.id });
+  const rows = await db
+    .delete(authTokens)
+    .where(lt(authTokens.expiresAt, now))
+    .returning({ id: authTokens.id });
   return rows.length;
 }
 
@@ -193,7 +200,10 @@ export async function releaseStaleLocks(now: Date = new Date()): Promise<number>
 /*  Tick                                                                       */
 /* -------------------------------------------------------------------------- */
 
-const g = globalThis as unknown as { __deskenSchedulerRunning?: boolean; __deskenSchedulerTimer?: NodeJS.Timeout };
+const g = globalThis as unknown as {
+  __deskenSchedulerRunning?: boolean;
+  __deskenSchedulerTimer?: NodeJS.Timeout;
+};
 
 async function step<T>(name: string, fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -251,9 +261,12 @@ export async function tick(opts: Options = {}): Promise<TickSummary> {
 /** Start the in-process interval once per process. */
 export function startScheduler(intervalMs = 30_000): void {
   if (g.__deskenSchedulerTimer) return;
-  const timer = setInterval(() => {
-    tick().catch((err) => console.error('[scheduler]', err));
-  }, Math.max(5_000, intervalMs));
+  const timer = setInterval(
+    () => {
+      tick().catch((err) => console.error('[scheduler]', err));
+    },
+    Math.max(5_000, intervalMs),
+  );
   timer.unref?.();
   g.__deskenSchedulerTimer = timer;
 }

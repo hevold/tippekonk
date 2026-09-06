@@ -25,7 +25,15 @@ export type PlanCalendarProps = {
   now: Date;
 };
 
-const WEEKDAY_KEYS = ['plan.weekday.mon', 'plan.weekday.tue', 'plan.weekday.wed', 'plan.weekday.thu', 'plan.weekday.fri', 'plan.weekday.sat', 'plan.weekday.sun'];
+const WEEKDAY_KEYS = [
+  'plan.weekday.mon',
+  'plan.weekday.tue',
+  'plan.weekday.wed',
+  'plan.weekday.thu',
+  'plan.weekday.fri',
+  'plan.weekday.sat',
+  'plan.weekday.sun',
+];
 
 /** 09:00 Oslo on an ISO day, as the default planned instant for new stories. */
 function defaultPlannedAt(day: string): string {
@@ -49,13 +57,24 @@ export function PlanCalendar({ range, eventsByDay, perm, members, sections, now 
   const isWeek = range.view === 'week';
 
   return (
-    <div className="border-border bg-surface overflow-x-auto rounded-lg border" role="region" aria-label={range.label}>
+    <div
+      className="border-border bg-surface overflow-x-auto rounded-lg border"
+      role="region"
+      aria-label={range.label}
+    >
       <table className="w-full table-fixed border-collapse text-sm">
         <caption className="sr-only">{t('plan.calendarCaption', { label: range.label })}</caption>
         <thead>
           <tr className="border-border border-b">
             {WEEKDAY_KEYS.map((key, i) => (
-              <th key={key} scope="col" className={cn('text-muted px-2 py-2 text-left text-xs font-medium', i >= 5 && 'bg-surface-2/60')}>
+              <th
+                key={key}
+                scope="col"
+                className={cn(
+                  'text-muted px-2 py-2 text-left text-xs font-medium',
+                  i >= 5 && 'bg-surface-2/60',
+                )}
+              >
                 {t(key)}
               </th>
             ))}
@@ -72,8 +91,8 @@ export function PlanCalendar({ range, eventsByDay, perm, members, sections, now 
                   <td
                     key={day}
                     className={cn(
-                      'group border-border align-top border-r p-1.5 last:border-r-0',
-                      isWeek ? 'min-h-[24rem] h-[28rem]' : 'h-32',
+                      'group border-border border-r p-1.5 align-top last:border-r-0',
+                      isWeek ? 'h-[28rem] min-h-[24rem]' : 'h-32',
                       di >= 5 && 'bg-surface-2/40',
                       muted && 'bg-surface-2/70',
                     )}
@@ -90,14 +109,27 @@ export function PlanCalendar({ range, eventsByDay, perm, members, sections, now 
                         <span className="sr-only">{formatDate(`${day}T12:00:00Z`, 'weekday')}</span>
                       </span>
                       {perm.create ? (
-                        <PlanCreateDialog compact members={members} sections={sections} defaultPlannedAt={defaultPlannedAt(day)} currentUserId={perm.userId} />
+                        <PlanCreateDialog
+                          compact
+                          members={members}
+                          sections={sections}
+                          defaultPlannedAt={defaultPlannedAt(day)}
+                          currentUserId={perm.userId}
+                        />
                       ) : null}
                     </div>
                     {events.length > 0 ? (
                       <ul className="grid gap-0.5" role="list">
                         {events.map((e) => (
                           <li key={`${e.article.id}-${e.kind}`}>
-                            <PlanEventChip article={e.article} kind={e.kind} at={e.at} perm={perm} members={members} now={now} />
+                            <PlanEventChip
+                              article={e.article}
+                              kind={e.kind}
+                              at={e.at}
+                              perm={perm}
+                              members={members}
+                              now={now}
+                            />
                           </li>
                         ))}
                       </ul>
@@ -121,21 +153,40 @@ export function PlanList({ days, eventsByDay, perm, members, now }: PlanListProp
   if (withEvents.length === 0) {
     return (
       <div className="border-border bg-surface rounded-lg border">
-        <EmptyState icon={<CalendarDays />} title={t('plan.empty.title')} description={t('plan.empty.description')} />
+        <EmptyState
+          icon={<CalendarDays />}
+          title={t('plan.empty.title')}
+          description={t('plan.empty.description')}
+        />
       </div>
     );
   }
   return (
     <div className="grid gap-4">
       {withEvents.map((day) => (
-        <section key={day} aria-labelledby={`plan-day-${day}`} className="border-border bg-surface overflow-hidden rounded-lg border">
-          <h3 id={`plan-day-${day}`} className="border-border bg-surface-2/60 border-b px-4 py-2 text-sm font-semibold capitalize">
+        <section
+          key={day}
+          aria-labelledby={`plan-day-${day}`}
+          className="border-border bg-surface overflow-hidden rounded-lg border"
+        >
+          <h3
+            id={`plan-day-${day}`}
+            className="border-border bg-surface-2/60 border-b px-4 py-2 text-sm font-semibold capitalize"
+          >
             {formatDate(`${day}T12:00:00Z`, 'weekday')}
           </h3>
           <ul className="divide-border divide-y" role="list">
             {(eventsByDay[day] ?? []).map((e) => (
               <li key={`${e.article.id}-${e.kind}`}>
-                <PlanEventChip article={e.article} kind={e.kind} at={e.at} perm={perm} members={members} variant="row" now={now} />
+                <PlanEventChip
+                  article={e.article}
+                  kind={e.kind}
+                  at={e.at}
+                  perm={perm}
+                  members={members}
+                  variant="row"
+                  now={now}
+                />
               </li>
             ))}
           </ul>

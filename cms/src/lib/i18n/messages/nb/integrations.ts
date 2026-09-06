@@ -1,3 +1,101 @@
-/** Norwegian bokmål messages — area: integrations. Owned by the integrations feature. */
-const messages = {} as Record<string, string>;
+/** Norwegian bokmål messages — area: integrations (API keys, webhooks). Owned by the integrations feature. */
+const messages: Record<string, string> = {
+  'integrations.apiKeys.title': 'API-nøkler',
+  'integrations.apiKeys.description':
+    'Nøkler for det offentlige JSON-API-et (/api/v1). Alle kall må sende en nøkkel.',
+  'integrations.apiKeys.create': 'Ny API-nøkkel',
+  'integrations.apiKeys.createDescription': 'Nøkkelen vises bare én gang etter at den er opprettet.',
+  'integrations.apiKeys.createdTitle': 'Nøkkelen er opprettet',
+  'integrations.apiKeys.nameHelp':
+    'Hva nøkkelen brukes til, f.eks. «Nettbutikk» eller «Skjermene i resepsjonen».',
+  'integrations.apiKeys.scopeNote': 'Nøkkelen gir lesetilgang til publisert innhold (content:read).',
+  'integrations.apiKeys.showOnce': 'Kopier nøkkelen nå. Av sikkerhetshensyn kan den ikke vises igjen.',
+  'integrations.apiKeys.rawKey': 'API-nøkkel',
+  'integrations.apiKeys.copyFailed': 'Kunne ikke kopiere. Marker teksten og kopier manuelt.',
+  'integrations.apiKeys.scopes': 'Tilganger',
+  'integrations.apiKeys.active': 'Aktiv',
+  'integrations.apiKeys.revoked': 'Trukket tilbake',
+  'integrations.apiKeys.lastUsed': 'Sist brukt',
+  'integrations.apiKeys.revoke': 'Trekk tilbake',
+  'integrations.apiKeys.revokeTitle': 'Trekke tilbake nøkkelen?',
+  'integrations.apiKeys.revokeDescription':
+    'Integrasjoner som bruker nøkkelen slutter å virke umiddelbart. Dette kan ikke angres.',
+  'integrations.apiKeys.revokedToast': 'Nøkkelen er trukket tilbake.',
+  'integrations.apiKeys.emptyTitle': 'Ingen API-nøkler',
+  'integrations.apiKeys.emptyDescription':
+    'Opprett en nøkkel for å gi andre systemer lesetilgang til innholdet.',
+  'integrations.apiKeys.docsTitle': 'Slik bruker du API-et',
+  'integrations.apiKeys.docsDescription':
+    'Send nøkkelen i Authorization-headeren. Svar er JSON med feltene data og meta.',
+  'integrations.apiKeys.docsFooter':
+    'Lister støtter page og per_page (maks 100). Saker kan filtreres med section, tag, q og since (ISO-dato).',
+  'integrations.apiKeys.ep.articles': 'publiserte saker (teasere)',
+  'integrations.apiKeys.ep.article': 'én sak med brødtekst og HTML',
+  'integrations.apiKeys.ep.sections': 'seksjoner',
+  'integrations.apiKeys.ep.tags': 'stikkord',
+  'integrations.apiKeys.ep.authors': 'skribenter',
+  'integrations.apiKeys.ep.live': 'direktesending med innlegg',
+  'integrations.apiKeys.ep.site': 'nettstedet: navn, tema og menyer',
+
+  'integrations.webhooks.title': 'Webhooks',
+  'integrations.webhooks.description':
+    'Varsle andre systemer når saker publiseres, forsiden endres eller direktesendinger oppdateres.',
+  'integrations.webhooks.create': 'Ny webhook',
+  'integrations.webhooks.edit': 'Rediger webhook',
+  'integrations.webhooks.dialogDescription':
+    'Vi sender en POST med JSON til adressen for hver valgt hendelse, signert med hemmeligheten.',
+  'integrations.webhooks.url': 'Adresse (URL)',
+  'integrations.webhooks.urlHelp': 'Må starte med https://.',
+  'integrations.webhooks.urlHelpHttp':
+    'https:// anbefales. http:// godtas fordi installasjonen selv kjører uten TLS.',
+  'integrations.webhooks.events': 'Hendelser',
+  'integrations.webhooks.event.article.published': 'En sak publiseres',
+  'integrations.webhooks.event.article.updated': 'En publisert sak lagres på nytt',
+  'integrations.webhooks.event.article.unpublished': 'En sak avpubliseres',
+  'integrations.webhooks.event.layout.published': 'Forsiden eller en seksjonsside publiseres',
+  'integrations.webhooks.event.live.post_created': 'Nytt innlegg i en direktesending',
+  'integrations.webhooks.active': 'Aktiv',
+  'integrations.webhooks.activeAria': 'Aktiver webhook {name}',
+  'integrations.webhooks.deliveries': 'Leveranser',
+  'integrations.webhooks.failedCount.one': '1 feilet',
+  'integrations.webhooks.failedCount.other': '{count} feilet',
+  'integrations.webhooks.lastDelivery': 'Siste leveranse',
+  'integrations.webhooks.test': 'Test',
+  'integrations.webhooks.testOk': 'Testen lyktes (HTTP {code}).',
+  'integrations.webhooks.testFailed': 'Testen feilet: {error}',
+  'integrations.webhooks.createdToast': 'Webhooken er opprettet.',
+  'integrations.webhooks.deletedToast': 'Webhooken er slettet.',
+  'integrations.webhooks.deleteTitle': 'Slette webhooken?',
+  'integrations.webhooks.deleteDescription': '«{name}» og leveringsloggen slettes. Dette kan ikke angres.',
+  'integrations.webhooks.secret': 'Hemmelighet',
+  'integrations.webhooks.secretTitle': 'Signeringshemmelighet',
+  'integrations.webhooks.secretOnce':
+    'Kopier hemmeligheten nå. Den vises bare én gang. Bruk den til å verifisere X-Desken-Signature.',
+  'integrations.webhooks.regenerate': 'Generer ny hemmelighet',
+  'integrations.webhooks.regenerateTitle': 'Generere ny hemmelighet?',
+  'integrations.webhooks.regenerateDescription':
+    'Den gamle hemmeligheten slutter å virke med en gang. Mottakeren må oppdateres.',
+  'integrations.webhooks.signatureHelp':
+    'Hver leveranse er en POST med JSON og headerne X-Desken-Event, X-Desken-Delivery og X-Desken-Signature (sha256=<HMAC-SHA256 av innholdet med hemmeligheten>). Feilede leveranser prøves på nytt med økende ventetid, inntil 8 forsøk.',
+  'integrations.webhooks.emptyTitle': 'Ingen webhooks',
+  'integrations.webhooks.emptyDescription':
+    'Opprett en webhook for å varsle Slack, et nyhetsbrevsystem eller en app om publiseringer.',
+  'integrations.webhooks.deliveriesTitle': 'Leveranser: {name}',
+  'integrations.webhooks.noDeliveries': 'Ingen leveranser ennå.',
+  'integrations.webhooks.redeliver': 'Send på nytt',
+  'integrations.webhooks.redeliverOk': 'Leveransen ble sendt på nytt.',
+  'integrations.webhooks.redeliverFailed': 'Leveransen feilet: {error}',
+  'integrations.webhooks.attempts': 'Forsøk',
+  'integrations.webhooks.statusCode': 'HTTP-status',
+  'integrations.webhooks.deliveredAt': 'Levert',
+  'integrations.webhooks.nextAttempt': 'Neste forsøk',
+  'integrations.webhooks.asap': 'Ved neste kjøring av planleggeren',
+  'integrations.webhooks.error': 'Feil',
+  'integrations.webhooks.payload': 'Vis innhold',
+  'integrations.webhooks.status.pending': 'Venter',
+  'integrations.webhooks.status.delivered': 'Levert',
+  'integrations.webhooks.status.retrying': 'Prøver igjen',
+  'integrations.webhooks.status.failed': 'Feilet',
+};
+
 export default messages;

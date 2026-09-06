@@ -12,7 +12,16 @@ import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, or, sql, type
 import { alias, type PgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/db';
-import { articleViews, articles, auditLog, notifications, sections, users, type ArticleStatus, type Notification } from '@/db/schema';
+import {
+  articleViews,
+  articles,
+  auditLog,
+  notifications,
+  sections,
+  users,
+  type ArticleStatus,
+  type Notification,
+} from '@/db/schema';
 import { formatDate, fromOsloParts, startOfOsloDay, zonedParts } from '@/lib/dates';
 import { isOwnScoped } from '@/server/articles/list';
 import type { AdminContext } from '@/server/auth/context';
@@ -46,7 +55,13 @@ export type DashboardArticle = {
 
 export type UpcomingItem = DashboardArticle & { kind: 'scheduled' | 'planned' | 'deadline'; at: Date };
 
-export type MostReadItem = { id: string; title: string; sectionName: string | null; views: number; publishedAt: Date | null };
+export type MostReadItem = {
+  id: string;
+  title: string;
+  sectionName: string | null;
+  views: number;
+  publishedAt: Date | null;
+};
 
 export type ActivityItem = {
   id: string;
@@ -147,7 +162,12 @@ export async function listReviewQueue(ctx: AdminContext, limit = 8): Promise<Das
 }
 
 /** Scheduled publications, planned stories and deadlines in the next `days` days. */
-export async function listUpcoming(ctx: AdminContext, now: Date, days = 7, limit = 10): Promise<UpcomingItem[]> {
+export async function listUpcoming(
+  ctx: AdminContext,
+  now: Date,
+  days = 7,
+  limit = 10,
+): Promise<UpcomingItem[]> {
   const from = startOfOsloDay(now);
   const p = zonedParts(from);
   const to = fromOsloParts({ year: p.year, month: p.month, day: p.day + days });
@@ -168,8 +188,10 @@ export async function listUpcoming(ctx: AdminContext, now: Date, days = 7, limit
       items.push({ ...row, kind: 'scheduled', at: row.scheduledAt });
       continue;
     }
-    if (row.plannedAt && row.plannedAt >= from && row.plannedAt < to) items.push({ ...row, kind: 'planned', at: row.plannedAt });
-    else if (row.deadlineAt && row.deadlineAt >= from && row.deadlineAt < to) items.push({ ...row, kind: 'deadline', at: row.deadlineAt });
+    if (row.plannedAt && row.plannedAt >= from && row.plannedAt < to)
+      items.push({ ...row, kind: 'planned', at: row.plannedAt });
+    else if (row.deadlineAt && row.deadlineAt >= from && row.deadlineAt < to)
+      items.push({ ...row, kind: 'deadline', at: row.deadlineAt });
   }
   items.sort((a, b) => a.at.getTime() - b.at.getTime());
   return items.slice(0, limit);
@@ -202,13 +224,25 @@ export async function getDashboardStats(ctx: AdminContext, now: Date): Promise<D
   const [publishedToday, publishedThisWeek, byStatus, overdue, viewsRow] = await Promise.all([
     countWhere(and(base, eq(articles.status, 'published'), gte(articles.publishedAt, dayStart))),
     countWhere(and(base, eq(articles.status, 'published'), gte(articles.publishedAt, weekStart))),
-    db.select({ status: articles.status, value: count() }).from(articles).where(base).groupBy(articles.status),
+    db
+      .select({ status: articles.status, value: count() })
+      .from(articles)
+      .where(base)
+      .groupBy(articles.status),
     countWhere(and(base, inArray(articles.status, OPEN), lte(articles.deadlineAt, now))),
     db
       .select({ value: sql<number>`coalesce(sum(${articleViews.views}), 0)`.mapWith(Number) })
       .from(articleViews)
       .innerJoin(articles, eq(articles.id, articleViews.articleId))
-      .where(and(base, gte(articleViews.day, formatDate(fromOsloParts({ year: p.year, month: p.month, day: p.day - 6 }), 'iso-date')))),
+      .where(
+        and(
+          base,
+          gte(
+            articleViews.day,
+            formatDate(fromOsloParts({ year: p.year, month: p.month, day: p.day - 6 }), 'iso-date'),
+          ),
+        ),
+      ),
   ]);
   const byStatusMap = new Map(byStatus.map((r) => [r.status, Number(r.value)]));
   return {
@@ -224,9 +258,17 @@ export async function getDashboardStats(ctx: AdminContext, now: Date): Promise<D
 }
 
 /** Most read articles over the last `days` Oslo days (article_views is a per-day counter). */
-export async function listMostRead(ctx: AdminContext, now: Date, days = 7, limit = 5): Promise<MostReadItem[]> {
+export async function listMostRead(
+  ctx: AdminContext,
+  now: Date,
+  days = 7,
+  limit = 5,
+): Promise<MostReadItem[]> {
   const p = zonedParts(startOfOsloDay(now));
-  const since = formatDate(fromOsloParts({ year: p.year, month: p.month, day: p.day - (days - 1) }), 'iso-date');
+  const since = formatDate(
+    fromOsloParts({ year: p.year, month: p.month, day: p.day - (days - 1) }),
+    'iso-date',
+  );
   const total = sql<number>`sum(${articleViews.views})`.mapWith(Number);
   return db
     .select({
@@ -276,22 +318,32 @@ export async function listActivity(ctx: AdminContext, limit = 20): Promise<Activ
 
 export async function getDashboardData(ctx: AdminContext, now: Date = new Date()): Promise<DashboardData> {
   const canReview = ctx.can('article:review');
-  const [myArticles, reviewQueue, upcoming, recentlyPublished, overdue, stats, mostRead, activity, unread, unreadRow] =
-    await Promise.all([
-      listMyArticles(ctx),
-      canReview ? listReviewQueue(ctx) : Promise.resolve(null),
-      listUpcoming(ctx, now),
-      listRecentlyPublished(ctx),
-      listOverdue(ctx, now),
-      getDashboardStats(ctx, now),
-      listMostRead(ctx, now),
-      ctx.can('audit:view') || ctx.can('article:review') ? listActivity(ctx) : Promise.resolve([]),
-      listNotifications(ctx.user.id, { unreadOnly: true, limit: 6 }),
-      db
-        .select({ value: count() })
-        .from(notifications)
-        .where(and(eq(notifications.userId, ctx.user.id), isNull(notifications.readAt))),
-    ]);
+  const [
+    myArticles,
+    reviewQueue,
+    upcoming,
+    recentlyPublished,
+    overdue,
+    stats,
+    mostRead,
+    activity,
+    unread,
+    unreadRow,
+  ] = await Promise.all([
+    listMyArticles(ctx),
+    canReview ? listReviewQueue(ctx) : Promise.resolve(null),
+    listUpcoming(ctx, now),
+    listRecentlyPublished(ctx),
+    listOverdue(ctx, now),
+    getDashboardStats(ctx, now),
+    listMostRead(ctx, now),
+    ctx.can('audit:view') || ctx.can('article:review') ? listActivity(ctx) : Promise.resolve([]),
+    listNotifications(ctx.user.id, { unreadOnly: true, limit: 6 }),
+    db
+      .select({ value: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, ctx.user.id), isNull(notifications.readAt))),
+  ]);
   return {
     myArticles,
     reviewQueue,

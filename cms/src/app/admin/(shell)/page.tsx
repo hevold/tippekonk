@@ -52,13 +52,33 @@ export default async function DashboardPage() {
   const articlesHref = adminPaths.articles();
 
   const quickActions = [
-    ctx.can('article:create') && { key: 'new', href: adminPaths.newArticle(), label: t('dashboard.action.newArticle'), icon: <Plus />, primary: true },
-    ctx.can('media:upload') && { key: 'media', href: adminPaths.media(), label: t('dashboard.action.media'), icon: <ImageIcon /> },
-    ctx.can('layout:edit') && { key: 'front', href: adminPaths.front(), label: t('dashboard.action.front'), icon: <LayoutTemplate /> },
+    ctx.can('article:create') && {
+      key: 'new',
+      href: adminPaths.newArticle(),
+      label: t('dashboard.action.newArticle'),
+      icon: <Plus />,
+      primary: true,
+    },
+    ctx.can('media:upload') && {
+      key: 'media',
+      href: adminPaths.media(),
+      label: t('dashboard.action.media'),
+      icon: <ImageIcon />,
+    },
+    ctx.can('layout:edit') && {
+      key: 'front',
+      href: adminPaths.front(),
+      label: t('dashboard.action.front'),
+      icon: <LayoutTemplate />,
+    },
     { key: 'plan', href: adminPaths.plan(), label: t('dashboard.action.plan'), icon: <CalendarDays /> },
   ].filter((a): a is Exclude<typeof a, false> => Boolean(a));
 
-  const upcomingKindKey = { scheduled: 'dashboard.upcoming.scheduled', planned: 'dashboard.upcoming.planned', deadline: 'dashboard.upcoming.deadline' } as const;
+  const upcomingKindKey = {
+    scheduled: 'dashboard.upcoming.scheduled',
+    planned: 'dashboard.upcoming.planned',
+    deadline: 'dashboard.upcoming.deadline',
+  } as const;
 
   return (
     <>
@@ -84,12 +104,54 @@ export default async function DashboardPage() {
           {t('dashboard.stats')}
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <StatCard label={t('dashboard.stat.publishedToday')} value={data.stats.publishedToday} tone="success" icon={<Send />} href={`${articlesHref}?status=published`} hint={t('dashboard.stat.thisWeek', { count: data.stats.publishedThisWeek })} />
-          <StatCard label={t('common.status.draft')} value={data.stats.drafts} tone="muted" icon={<FileText />} href={`${articlesHref}?status=draft`} hint={t('dashboard.stat.hint')} />
-          <StatCard label={t('dashboard.stat.inReview')} value={data.stats.inReview} tone="warning" icon={<Eye />} href={`${articlesHref}?status=in_review`} hint={t('dashboard.stat.hint')} />
-          <StatCard label={t('common.status.approved')} value={data.stats.approved} tone="info" icon={<CheckCircle2 />} href={`${articlesHref}?status=approved`} hint={t('dashboard.stat.hint')} />
-          <StatCard label={t('dashboard.stat.overdue')} value={data.stats.overdue} tone={data.stats.overdue > 0 ? 'danger' : 'muted'} icon={<AlertTriangle />} href={adminPaths.plan()} hint={t('dashboard.stat.overdueHint')} valueClassName={data.stats.overdue > 0 ? 'text-danger' : undefined} />
-          <StatCard label={t('dashboard.stat.views')} value={data.stats.viewsLast7Days} tone="default" icon={<TrendingUp />} hint={t('dashboard.stat.viewsHint')} />
+          <StatCard
+            label={t('dashboard.stat.publishedToday')}
+            value={data.stats.publishedToday}
+            tone="success"
+            icon={<Send />}
+            href={`${articlesHref}?status=published`}
+            hint={t('dashboard.stat.thisWeek', { count: data.stats.publishedThisWeek })}
+          />
+          <StatCard
+            label={t('common.status.draft')}
+            value={data.stats.drafts}
+            tone="muted"
+            icon={<FileText />}
+            href={`${articlesHref}?status=draft`}
+            hint={t('dashboard.stat.hint')}
+          />
+          <StatCard
+            label={t('dashboard.stat.inReview')}
+            value={data.stats.inReview}
+            tone="warning"
+            icon={<Eye />}
+            href={`${articlesHref}?status=in_review`}
+            hint={t('dashboard.stat.hint')}
+          />
+          <StatCard
+            label={t('common.status.approved')}
+            value={data.stats.approved}
+            tone="info"
+            icon={<CheckCircle2 />}
+            href={`${articlesHref}?status=approved`}
+            hint={t('dashboard.stat.hint')}
+          />
+          <StatCard
+            label={t('dashboard.stat.overdue')}
+            value={data.stats.overdue}
+            tone={data.stats.overdue > 0 ? 'danger' : 'muted'}
+            icon={<AlertTriangle />}
+            href={adminPaths.plan()}
+            hint={t('dashboard.stat.overdueHint')}
+            valueClassName={data.stats.overdue > 0 ? 'text-danger' : undefined}
+          />
+          <StatCard
+            label={t('dashboard.stat.views')}
+            value={data.stats.viewsLast7Days}
+            tone="default"
+            icon={<TrendingUp />}
+            hint={t('dashboard.stat.viewsHint')}
+          />
         </div>
       </section>
 
@@ -131,7 +193,13 @@ export default async function DashboardPage() {
               href={`${articlesHref}?status=in_review`}
               linkLabel={t('dashboard.seeAll')}
             >
-              <ArticleMiniList items={data.reviewQueue} now={now} meta="age" emptyTitle={t('dashboard.review.empty')} emptyDescription={t('dashboard.review.emptyDescription')} />
+              <ArticleMiniList
+                items={data.reviewQueue}
+                now={now}
+                meta="age"
+                emptyTitle={t('dashboard.review.empty')}
+                emptyDescription={t('dashboard.review.emptyDescription')}
+              />
             </DashboardCard>
           ) : null}
 
@@ -144,24 +212,39 @@ export default async function DashboardPage() {
             linkLabel={t('dashboard.upcoming.openPlan')}
           >
             {data.upcoming.length === 0 ? (
-              <EmptyState compact title={t('dashboard.upcoming.empty')} description={t('dashboard.upcoming.emptyDescription')} />
+              <EmptyState
+                compact
+                title={t('dashboard.upcoming.empty')}
+                description={t('dashboard.upcoming.emptyDescription')}
+              />
             ) : (
               <ul className="divide-border divide-y" role="list">
                 {data.upcoming.map((u) => (
                   <li key={`${u.id}-${u.kind}`} className="flex items-start gap-3 px-5 py-2.5">
                     <div className="w-24 shrink-0">
-                      <p className="text-text text-sm font-medium tabular-nums">{formatDate(u.at, 'datetime')}</p>
+                      <p className="text-text text-sm font-medium tabular-nums">
+                        {formatDate(u.at, 'datetime')}
+                      </p>
                       <p className="text-subtle text-xs">{formatRelative(u.at, now)}</p>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <Link href={adminPaths.article(u.id)} className="focus-visible:outline-ring block truncate text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                      <Link
+                        href={adminPaths.article(u.id)}
+                        className="focus-visible:outline-ring block truncate text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                      >
                         {u.title.trim() || t('dashboard.untitled')}
                       </Link>
                       <p className="text-muted text-xs">
-                        {[u.sectionName, u.assignedToName ?? t('dashboard.unassigned')].filter(Boolean).join(' · ')}
+                        {[u.sectionName, u.assignedToName ?? t('dashboard.unassigned')]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </p>
                     </div>
-                    <Badge variant={u.kind === 'scheduled' ? 'info' : u.kind === 'deadline' ? 'warning' : 'muted'}>{t(upcomingKindKey[u.kind])}</Badge>
+                    <Badge
+                      variant={u.kind === 'scheduled' ? 'info' : u.kind === 'deadline' ? 'warning' : 'muted'}
+                    >
+                      {t(upcomingKindKey[u.kind])}
+                    </Badge>
                   </li>
                 ))}
               </ul>
@@ -174,7 +257,13 @@ export default async function DashboardPage() {
             href={`${articlesHref}?status=published`}
             linkLabel={t('dashboard.seeAll')}
           >
-            <ArticleMiniList items={data.recentlyPublished} now={now} meta="published" showStatus={false} emptyTitle={t('dashboard.recent.empty')} />
+            <ArticleMiniList
+              items={data.recentlyPublished}
+              now={now}
+              meta="published"
+              showStatus={false}
+              emptyTitle={t('dashboard.recent.empty')}
+            />
           </DashboardCard>
         </div>
 
@@ -187,10 +276,19 @@ export default async function DashboardPage() {
             href={adminPaths.plan()}
             linkLabel={t('dashboard.upcoming.openPlan')}
           >
-            <ArticleMiniList items={data.overdue} now={now} meta="deadline" emptyTitle={t('dashboard.overdue.empty')} />
+            <ArticleMiniList
+              items={data.overdue}
+              now={now}
+              meta="deadline"
+              emptyTitle={t('dashboard.overdue.empty')}
+            />
           </DashboardCard>
 
-          <DashboardCard title={t('dashboard.mostRead.title')} description={t('dashboard.mostRead.description')} icon={<Flame />}>
+          <DashboardCard
+            title={t('dashboard.mostRead.title')}
+            description={t('dashboard.mostRead.description')}
+            icon={<Flame />}
+          >
             {data.mostRead.length === 0 ? (
               <EmptyState compact title={t('dashboard.mostRead.empty')} />
             ) : (
@@ -201,12 +299,17 @@ export default async function DashboardPage() {
                       {i + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <Link href={adminPaths.article(m.id)} className="focus-visible:outline-ring block truncate text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                      <Link
+                        href={adminPaths.article(m.id)}
+                        className="focus-visible:outline-ring block truncate text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                      >
                         {m.title.trim() || t('dashboard.untitled')}
                       </Link>
                       {m.sectionName ? <p className="text-subtle text-xs">{m.sectionName}</p> : null}
                     </div>
-                    <span className="text-muted text-sm tabular-nums">{t('dashboard.mostRead.views', { count: formatNumber(m.views) })}</span>
+                    <span className="text-muted text-sm tabular-nums">
+                      {t('dashboard.mostRead.views', { count: formatNumber(m.views) })}
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -227,7 +330,10 @@ export default async function DashboardPage() {
                 {data.unreadNotifications.map((n) => (
                   <li key={n.id} className="px-5 py-2">
                     {n.link ? (
-                      <Link href={n.link} className="focus-visible:outline-ring block truncate text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                      <Link
+                        href={n.link}
+                        className="focus-visible:outline-ring block truncate text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                      >
                         {n.title}
                       </Link>
                     ) : (

@@ -87,7 +87,11 @@ export function toApiKeyDto(k: ApiKeySummary): ApiKeyDto {
 }
 
 export async function listApiKeys(siteId: string): Promise<ApiKeySummary[]> {
-  const rows = await db.select().from(apiKeys).where(eq(apiKeys.siteId, siteId)).orderBy(desc(apiKeys.createdAt));
+  const rows = await db
+    .select()
+    .from(apiKeys)
+    .where(eq(apiKeys.siteId, siteId))
+    .orderBy(desc(apiKeys.createdAt));
   return rows.map(summarize);
 }
 

@@ -72,7 +72,11 @@ export function defaultSectionLayout(section: Pick<Section, 'id' | 'name'>): Lay
 }
 
 async function loadSections(siteId: string): Promise<Section[]> {
-  return db.select().from(sections).where(eq(sections.siteId, siteId)).orderBy(asc(sections.sortOrder), asc(sections.name));
+  return db
+    .select()
+    .from(sections)
+    .where(eq(sections.siteId, siteId))
+    .orderBy(asc(sections.sortOrder), asc(sections.name));
 }
 
 async function findLayout(siteId: string, key: string): Promise<Layout | null> {
@@ -205,7 +209,9 @@ export async function publishLayout(ctx: AdminContext, key: string): Promise<Lay
 export async function discardDraft(ctx: AdminContext, key: string): Promise<Layout> {
   const parsedKey = layoutKeySchema.parse(key);
   const current = await getLayout(ctx.site.id, parsedKey, ctx.user.id);
-  const restored = current.published ? parseLayoutDoc(current.published) : (await defaultDocFor(ctx.site.id, parsedKey)).doc;
+  const restored = current.published
+    ? parseLayoutDoc(current.published)
+    : (await defaultDocFor(ctx.site.id, parsedKey)).doc;
   const [row] = await db
     .update(layouts)
     .set({ draft: restored, updatedBy: ctx.user.id, updatedAt: new Date() })

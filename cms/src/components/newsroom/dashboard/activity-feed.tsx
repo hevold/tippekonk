@@ -41,15 +41,22 @@ export function ActivityFeed({ items, now }: { items: ActivityItem[]; now: Date 
   return (
     <ol className="divide-border divide-y" role="list">
       {items.map((item) => {
-        const link = item.entityType === 'article' && item.entityId ? adminPaths.article(item.entityId) : null;
+        const link =
+          item.entityType === 'article' && item.entityId ? adminPaths.article(item.entityId) : null;
         return (
           <li key={item.id} className="flex items-start gap-3 px-5 py-2">
-            <span className="bg-surface-2 text-muted mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md [&_svg]:size-3.5" aria-hidden>
+            <span
+              className="bg-surface-2 text-muted mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md [&_svg]:size-3.5"
+              aria-hidden
+            >
               {ICONS[item.icon]}
             </span>
             <div className="min-w-0 flex-1 text-sm leading-5">
               {link ? (
-                <Link href={link} className="focus-visible:outline-ring rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                <Link
+                  href={link}
+                  className="focus-visible:outline-ring rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
                   {item.text}
                 </Link>
               ) : (

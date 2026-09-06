@@ -2,7 +2,17 @@ import { and, eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Db } from '@/db';
-import { articleBylines, articleTags, articles, auditLog, redirects, sections, tags, type MemberRole, type User } from '@/db/schema';
+import {
+  articleBylines,
+  articleTags,
+  articles,
+  auditLog,
+  redirects,
+  sections,
+  tags,
+  type MemberRole,
+  type User,
+} from '@/db/schema';
 import { can, type Permission } from '@/lib/permissions';
 import { parseSiteSettings } from '@/lib/validation/site';
 import { ActionError, ForbiddenError } from '@/server/actions';
@@ -19,7 +29,13 @@ vi.mock('@/server/auth/guards', () => ({
   },
 }));
 
-import { buildSectionTree, flattenSectionTree, listAuthorsWithCounts, listSectionTree, listTagsWithCounts } from './queries';
+import {
+  buildSectionTree,
+  flattenSectionTree,
+  listAuthorsWithCounts,
+  listSectionTree,
+  listTagsWithCounts,
+} from './queries';
 import {
   createAuthor,
   createSection,
@@ -55,7 +71,11 @@ function ctxFor(user: User, role: MemberRole): AdminContext {
 const editor = () => ctxFor(seed.editor, 'editor');
 const journalist = () => ctxFor(seed.journalist, 'journalist');
 
-async function insertArticle(spec: { title: string; sectionId?: string | null; status?: 'draft' | 'published' }) {
+async function insertArticle(spec: {
+  title: string;
+  sectionId?: string | null;
+  status?: 'draft' | 'published';
+}) {
   const [row] = await db
     .insert(articles)
     .values({
@@ -98,7 +118,9 @@ describe('sections', () => {
   });
 
   it('rejects reserved slugs and duplicates', async () => {
-    await expect(createSection(editor(), { name: 'Admin', slug: 'admin' })).rejects.toMatchObject({ name: 'ZodError' });
+    await expect(createSection(editor(), { name: 'Admin', slug: 'admin' })).rejects.toMatchObject({
+      name: 'ZodError',
+    });
     // A generated slug that would be reserved gets a suffix instead of failing.
     const tips = await createSection(editor(), { name: 'Tips' });
     expect(tips.slug).toBe('tips-seksjon');
@@ -111,12 +133,12 @@ describe('sections', () => {
   it('prevents cycles when moving a section under its own child', async () => {
     const parent = await createSection(editor(), { name: 'Meninger' });
     const child = await createSection(editor(), { name: 'Debatt', parentId: parent.id });
-    await expect(updateSection(editor(), parent.id, { name: 'Meninger', parentId: child.id })).rejects.toBeInstanceOf(
-      ActionError,
-    );
-    await expect(updateSection(editor(), parent.id, { name: 'Meninger', parentId: parent.id })).rejects.toBeInstanceOf(
-      ActionError,
-    );
+    await expect(
+      updateSection(editor(), parent.id, { name: 'Meninger', parentId: child.id }),
+    ).rejects.toBeInstanceOf(ActionError);
+    await expect(
+      updateSection(editor(), parent.id, { name: 'Meninger', parentId: parent.id }),
+    ).rejects.toBeInstanceOf(ActionError);
     const tree = await listSectionTree(seed.site.id);
     const meninger = tree.find((s) => s.id === parent.id)!;
     expect(meninger.children.map((c) => c.id)).toEqual([child.id]);
@@ -257,7 +279,12 @@ describe('authors', () => {
   });
 
   it('reorders authors', async () => {
-    const ids = [seed.authors.contributor.id, seed.authors.admin.id, seed.authors.editor.id, seed.authors.journalist.id];
+    const ids = [
+      seed.authors.contributor.id,
+      seed.authors.admin.id,
+      seed.authors.editor.id,
+      seed.authors.journalist.id,
+    ];
     await reorderAuthors(editor(), ids);
     const list = await listAuthorsWithCounts(seed.site.id);
     expect(list.map((x) => x.id)).toEqual(ids);

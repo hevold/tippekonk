@@ -51,7 +51,13 @@ type Writer = Tx | typeof db;
 
 type SlugTable = typeof sections | typeof tags | typeof authors;
 
-async function slugTaken(tx: Writer, table: SlugTable, siteId: string, slug: string, excludeId?: string): Promise<boolean> {
+async function slugTaken(
+  tx: Writer,
+  table: SlugTable,
+  siteId: string,
+  slug: string,
+  excludeId?: string,
+): Promise<boolean> {
   const where = excludeId
     ? and(eq(table.siteId, siteId), eq(table.slug, slug), ne(table.id, excludeId))
     : and(eq(table.siteId, siteId), eq(table.slug, slug));
@@ -66,14 +72,25 @@ async function slugTaken(tx: Writer, table: SlugTable, siteId: string, slug: str
 async function resolveSlug(
   tx: Writer,
   table: SlugTable,
-  opts: { siteId: string; requested: string; name: string; excludeId?: string; fallback: string; reserved?: boolean },
+  opts: {
+    siteId: string;
+    requested: string;
+    name: string;
+    excludeId?: string;
+    fallback: string;
+    reserved?: boolean;
+  },
 ): Promise<string> {
   if (opts.requested) {
     if (opts.reserved && isReservedSlug(opts.requested)) {
-      throw new ActionError('Denne adressen er reservert.', 'validation', { slug: ['Denne adressen er reservert'] });
+      throw new ActionError('Denne adressen er reservert.', 'validation', {
+        slug: ['Denne adressen er reservert'],
+      });
     }
     if (await slugTaken(tx, table, opts.siteId, opts.requested, opts.excludeId)) {
-      throw new ActionError('Adressen er allerede i bruk.', 'validation', { slug: ['Adressen er allerede i bruk'] });
+      throw new ActionError('Adressen er allerede i bruk.', 'validation', {
+        slug: ['Adressen er allerede i bruk'],
+      });
     }
     return opts.requested;
   }
@@ -97,24 +114,40 @@ async function loadSection(tx: Writer, siteId: string, id: string): Promise<Sect
 }
 
 /** A section may not become its own descendant. */
-async function assertValidParent(tx: Writer, siteId: string, id: string | null, parentId: string | null): Promise<void> {
+async function assertValidParent(
+  tx: Writer,
+  siteId: string,
+  id: string | null,
+  parentId: string | null,
+): Promise<void> {
   if (!parentId) return;
   if (id && parentId === id) {
-    throw new ActionError('En seksjon kan ikke ligge under seg selv.', 'validation', { parentId: ['Ugyldig overordnet seksjon'] });
+    throw new ActionError('En seksjon kan ikke ligge under seg selv.', 'validation', {
+      parentId: ['Ugyldig overordnet seksjon'],
+    });
   }
-  const rows = await tx.select({ id: sections.id, parentId: sections.parentId }).from(sections).where(eq(sections.siteId, siteId));
+  const rows = await tx
+    .select({ id: sections.id, parentId: sections.parentId })
+    .from(sections)
+    .where(eq(sections.siteId, siteId));
   const parentOf = new Map(rows.map((r) => [r.id, r.parentId]));
   if (!parentOf.has(parentId)) {
-    throw new ActionError('Overordnet seksjon finnes ikke.', 'validation', { parentId: ['Ugyldig overordnet seksjon'] });
+    throw new ActionError('Overordnet seksjon finnes ikke.', 'validation', {
+      parentId: ['Ugyldig overordnet seksjon'],
+    });
   }
   if (!id) return;
   let cursor: string | null = parentId;
   const seen = new Set<string>();
   while (cursor && !seen.has(cursor)) {
     if (cursor === id) {
-      throw new ActionError('En seksjon kan ikke flyttes under en av sine egne underseksjoner.', 'validation', {
-        parentId: ['Ugyldig overordnet seksjon'],
-      });
+      throw new ActionError(
+        'En seksjon kan ikke flyttes under en av sine egne underseksjoner.',
+        'validation',
+        {
+          parentId: ['Ugyldig overordnet seksjon'],
+        },
+      );
     }
     seen.add(cursor);
     cursor = parentOf.get(cursor) ?? null;
@@ -125,7 +158,12 @@ async function nextSortOrder(tx: Writer, siteId: string, parentId: string | null
   const [row] = await tx
     .select({ max: sql<number>`coalesce(max(${sections.sortOrder}), -1)`.mapWith(Number) })
     .from(sections)
-    .where(and(eq(sections.siteId, siteId), parentId ? eq(sections.parentId, parentId) : isNull(sections.parentId)));
+    .where(
+      and(
+        eq(sections.siteId, siteId),
+        parentId ? eq(sections.parentId, parentId) : isNull(sections.parentId),
+      ),
+    );
   return (row?.max ?? -1) + 1;
 }
 
@@ -141,7 +179,10 @@ export async function createSection(ctx: AdminContext, input: unknown): Promise<
       fallback: 'seksjon',
       reserved: true,
     });
-    const sortOrder = input && typeof input === 'object' && 'sortOrder' in input ? data.sortOrder : await nextSortOrder(tx, ctx.site.id, data.parentId);
+    const sortOrder =
+      input && typeof input === 'object' && 'sortOrder' in input
+        ? data.sortOrder
+        : await nextSortOrder(tx, ctx.site.id, data.parentId);
     const [row] = await tx
       .insert(sections)
       .values({
@@ -249,7 +290,11 @@ export type DeleteSectionOptions = {
  * `reassignTo` says where they go. Child sections move up to the deleted
  * section's parent.
  */
-export async function deleteSection(ctx: AdminContext, id: string, opts: DeleteSectionOptions = {}): Promise<void> {
+export async function deleteSection(
+  ctx: AdminContext,
+  id: string,
+  opts: DeleteSectionOptions = {},
+): Promise<void> {
   assertCan(ctx, 'taxonomy:manage');
   const name = await db.transaction(async (tx) => {
     const existing = await loadSection(tx, ctx.site.id, id);
@@ -265,7 +310,8 @@ export async function deleteSection(ctx: AdminContext, id: string, opts: DeleteS
       );
     }
     if (opts.reassignTo) {
-      if (opts.reassignTo === id) throw new ActionError('Kan ikke flytte sakene til seksjonen som slettes.', 'validation');
+      if (opts.reassignTo === id)
+        throw new ActionError('Kan ikke flytte sakene til seksjonen som slettes.', 'validation');
       await loadSection(tx, ctx.site.id, opts.reassignTo);
     }
     if (opts.reassignTo !== undefined) {
@@ -306,7 +352,11 @@ export async function reorderSections(ctx: AdminContext, ids: string[]): Promise
       index += 1;
     }
   });
-  await auditFromContext(ctx, { action: 'section.reorder', entityType: 'section', summary: 'Endret rekkefølgen på seksjoner' });
+  await auditFromContext(ctx, {
+    action: 'section.reorder',
+    entityType: 'section',
+    summary: 'Endret rekkefølgen på seksjoner',
+  });
   revalidatePublic(ctx.site.id);
 }
 
@@ -328,7 +378,12 @@ export async function createTag(ctx: AdminContext, input: unknown): Promise<Tag>
   assertCan(ctx, 'taxonomy:manage');
   const data: TagInput = tagInputSchema.parse(input);
   const tag = await db.transaction(async (tx) => {
-    const slug = await resolveSlug(tx, tags, { siteId: ctx.site.id, requested: data.slug, name: data.name, fallback: 'stikkord' });
+    const slug = await resolveSlug(tx, tags, {
+      siteId: ctx.site.id,
+      requested: data.slug,
+      name: data.name,
+      fallback: 'stikkord',
+    });
     const [row] = await tx
       .insert(tags)
       .values({ siteId: ctx.site.id, name: data.name, slug, description: data.description })
@@ -400,11 +455,17 @@ export async function mergeTags(
   targetId: string,
 ): Promise<{ target: Tag; moved: number }> {
   assertCan(ctx, 'taxonomy:manage');
-  if (sourceId === targetId) throw new ActionError('Velg to forskjellige stikkord.', 'validation', { targetId: ['Velg et annet stikkord'] });
+  if (sourceId === targetId)
+    throw new ActionError('Velg to forskjellige stikkord.', 'validation', {
+      targetId: ['Velg et annet stikkord'],
+    });
   const result = await db.transaction(async (tx) => {
     const source = await loadTag(tx, ctx.site.id, sourceId);
     const target = await loadTag(tx, ctx.site.id, targetId);
-    const rows = await tx.select({ articleId: articleTags.articleId }).from(articleTags).where(eq(articleTags.tagId, sourceId));
+    const rows = await tx
+      .select({ articleId: articleTags.articleId })
+      .from(articleTags)
+      .where(eq(articleTags.tagId, sourceId));
     if (rows.length > 0) {
       await tx
         .insert(articleTags)
@@ -446,7 +507,10 @@ async function assertMember(tx: Writer, siteId: string, userId: string | null): 
     .from(memberships)
     .where(and(eq(memberships.siteId, siteId), eq(memberships.userId, userId)))
     .limit(1);
-  if (!m) throw new ActionError('Brukeren er ikke medlem av redaksjonen.', 'validation', { userId: ['Ugyldig bruker'] });
+  if (!m)
+    throw new ActionError('Brukeren er ikke medlem av redaksjonen.', 'validation', {
+      userId: ['Ugyldig bruker'],
+    });
 }
 
 function authorValues(data: AuthorInput) {
@@ -467,12 +531,18 @@ export async function createAuthor(ctx: AdminContext, input: unknown): Promise<A
   const data: AuthorInput = authorInputSchema.parse(input);
   const author = await db.transaction(async (tx) => {
     await assertMember(tx, ctx.site.id, data.userId);
-    const slug = await resolveSlug(tx, authors, { siteId: ctx.site.id, requested: data.slug, name: data.name, fallback: 'skribent' });
+    const slug = await resolveSlug(tx, authors, {
+      siteId: ctx.site.id,
+      requested: data.slug,
+      name: data.name,
+      fallback: 'skribent',
+    });
     const [maxRow] = await tx
       .select({ max: sql<number>`coalesce(max(${authors.sortOrder}), -1)`.mapWith(Number) })
       .from(authors)
       .where(eq(authors.siteId, ctx.site.id));
-    const sortOrder = input && typeof input === 'object' && 'sortOrder' in input ? data.sortOrder : (maxRow?.max ?? -1) + 1;
+    const sortOrder =
+      input && typeof input === 'object' && 'sortOrder' in input ? data.sortOrder : (maxRow?.max ?? -1) + 1;
     const [row] = await tx
       .insert(authors)
       .values({ siteId: ctx.site.id, slug, sortOrder, ...authorValues(data) })
@@ -587,6 +657,10 @@ export async function reorderAuthors(ctx: AdminContext, ids: string[]): Promise<
       index += 1;
     }
   });
-  await auditFromContext(ctx, { action: 'author.reorder', entityType: 'author', summary: 'Endret rekkefølgen på skribenter' });
+  await auditFromContext(ctx, {
+    action: 'author.reorder',
+    entityType: 'author',
+    summary: 'Endret rekkefølgen på skribenter',
+  });
   revalidatePublic(ctx.site.id);
 }

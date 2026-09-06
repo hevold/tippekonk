@@ -23,7 +23,17 @@ export type ListFiltersProps = {
   total: number;
 };
 
-const SORTS = ['-updatedAt', 'updatedAt', '-publishedAt', 'publishedAt', 'title', '-title', 'deadlineAt', '-deadlineAt', '-createdAt'] as const;
+const SORTS = [
+  '-updatedAt',
+  'updatedAt',
+  '-publishedAt',
+  'publishedAt',
+  'title',
+  '-title',
+  'deadlineAt',
+  '-deadlineAt',
+  '-createdAt',
+] as const;
 
 export function ListFilters({ query, options, total }: ListFiltersProps) {
   const t = useT();
@@ -47,7 +57,11 @@ export function ListFilters({ query, options, total }: ListFiltersProps) {
   return (
     <div className="mb-3 grid gap-2">
       <FilterBar
-        search={{ value: query.q ?? '', onChange: (q) => apply({ q }), placeholder: t('list.searchPlaceholder') }}
+        search={{
+          value: query.q ?? '',
+          onChange: (q) => apply({ q }),
+          placeholder: t('list.searchPlaceholder'),
+        }}
         activeCount={activeFilterCount(query)}
         onReset={reset}
         end={

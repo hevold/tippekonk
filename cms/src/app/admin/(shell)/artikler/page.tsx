@@ -63,7 +63,15 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
   };
   const active = tabFor(filter.status);
   const filtered = Boolean(
-    filter.q || filter.sectionId || filter.contentTypeId || filter.tagId || filter.authorId || filter.assignedTo || filter.access || filter.from || filter.to,
+    filter.q ||
+    filter.sectionId ||
+    filter.contentTypeId ||
+    filter.tagId ||
+    filter.authorId ||
+    filter.assignedTo ||
+    filter.access ||
+    filter.from ||
+    filter.to,
   );
 
   const perm: ListPermissions = {

@@ -32,11 +32,7 @@ import { randomToken } from '@/server/auth/crypto';
 /* -------------------------------------------------------------------------- */
 
 export type WebhookEvent =
-  | 'article.published'
-  | 'article.updated'
-  | 'article.unpublished'
-  | 'layout.published'
-  | 'live.post_created';
+  'article.published' | 'article.updated' | 'article.unpublished' | 'layout.published' | 'live.post_created';
 
 export const WEBHOOK_EVENTS: WebhookEvent[] = [
   'article.published',
@@ -148,7 +144,11 @@ export type WebhookWithStats = Webhook & {
 };
 
 export async function listWebhooks(siteId: string): Promise<WebhookWithStats[]> {
-  const rows = await db.select().from(webhooks).where(eq(webhooks.siteId, siteId)).orderBy(desc(webhooks.createdAt));
+  const rows = await db
+    .select()
+    .from(webhooks)
+    .where(eq(webhooks.siteId, siteId))
+    .orderBy(desc(webhooks.createdAt));
   if (rows.length === 0) return [];
   const stats = await db
     .select({
@@ -313,12 +313,19 @@ export async function enqueueEvent(
   data: Record<string, unknown>,
   opts: { webhookIds?: string[] } = {},
 ): Promise<WebhookDelivery[]> {
-  const [site] = await db.select({ id: sites.id, slug: sites.slug }).from(sites).where(eq(sites.id, siteId)).limit(1);
+  const [site] = await db
+    .select({ id: sites.id, slug: sites.slug })
+    .from(sites)
+    .where(eq(sites.id, siteId))
+    .limit(1);
   if (!site) return [];
   const conditions = [eq(webhooks.siteId, siteId)];
   if (opts.webhookIds) conditions.push(inArray(webhooks.id, opts.webhookIds));
   else conditions.push(eq(webhooks.isActive, true), sql`${event} = any(${webhooks.events})`);
-  const subscribers = await db.select({ id: webhooks.id }).from(webhooks).where(and(...conditions));
+  const subscribers = await db
+    .select({ id: webhooks.id })
+    .from(webhooks)
+    .where(and(...conditions));
   if (subscribers.length === 0) return [];
 
   const now = new Date();
@@ -441,12 +448,7 @@ export async function deliverPending(
   const hookRows = await db
     .select()
     .from(webhooks)
-    .where(
-      inArray(
-        webhooks.id,
-        [...new Set(claimed.map((d) => d.webhookId))],
-      ),
-    );
+    .where(inArray(webhooks.id, [...new Set(claimed.map((d) => d.webhookId))]));
   const hooks = new Map(hookRows.map((h) => [h.id, h]));
 
   let delivered = 0;
@@ -457,7 +459,10 @@ export async function deliverPending(
       // Park the row: it becomes due again once the subscription is re-activated and the lease expires.
       await db
         .update(webhookDeliveries)
-        .set({ nextAttemptAt: new Date(now.getTime() + backoffMs(delivery.attempts)), lastError: 'Webhooken er deaktivert' })
+        .set({
+          nextAttemptAt: new Date(now.getTime() + backoffMs(delivery.attempts)),
+          lastError: 'Webhooken er deaktivert',
+        })
         .where(eq(webhookDeliveries.id, delivery.id));
       continue;
     }
@@ -545,10 +550,10 @@ export async function sendTestEvent(
   const [updated] = await db
     .update(webhookDeliveries)
     .set({
-      attempts: 1,
+      // A failed ping is not retried (attempts jump to the maximum): the person testing sees the error right away.
+      attempts: outcome.ok ? 1 : MAX_ATTEMPTS,
       deliveredAt: outcome.ok ? now : null,
-      // A failed ping is not retried: the person testing sees the error right away.
-      nextAttemptAt: outcome.ok ? now : new Date(now.getTime() + backoffMs(MAX_ATTEMPTS)),
+      nextAttemptAt: now,
       lastStatusCode: outcome.statusCode,
       lastError: outcome.ok ? null : outcome.error,
     })

@@ -38,7 +38,11 @@
     ".next-public/types/**/*.ts",
     ".next-public/dev/types/**/*.ts",
     ".next-editor/types/**/*.ts",
-    ".next-editor/dev/types/**/*.ts"
+    ".next-editor/dev/types/**/*.ts",
+    ".next-newsroom/types/**/*.ts",
+    ".next-newsroom/dev/types/**/*.ts",
+    ".next-integrations/types/**/*.ts",
+    ".next-integrations/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

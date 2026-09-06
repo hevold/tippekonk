@@ -39,7 +39,8 @@ const KIND_ICON: Record<PlanEventKind, ReactNode> = {
 export type PlanEventChipProps = {
   article: PlanArticleDto;
   kind: PlanEventKind;
-  at: string;
+  /** Instant of the event; null for rows in the "no date" panel. */
+  at: string | null;
   perm: PlanPermissions;
   members: PlanOption[];
   /** Row layout (list/attention) instead of the compact calendar chip. */
@@ -47,14 +48,27 @@ export type PlanEventChipProps = {
   now?: Date;
 };
 
-export function PlanEventChip({ article, kind, at, perm, members, variant = 'chip', now = new Date() }: PlanEventChipProps) {
+export function PlanEventChip({
+  article,
+  kind,
+  at,
+  perm,
+  members,
+  variant = 'chip',
+  now = new Date(),
+}: PlanEventChipProps) {
   const t = useT();
   const [dialog, setDialog] = useState<null | 'plannedAt' | 'deadlineAt' | 'assignedTo'>(null);
   const [busy, setBusy] = useState(false);
   const editable = canPlan(perm, article);
   const title = article.title.trim() || t('plan.untitled');
-  const time = formatTime(at);
-  const overdue = kind === 'deadline' && new Date(at).getTime() < now.getTime() && ['draft', 'in_review', 'approved'].includes(article.status);
+  const time = at ? formatTime(at) : null;
+  const when = at ? `${t(`plan.kind.${kind}`)} ${formatDateTime(at)}` : t('plan.noDate');
+  const overdue =
+    at !== null &&
+    kind === 'deadline' &&
+    new Date(at).getTime() < now.getTime() &&
+    ['draft', 'in_review', 'approved'].includes(article.status);
 
   async function removeFromPlan() {
     setBusy(true);
@@ -72,7 +86,7 @@ export function PlanEventChip({ article, kind, at, perm, members, variant = 'chi
       <span className={cn('shrink-0 [&_svg]:size-3.5', overdue && 'text-danger')} aria-hidden>
         {KIND_ICON[kind]}
       </span>
-      <span className="text-subtle shrink-0 text-[11px] tabular-nums">{time}</span>
+      {time ? <span className="text-subtle shrink-0 text-[11px] tabular-nums">{time}</span> : null}
       <span className="min-w-0 flex-1 truncate">{title}</span>
     </>
   );
@@ -87,8 +101,8 @@ export function PlanEventChip({ article, kind, at, perm, members, variant = 'chi
           statusBadgeClass[article.status],
           overdue && 'ring-danger/60 ring-1',
         )}
-        title={`${title} · ${t(`plan.kind.${kind}`)} ${formatDateTime(at)}`}
-        aria-label={`${title}, ${t(`plan.kind.${kind}`)} ${formatDateTime(at)}${overdue ? `, ${t('plan.overdue')}` : ''}`}
+        title={`${title} · ${when}`}
+        aria-label={`${title}, ${when}${overdue ? `, ${t('plan.overdue')}` : ''}`}
         disabled={busy}
       >
         {label}
@@ -100,7 +114,7 @@ export function PlanEventChip({ article, kind, at, perm, members, variant = 'chi
           'flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors',
           'hover:bg-surface-2 focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-[-2px]',
         )}
-        aria-label={`${title}, ${t(`plan.kind.${kind}`)} ${formatDateTime(at)}`}
+        aria-label={`${title}, ${when}`}
         disabled={busy}
       >
         <span className={cn('size-2 shrink-0 rounded-full', statusDotClass[article.status])} aria-hidden />
@@ -110,7 +124,7 @@ export function PlanEventChip({ article, kind, at, perm, members, variant = 'chi
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{title}</span>
           <span className="text-muted block truncate text-xs">
-            {[article.sectionName, article.assignedToName ?? t('plan.unassigned'), t(`plan.kind.${kind}`) + ' ' + formatDateTime(at)]
+            {[article.sectionName, article.assignedToName ?? t('plan.unassigned'), when]
               .filter(Boolean)
               .join(' · ')}
           </span>
@@ -149,7 +163,13 @@ export function PlanEventChip({ article, kind, at, perm, members, variant = 'chi
         </DropdownMenuContent>
       </DropdownMenu>
       {dialog ? (
-        <PlanItemDialog open onOpenChange={(open) => !open && setDialog(null)} article={article} members={members} focus={dialog} />
+        <PlanItemDialog
+          open
+          onOpenChange={(open) => !open && setDialog(null)}
+          article={article}
+          members={members}
+          focus={dialog}
+        />
       ) : null}
     </>
   );

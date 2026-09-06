@@ -75,7 +75,8 @@ export function ArticleMiniList({
                 ) : null}
                 {meta === 'deadline' ? (
                   <span className="inline-flex items-center gap-1">
-                    {a.assignedToName ?? t('dashboard.unassigned')} · <Deadline deadlineAt={a.deadlineAt} status={a.status} now={now} />
+                    {a.assignedToName ?? t('dashboard.unassigned')} ·{' '}
+                    <Deadline deadlineAt={a.deadlineAt} status={a.status} now={now} />
                   </span>
                 ) : null}
               </p>

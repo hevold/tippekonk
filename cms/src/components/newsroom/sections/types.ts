@@ -38,7 +38,8 @@ export function toSectionDto(s: SectionWithCount): SectionDto {
 /** Flatten rows into display order (parents first, then their children), with depth. */
 export function orderedWithDepth(rows: SectionDto[]): (SectionDto & { depth: number; siblings: string[] })[] {
   const ids = new Set(rows.map((r) => r.id));
-  const childrenOf = (parent: string | null) => rows.filter((r) => (r.parentId && ids.has(r.parentId) ? r.parentId : null) === parent);
+  const childrenOf = (parent: string | null) =>
+    rows.filter((r) => (r.parentId && ids.has(r.parentId) ? r.parentId : null) === parent);
   const out: (SectionDto & { depth: number; siblings: string[] })[] = [];
   const walk = (parent: string | null, depth: number) => {
     const siblings = childrenOf(parent);
@@ -49,5 +50,21 @@ export function orderedWithDepth(rows: SectionDto[]): (SectionDto & { depth: num
     }
   };
   walk(null, 0);
+  return out;
+}
+
+/** Ids of `id` and everything below it (a section cannot become its own descendant's child). */
+export function descendantIds(all: Pick<SectionDto, 'id' | 'parentId'>[], id: string): Set<string> {
+  const out = new Set<string>([id]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const s of all) {
+      if (s.parentId && out.has(s.parentId) && !out.has(s.id)) {
+        out.add(s.id);
+        grew = true;
+      }
+    }
+  }
   return out;
 }

@@ -147,9 +147,26 @@ describe('events', () => {
   it('explodes planning dates into events by status and groups them by Oslo day', () => {
     const events = eventsForRange(
       [
-        { ...base, id: 'draft', plannedAt: new Date('2026-09-10T08:00:00Z'), deadlineAt: new Date('2026-09-09T12:00:00Z') },
-        { ...base, id: 'sched', status: 'scheduled', scheduledAt: new Date('2026-09-12T06:00:00Z'), plannedAt: new Date('2026-09-11T06:00:00Z') },
-        { ...base, id: 'pub', status: 'published', publishedAt: new Date('2026-09-05T22:30:00Z'), plannedAt: new Date('2026-09-02T06:00:00Z') },
+        {
+          ...base,
+          id: 'draft',
+          plannedAt: new Date('2026-09-10T08:00:00Z'),
+          deadlineAt: new Date('2026-09-09T12:00:00Z'),
+        },
+        {
+          ...base,
+          id: 'sched',
+          status: 'scheduled',
+          scheduledAt: new Date('2026-09-12T06:00:00Z'),
+          plannedAt: new Date('2026-09-11T06:00:00Z'),
+        },
+        {
+          ...base,
+          id: 'pub',
+          status: 'published',
+          publishedAt: new Date('2026-09-05T22:30:00Z'),
+          plannedAt: new Date('2026-09-02T06:00:00Z'),
+        },
         { ...base, id: 'outside', plannedAt: new Date('2026-11-01T06:00:00Z') },
       ],
       range,
@@ -169,9 +186,21 @@ describe('listPlanArticles / listPlanAttention', () => {
   it('returns articles with dates in range, scoped for contributors', async () => {
     const now = new Date('2026-09-06T10:00:00Z');
     await insertArticle({ title: 'Planlagt', plannedAt: new Date('2026-09-10T08:00:00Z') });
-    await insertArticle({ title: 'Frist', deadlineAt: new Date('2026-09-20T08:00:00Z'), createdBy: seed.contributor.id });
-    await insertArticle({ title: 'Publisert', status: 'published', publishedAt: new Date('2026-09-03T08:00:00Z') });
-    await insertArticle({ title: 'Arkivert', status: 'archived', plannedAt: new Date('2026-09-11T08:00:00Z') });
+    await insertArticle({
+      title: 'Frist',
+      deadlineAt: new Date('2026-09-20T08:00:00Z'),
+      createdBy: seed.contributor.id,
+    });
+    await insertArticle({
+      title: 'Publisert',
+      status: 'published',
+      publishedAt: new Date('2026-09-03T08:00:00Z'),
+    });
+    await insertArticle({
+      title: 'Arkivert',
+      status: 'archived',
+      plannedAt: new Date('2026-09-11T08:00:00Z'),
+    });
     await insertArticle({ title: 'Utenfor', plannedAt: new Date('2026-10-11T08:00:00Z') });
     await insertArticle({ title: 'Slettet', plannedAt: new Date('2026-09-11T08:00:00Z'), deletedAt: now });
 
@@ -184,9 +213,21 @@ describe('listPlanArticles / listPlanAttention', () => {
 
   it('lists overdue, unassigned and undated open stories', async () => {
     const now = new Date('2026-09-06T10:00:00Z');
-    await insertArticle({ title: 'Forsinket', deadlineAt: new Date('2026-09-01T08:00:00Z'), assignedTo: seed.journalist.id });
-    await insertArticle({ title: 'Publisert forsinket', status: 'published', deadlineAt: new Date('2026-09-01T08:00:00Z') });
-    await insertArticle({ title: 'Uten eier', plannedAt: new Date('2026-09-12T08:00:00Z'), assignedTo: null });
+    await insertArticle({
+      title: 'Forsinket',
+      deadlineAt: new Date('2026-09-01T08:00:00Z'),
+      assignedTo: seed.journalist.id,
+    });
+    await insertArticle({
+      title: 'Publisert forsinket',
+      status: 'published',
+      deadlineAt: new Date('2026-09-01T08:00:00Z'),
+    });
+    await insertArticle({
+      title: 'Uten eier',
+      plannedAt: new Date('2026-09-12T08:00:00Z'),
+      assignedTo: null,
+    });
     await insertArticle({ title: 'Uten dato', assignedTo: seed.journalist.id });
     const attention = await listPlanAttention(editor(), now);
     expect(attention.overdue.map((a) => a.title)).toEqual(['Forsinket']);
@@ -214,7 +255,11 @@ describe('updatePlanning', () => {
   });
 
   it('moves a story and tells the assignee; clearing uses explicit nulls', async () => {
-    const a = await insertArticle({ title: 'Flytt meg', assignedTo: seed.journalist.id, plannedAt: new Date('2026-09-10T08:00:00Z') });
+    const a = await insertArticle({
+      title: 'Flytt meg',
+      assignedTo: seed.journalist.id,
+      plannedAt: new Date('2026-09-10T08:00:00Z'),
+    });
     const moved = await updatePlanning(editor(), a.id, { plannedAt: new Date('2026-09-12T08:00:00Z') });
     expect(moved.plannedAt?.toISOString()).toBe('2026-09-12T08:00:00.000Z');
     expect(moved.assignedTo).toBe(seed.journalist.id);
@@ -222,7 +267,11 @@ describe('updatePlanning', () => {
     expect(notes.map((n) => n.kind)).toEqual(['article.rescheduled']);
 
     const raw = { id: a.id, plannedAt: null, deadlineAt: '' };
-    const cleared = await updatePlanning(editor(), a.id, pickPlanningPatch(raw, planningPatchSchema.parse(raw)));
+    const cleared = await updatePlanning(
+      editor(),
+      a.id,
+      pickPlanningPatch(raw, planningPatchSchema.parse(raw)),
+    );
     expect(cleared.plannedAt).toBeNull();
     expect(cleared.deadlineAt).toBeNull();
   });
@@ -230,7 +279,9 @@ describe('updatePlanning', () => {
   it('enforces ownership for contributors and membership for assignees', async () => {
     const own = await insertArticle({ title: 'Egen', createdBy: seed.contributor.id });
     const other = await insertArticle({ title: 'Andres' });
-    await expect(updatePlanning(contributor(), other.id, { plannedAt: new Date() })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(updatePlanning(contributor(), other.id, { plannedAt: new Date() })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
     const ok = await updatePlanning(contributor(), own.id, { plannedAt: new Date('2026-09-15T08:00:00Z') });
     expect(ok.plannedAt).not.toBeNull();
     await expect(

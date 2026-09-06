@@ -76,7 +76,8 @@ export function availableActions(row: ArticleRowDto, perm: ListPermissions): Set
   if (perm.publish && canTransition(status, 'published')) out.add('publish');
   if (perm.publish && status === 'published') out.add('unpublish');
   if (perm.publish && canTransition(status, 'archived')) out.add('archive');
-  if (canTrash(status) && (perm.delete || (editable && status === 'draft' && row.createdBy === perm.userId))) out.add('trash');
+  if (canTrash(status) && (perm.delete || (editable && status === 'draft' && row.createdBy === perm.userId)))
+    out.add('trash');
   if (perm.create) out.add('duplicate');
   return out;
 }
@@ -154,7 +155,8 @@ export function RowActions({ row, perm, onDone }: RowActionsProps) {
     }
   }
 
-  const needsConfirm = (kind: RowActionKind) => kind === 'destroy' || kind === 'trash' || kind === 'unpublish' || kind === 'publish';
+  const needsConfirm = (kind: RowActionKind) =>
+    kind === 'destroy' || kind === 'trash' || kind === 'unpublish' || kind === 'publish';
 
   const item = (kind: RowActionKind, icon: React.ReactNode, destructive = false) =>
     actions.has(kind) ? (
@@ -187,7 +189,11 @@ export function RowActions({ row, perm, onDone }: RowActionsProps) {
             </a>
           </DropdownMenuItem>
           {item('duplicate', <Copy />)}
-          {actions.has('sendToDesk') || actions.has('approve') || actions.has('publish') || actions.has('unpublish') || actions.has('archive') ? (
+          {actions.has('sendToDesk') ||
+          actions.has('approve') ||
+          actions.has('publish') ||
+          actions.has('unpublish') ||
+          actions.has('archive') ? (
             <DropdownMenuSeparator />
           ) : null}
           {item('sendToDesk', <Send />)}
@@ -195,7 +201,9 @@ export function RowActions({ row, perm, onDone }: RowActionsProps) {
           {item('publish', <Upload />)}
           {item('unpublish', <Undo2 />)}
           {item('archive', <Archive />)}
-          {actions.has('trash') || actions.has('restore') || actions.has('destroy') ? <DropdownMenuSeparator /> : null}
+          {actions.has('trash') || actions.has('restore') || actions.has('destroy') ? (
+            <DropdownMenuSeparator />
+          ) : null}
           {item('restore', <RotateCcw />)}
           {item('trash', <Trash2 />, true)}
           {item('destroy', <Trash2 />, true)}

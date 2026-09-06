@@ -39,7 +39,8 @@ export async function listSectionsWithCounts(siteId: string): Promise<SectionWit
     .select({
       section: sections,
       articleCount: sql<number>`count(${articles.id})`.mapWith(Number),
-      publishedCount: sql<number>`count(${articles.id}) filter (where ${articles.status} = 'published')`.mapWith(Number),
+      publishedCount:
+        sql<number>`count(${articles.id}) filter (where ${articles.status} = 'published')`.mapWith(Number),
     })
     .from(sections)
     .leftJoin(articles, and(eq(articles.sectionId, sections.id), isNull(articles.deletedAt)))
@@ -50,7 +51,9 @@ export async function listSectionsWithCounts(siteId: string): Promise<SectionWit
 }
 
 /** Build a tree from flat rows (input order is kept within each level); orphans become roots. Pure. */
-export function buildSectionTree<T extends { id: string; parentId: string | null }>(rows: T[]): TreeNode<T>[] {
+export function buildSectionTree<T extends { id: string; parentId: string | null }>(
+  rows: T[],
+): TreeNode<T>[] {
   const ids = new Set(rows.map((r) => r.id));
   const nodes = new Map<string, TreeNode<T>>(rows.map((r) => [r.id, { ...r, children: [], depth: 0 }]));
   const roots: TreeNode<T>[] = [];
@@ -104,10 +107,16 @@ export type TagWithCount = Tag & { articleCount: number };
 
 export type ListTagsOptions = { q?: string; sort?: 'name' | 'count' | 'newest' };
 
-export async function listTagsWithCounts(siteId: string, opts: ListTagsOptions = {}): Promise<TagWithCount[]> {
+export async function listTagsWithCounts(
+  siteId: string,
+  opts: ListTagsOptions = {},
+): Promise<TagWithCount[]> {
   const q = opts.q?.trim();
   const where = q
-    ? and(eq(tags.siteId, siteId), or(ilike(tags.name, `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`), ilike(tags.slug, `%${q}%`)))
+    ? and(
+        eq(tags.siteId, siteId),
+        or(ilike(tags.name, `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`), ilike(tags.slug, `%${q}%`)),
+      )
     : eq(tags.siteId, siteId);
   const countExpr = sql<number>`count(${articles.id})`.mapWith(Number);
   const order =

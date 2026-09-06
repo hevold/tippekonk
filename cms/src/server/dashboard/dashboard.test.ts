@@ -64,14 +64,29 @@ beforeEach(async () => {
 describe('describeActivity', () => {
   it('turns audit rows into Norwegian sentences', () => {
     const base = { entityType: 'article', entityId: null, data: null };
-    expect(describeActivity({ ...base, action: 'article.publish', summary: 'Publiserte «Budsjettet»' }, 'Ingrid Haugen')).toBe(
-      'Ingrid Haugen publiserte «Budsjettet»',
-    );
     expect(
-      describeActivity({ ...base, action: 'article.transition', summary: '«Sak»: draft → in_review', data: { to: 'in_review' } }, 'Ola'),
+      describeActivity(
+        { ...base, action: 'article.publish', summary: 'Publiserte «Budsjettet»' },
+        'Ingrid Haugen',
+      ),
+    ).toBe('Ingrid Haugen publiserte «Budsjettet»');
+    expect(
+      describeActivity(
+        {
+          ...base,
+          action: 'article.transition',
+          summary: '«Sak»: draft → in_review',
+          data: { to: 'in_review' },
+        },
+        'Ola',
+      ),
     ).toBe('Ola satte «Sak» til til desk');
-    expect(describeActivity({ ...base, action: 'tag.merge', summary: 'Slo sammen «A» med «B»' }, null)).toBe('Systemet slo sammen stikkord');
-    expect(describeActivity({ ...base, action: 'something.new', summary: 'Gjorde noe' }, 'Kari')).toBe('Kari: Gjorde noe');
+    expect(describeActivity({ ...base, action: 'tag.merge', summary: 'Slo sammen «A» med «B»' }, null)).toBe(
+      'Systemet slo sammen stikkord',
+    );
+    expect(describeActivity({ ...base, action: 'something.new', summary: 'Gjorde noe' }, 'Kari')).toBe(
+      'Kari: Gjorde noe',
+    );
     expect(quotedTitle('Opprettet «Tittel med «indre» tegn»')).toBe('«Tittel med «indre»');
     expect(activityIcon('article.publish')).toBe('publish');
     expect(activityIcon('section.create')).toBe('taxonomy');
@@ -109,7 +124,12 @@ describe('dashboard queries', () => {
     await insertArticle({ title: 'I planen', status: 'draft', plannedAt: hoursAhead(50) });
     await insertArticle({ title: 'Frist snart', status: 'draft', deadlineAt: hoursAhead(5) });
     await insertArticle({ title: 'Langt fram', status: 'draft', plannedAt: hoursAhead(24 * 20) });
-    await insertArticle({ title: 'Allerede publisert', status: 'published', publishedAt: hoursAgo(1), plannedAt: hoursAhead(3) });
+    await insertArticle({
+      title: 'Allerede publisert',
+      status: 'published',
+      publishedAt: hoursAgo(1),
+      plannedAt: hoursAhead(3),
+    });
     const upcoming = await listUpcoming(editor(), NOW);
     expect(upcoming.map((u) => `${u.title}:${u.kind}`)).toEqual([
       'Frist snart:deadline',
@@ -121,7 +141,12 @@ describe('dashboard queries', () => {
   it('assembles the dashboard with scoping and the review queue only for reviewers', async () => {
     await insertArticle({ title: 'Til desk', status: 'in_review', updatedAt: hoursAgo(3) });
     await insertArticle({ title: 'Min sak', status: 'draft', assignedTo: seed.editor.id });
-    await insertArticle({ title: 'Frilansens', status: 'draft', createdBy: seed.contributor.id, assignedTo: seed.contributor.id });
+    await insertArticle({
+      title: 'Frilansens',
+      status: 'draft',
+      createdBy: seed.contributor.id,
+      assignedTo: seed.contributor.id,
+    });
     await db.insert(auditLog).values({
       siteId: seed.site.id,
       userId: seed.journalist.id,
@@ -129,7 +154,9 @@ describe('dashboard queries', () => {
       entityType: 'article',
       summary: 'Opprettet «Til desk»',
     });
-    await db.insert(notifications).values({ userId: seed.editor.id, siteId: seed.site.id, kind: 'x', title: 'Hei' });
+    await db
+      .insert(notifications)
+      .values({ userId: seed.editor.id, siteId: seed.site.id, kind: 'x', title: 'Hei' });
 
     const data = await getDashboardData(editor(), NOW);
     expect(data.reviewQueue?.map((a) => a.title)).toEqual(['Til desk']);

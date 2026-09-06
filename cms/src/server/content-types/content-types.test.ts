@@ -58,11 +58,18 @@ beforeEach(async () => {
 
 describe('content types', () => {
   it('requires content_type:manage', async () => {
-    await expect(createContentType(journalist(), { key: 'event', name: 'Arrangement' })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      createContentType(journalist(), { key: 'event', name: 'Arrangement' }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it('creates a type with validated fields and audits', async () => {
-    const created = await createContentType(editor(), { key: 'Event', name: 'Arrangement', template: 'article', fields: eventFields });
+    const created = await createContentType(editor(), {
+      key: 'Event',
+      name: 'Arrangement',
+      template: 'article',
+      fields: eventFields,
+    });
     expect(created.key).toBe('event');
     expect(created.isDefault).toBe(false);
     expect(created.fields.map((f) => f.key)).toEqual(['starts_at', 'venue', 'kind']);
@@ -86,22 +93,42 @@ describe('content types', () => {
       }),
     ).rejects.toMatchObject({ name: 'ZodError' });
     await expect(
-      createContentType(editor(), { key: 'y', name: 'Y', fields: [{ key: 'sel', label: 'Valg', type: 'select' }] }),
+      createContentType(editor(), {
+        key: 'y',
+        name: 'Y',
+        fields: [{ key: 'sel', label: 'Valg', type: 'select' }],
+      }),
     ).rejects.toMatchObject({ name: 'ZodError' });
   });
 
   it('keeps exactly one default type', async () => {
-    const created = await createContentType(editor(), { key: 'longread', name: 'Langlesing', template: 'longread', isDefault: true });
+    const created = await createContentType(editor(), {
+      key: 'longread',
+      name: 'Langlesing',
+      template: 'longread',
+      isDefault: true,
+    });
     let list = await listContentTypesWithCounts(seed.site.id);
     expect(list.filter((c) => c.isDefault).map((c) => c.key)).toEqual(['longread']);
 
     // The only default cannot be un-defaulted.
     await expect(
-      updateContentType(editor(), created.id, { key: 'longread', name: 'Langlesing', template: 'longread', isDefault: false }),
+      updateContentType(editor(), created.id, {
+        key: 'longread',
+        name: 'Langlesing',
+        template: 'longread',
+        isDefault: false,
+      }),
     ).rejects.toMatchObject({ code: 'validation' });
     // …nor deactivated.
     await expect(
-      updateContentType(editor(), created.id, { key: 'longread', name: 'Langlesing', template: 'longread', isDefault: true, isActive: false }),
+      updateContentType(editor(), created.id, {
+        key: 'longread',
+        name: 'Langlesing',
+        template: 'longread',
+        isDefault: true,
+        isActive: false,
+      }),
     ).rejects.toMatchObject({ code: 'validation' });
 
     await setDefaultContentType(editor(), seed.contentTypes.article.id);
@@ -129,8 +156,12 @@ describe('content types', () => {
       slug: 'notis',
       createdBy: seed.journalist.id,
     });
-    await expect(deleteContentType(editor(), seed.contentTypes.notice.id)).rejects.toMatchObject({ code: 'conflict' });
-    await expect(deleteContentType(editor(), seed.contentTypes.article.id)).rejects.toMatchObject({ code: 'conflict' });
+    await expect(deleteContentType(editor(), seed.contentTypes.notice.id)).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    await expect(deleteContentType(editor(), seed.contentTypes.article.id)).rejects.toMatchObject({
+      code: 'conflict',
+    });
     await deleteContentType(editor(), seed.contentTypes.opinion.id);
     const rows = await db.select().from(contentTypes).where(eq(contentTypes.siteId, seed.site.id));
     expect(rows.map((c) => c.key).sort()).toEqual(['article', 'notice']);
@@ -148,6 +179,8 @@ describe('content types', () => {
     const opinion = list.find((c) => c.key === 'opinion')!;
     expect(opinion.articleCount).toBe(1);
     expect(opinion.fieldCount).toBe(1);
-    expect(safeFields([{ key: 'ok', label: 'Ok', type: 'text' }, { key: 'BAD KEY', label: '', type: 'nope' }, 42])).toHaveLength(1);
+    expect(
+      safeFields([{ key: 'ok', label: 'Ok', type: 'text' }, { key: 'BAD KEY', label: '', type: 'nope' }, 42]),
+    ).toHaveLength(1);
   });
 });

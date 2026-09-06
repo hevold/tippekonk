@@ -35,14 +35,22 @@ export type PlanCreateDialogProps = {
   currentUserId: string;
 };
 
-export function PlanCreateDialog({ members, sections, defaultPlannedAt, compact = false, currentUserId }: PlanCreateDialogProps) {
+export function PlanCreateDialog({
+  members,
+  sections,
+  defaultPlannedAt,
+  compact = false,
+  currentUserId,
+}: PlanCreateDialogProps) {
   const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [sectionId, setSectionId] = useState('');
   const [assignedTo, setAssignedTo] = useState(currentUserId);
-  const [plannedAt, setPlannedAt] = useState<Date | null>(defaultPlannedAt ? new Date(defaultPlannedAt) : null);
+  const [plannedAt, setPlannedAt] = useState<Date | null>(
+    defaultPlannedAt ? new Date(defaultPlannedAt) : null,
+  );
   const [deadlineAt, setDeadlineAt] = useState<Date | null>(null);
   const [openAfter, setOpenAfter] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -128,11 +136,27 @@ export function PlanCreateDialog({ members, sections, defaultPlannedAt, compact 
             void submit();
           }}
         >
-          <FormField label={t('plan.create.field.title')} htmlFor="plan-new-title" required error={errors.title?.[0]}>
-            <Input id="plan-new-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('plan.create.titlePlaceholder')} autoFocus maxLength={300} />
+          <FormField
+            label={t('plan.create.field.title')}
+            htmlFor="plan-new-title"
+            required
+            error={errors.title?.[0]}
+          >
+            <Input
+              id="plan-new-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('plan.create.titlePlaceholder')}
+              autoFocus
+              maxLength={300}
+            />
           </FormField>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label={t('plan.create.field.section')} htmlFor="plan-new-section" error={errors.sectionId?.[0]}>
+            <FormField
+              label={t('plan.create.field.section')}
+              htmlFor="plan-new-section"
+              error={errors.sectionId?.[0]}
+            >
               <NativeSelect
                 id="plan-new-section"
                 value={sectionId}
@@ -141,7 +165,11 @@ export function PlanCreateDialog({ members, sections, defaultPlannedAt, compact 
                 options={sections.map((s) => ({ value: s.id, label: s.name }))}
               />
             </FormField>
-            <FormField label={t('plan.field.assignedTo')} htmlFor="plan-new-assignee" error={errors.assignedTo?.[0]}>
+            <FormField
+              label={t('plan.field.assignedTo')}
+              htmlFor="plan-new-assignee"
+              error={errors.assignedTo?.[0]}
+            >
               <NativeSelect
                 id="plan-new-assignee"
                 value={assignedTo}
@@ -152,14 +180,26 @@ export function PlanCreateDialog({ members, sections, defaultPlannedAt, compact 
             </FormField>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label={t('plan.field.plannedAt')} htmlFor="plan-new-planned" error={errors.plannedAt?.[0]}>
+            <FormField
+              label={t('plan.field.plannedAt')}
+              htmlFor="plan-new-planned"
+              error={errors.plannedAt?.[0]}
+            >
               <DateTimeInput id="plan-new-planned" value={plannedAt} onChange={setPlannedAt} />
             </FormField>
-            <FormField label={t('plan.field.deadlineAt')} htmlFor="plan-new-deadline" error={errors.deadlineAt?.[0]}>
+            <FormField
+              label={t('plan.field.deadlineAt')}
+              htmlFor="plan-new-deadline"
+              error={errors.deadlineAt?.[0]}
+            >
               <DateTimeInput id="plan-new-deadline" value={deadlineAt} onChange={setDeadlineAt} />
             </FormField>
           </div>
-          <Checkbox label={t('plan.create.openAfter')} checked={openAfter} onCheckedChange={(v) => setOpenAfter(v === true)} />
+          <Checkbox
+            label={t('plan.create.openAfter')}
+            checked={openAfter}
+            onCheckedChange={(v) => setOpenAfter(v === true)}
+          />
         </form>
       </Dialog>
     </>

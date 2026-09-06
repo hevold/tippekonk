@@ -21,13 +21,27 @@ export type DashboardCardProps = {
   children: ReactNode;
 };
 
-export function DashboardCard({ title, description, icon, href, linkLabel, count, className, flush = true, children }: DashboardCardProps) {
+export function DashboardCard({
+  title,
+  description,
+  icon,
+  href,
+  linkLabel,
+  count,
+  className,
+  flush = true,
+  children,
+}: DashboardCardProps) {
   return (
     <Card className={cn('flex flex-col', className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="min-w-0">
           <CardTitle className="flex items-center gap-2 text-[15px]">
-            {icon ? <span className="text-muted [&_svg]:size-4" aria-hidden>{icon}</span> : null}
+            {icon ? (
+              <span className="text-muted [&_svg]:size-4" aria-hidden>
+                {icon}
+              </span>
+            ) : null}
             {title}
             {typeof count === 'number' ? (
               <span className="bg-surface-2 text-muted rounded-full px-1.5 py-0.5 text-[11px] leading-none font-medium tabular-nums">

@@ -83,7 +83,11 @@ export function isoWeek(date: Date): number {
 }
 
 const MONTHS = new Intl.DateTimeFormat('nb-NO', { month: 'long', year: 'numeric', timeZone: 'Europe/Oslo' });
-const DAY_MONTH = new Intl.DateTimeFormat('nb-NO', { day: 'numeric', month: 'short', timeZone: 'Europe/Oslo' });
+const DAY_MONTH = new Intl.DateTimeFormat('nb-NO', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'Europe/Oslo',
+});
 const DAY_MONTH_YEAR = new Intl.DateTimeFormat('nb-NO', {
   day: 'numeric',
   month: 'short',
@@ -218,7 +222,10 @@ function planQuery() {
 }
 
 /** Articles with any planning/publication date inside [from, to). */
-export async function listPlanArticles(ctx: AdminContext, range: { from: Date; to: Date }): Promise<PlanArticle[]> {
+export async function listPlanArticles(
+  ctx: AdminContext,
+  range: { from: Date; to: Date },
+): Promise<PlanArticle[]> {
   const inRange = (col: PgColumn) => and(gte(col, range.from), lt(col, range.to));
   const rows = await planQuery()
     .where(
@@ -258,7 +265,9 @@ export function eventsForRange(list: PlanArticle[], range: { from: Date; to: Dat
     push('planned', a.plannedAt, a);
     push('deadline', a.deadlineAt, a);
   }
-  events.sort((x, y) => x.at.getTime() - y.at.getTime() || x.article.title.localeCompare(y.article.title, 'nb'));
+  events.sort(
+    (x, y) => x.at.getTime() - y.at.getTime() || x.article.title.localeCompare(y.article.title, 'nb'),
+  );
   return events;
 }
 
@@ -281,7 +290,11 @@ export type PlanAttention = { overdue: PlanArticle[]; unassigned: PlanArticle[];
 const OPEN_STATUSES: ArticleStatus[] = ['draft', 'in_review', 'approved'];
 
 /** Overdue deadlines, planned stories without an assignee, and open stories with no dates at all (limited). */
-export async function listPlanAttention(ctx: AdminContext, now: Date = new Date(), limit = 20): Promise<PlanAttention> {
+export async function listPlanAttention(
+  ctx: AdminContext,
+  now: Date = new Date(),
+  limit = 20,
+): Promise<PlanAttention> {
   const open = and(...baseWhere(ctx), inArray(articles.status, OPEN_STATUSES));
   const [overdue, unassigned, undated] = await Promise.all([
     planQuery()
@@ -289,7 +302,13 @@ export async function listPlanAttention(ctx: AdminContext, now: Date = new Date(
       .orderBy(asc(articles.deadlineAt))
       .limit(limit),
     planQuery()
-      .where(and(open, isNull(articles.assignedTo), or(gte(articles.plannedAt, now), gte(articles.deadlineAt, now))))
+      .where(
+        and(
+          open,
+          isNull(articles.assignedTo),
+          or(gte(articles.plannedAt, now), gte(articles.deadlineAt, now)),
+        ),
+      )
       .orderBy(sql`coalesce(${articles.plannedAt}, ${articles.deadlineAt}) asc`)
       .limit(limit),
     planQuery()

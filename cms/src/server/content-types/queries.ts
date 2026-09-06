@@ -42,7 +42,10 @@ export async function listContentTypesWithCounts(siteId: string): Promise<Conten
   });
 }
 
-export async function getContentTypeWithCounts(siteId: string, id: string): Promise<ContentTypeWithCounts | null> {
+export async function getContentTypeWithCounts(
+  siteId: string,
+  id: string,
+): Promise<ContentTypeWithCounts | null> {
   const all = await listContentTypesWithCounts(siteId);
   return all.find((c) => c.id === id) ?? null;
 }

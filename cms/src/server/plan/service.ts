@@ -74,7 +74,9 @@ export async function updatePlanning(ctx: AdminContext, id: string, patch: Plann
       .where(and(eq(memberships.siteId, ctx.site.id), eq(memberships.userId, patch.assignedTo)))
       .limit(1);
     if (!member) {
-      throw new ActionError('Brukeren er ikke medlem av redaksjonen.', 'validation', { assignedTo: ['Ugyldig bruker'] });
+      throw new ActionError('Brukeren er ikke medlem av redaksjonen.', 'validation', {
+        assignedTo: ['Ugyldig bruker'],
+      });
     }
   }
   if (Object.keys(patch).length === 0) return article;
@@ -88,8 +90,12 @@ export async function updatePlanning(ctx: AdminContext, id: string, patch: Plann
 
   const changes: string[] = [];
   if ('assignedTo' in patch) changes.push(patch.assignedTo ? 'tildelt' : 'fjernet tildeling');
-  if ('deadlineAt' in patch) changes.push(patch.deadlineAt ? `frist ${formatDate(patch.deadlineAt, 'datetime')}` : 'frist fjernet');
-  if ('plannedAt' in patch) changes.push(patch.plannedAt ? `planlagt ${formatDate(patch.plannedAt, 'datetime')}` : 'fjernet fra planen');
+  if ('deadlineAt' in patch)
+    changes.push(patch.deadlineAt ? `frist ${formatDate(patch.deadlineAt, 'datetime')}` : 'frist fjernet');
+  if ('plannedAt' in patch)
+    changes.push(
+      patch.plannedAt ? `planlagt ${formatDate(patch.plannedAt, 'datetime')}` : 'fjernet fra planen',
+    );
   await auditFromContext(ctx, {
     action: 'article.plan',
     entityType: 'article',
@@ -103,16 +109,23 @@ export async function updatePlanning(ctx: AdminContext, id: string, patch: Plann
   });
 
   const link = adminPaths.article(updated.id);
-  const newAssignee = patch.assignedTo && patch.assignedTo !== article.assignedTo && patch.assignedTo !== ctx.user.id;
+  const newAssignee =
+    patch.assignedTo && patch.assignedTo !== article.assignedTo && patch.assignedTo !== ctx.user.id;
   if (newAssignee) {
     await notify([patch.assignedTo!], {
       siteId: ctx.site.id,
       kind: 'article.assigned',
       title: `Du er tildelt «${titleOf(updated)}»`,
-      body: updated.deadlineAt ? `Frist ${formatDate(updated.deadlineAt, 'datetime')}.` : `${ctx.user.name} tildelte deg saken.`,
+      body: updated.deadlineAt
+        ? `Frist ${formatDate(updated.deadlineAt, 'datetime')}.`
+        : `${ctx.user.name} tildelte deg saken.`,
       link,
     });
-  } else if (('deadlineAt' in patch || 'plannedAt' in patch) && updated.assignedTo && updated.assignedTo !== ctx.user.id) {
+  } else if (
+    ('deadlineAt' in patch || 'plannedAt' in patch) &&
+    updated.assignedTo &&
+    updated.assignedTo !== ctx.user.id
+  ) {
     // Someone else changed the dates of a story you own: tell you.
     await notify([updated.assignedTo], {
       siteId: ctx.site.id,

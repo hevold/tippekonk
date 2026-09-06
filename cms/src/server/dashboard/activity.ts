@@ -14,7 +14,8 @@ export type ActivityEntry = {
   data: Record<string, unknown> | null;
 };
 
-export type ActivityIcon = 'article' | 'publish' | 'media' | 'taxonomy' | 'user' | 'settings' | 'layout' | 'live' | 'other';
+export type ActivityIcon =
+  'article' | 'publish' | 'media' | 'taxonomy' | 'user' | 'settings' | 'layout' | 'live' | 'other';
 
 const STATUS_LABEL: Record<ArticleStatus, string> = {
   draft: 'utkast',
@@ -39,12 +40,21 @@ function statusLabel(value: unknown): string | null {
 
 /** Icon family for an action, used to pick the glyph in the feed. */
 export function activityIcon(action: string): ActivityIcon {
-  if (action.startsWith('article.publish') || action === 'article.schedule' || action === 'article.unpublish') return 'publish';
+  if (action.startsWith('article.publish') || action === 'article.schedule' || action === 'article.unpublish')
+    return 'publish';
   if (action.startsWith('article.')) return 'article';
   if (action.startsWith('media.')) return 'media';
-  if (action.startsWith('section.') || action.startsWith('tag.') || action.startsWith('author.') || action.startsWith('content_type.')) return 'taxonomy';
-  if (action.startsWith('user.') || action.startsWith('auth.') || action.startsWith('membership.')) return 'user';
-  if (action.startsWith('settings.') || action.startsWith('menu.') || action.startsWith('redirect.')) return 'settings';
+  if (
+    action.startsWith('section.') ||
+    action.startsWith('tag.') ||
+    action.startsWith('author.') ||
+    action.startsWith('content_type.')
+  )
+    return 'taxonomy';
+  if (action.startsWith('user.') || action.startsWith('auth.') || action.startsWith('membership.'))
+    return 'user';
+  if (action.startsWith('settings.') || action.startsWith('menu.') || action.startsWith('redirect.'))
+    return 'settings';
   if (action.startsWith('layout.')) return 'layout';
   if (action.startsWith('live.')) return 'live';
   return 'other';

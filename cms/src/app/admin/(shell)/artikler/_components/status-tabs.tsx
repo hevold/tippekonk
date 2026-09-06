@@ -32,7 +32,10 @@ const LABEL_KEY: Record<ListTab, string> = {
 
 export function StatusTabs({ query, active, counts }: StatusTabsProps) {
   return (
-    <nav aria-label={t('list.tabs')} className="border-border scrollbar-none -mx-1 mb-4 flex items-end gap-1 overflow-x-auto border-b px-1">
+    <nav
+      aria-label={t('list.tabs')}
+      className="border-border -mx-1 mb-4 flex scrollbar-none items-end gap-1 overflow-x-auto border-b px-1"
+    >
       {LIST_TABS.map((tab) => {
         const isActive = tab === active;
         const href = listHref(withQuery(query, { status: tab === 'all' ? '' : tab }));

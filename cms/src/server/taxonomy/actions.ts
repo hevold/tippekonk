@@ -53,7 +53,11 @@ export async function deleteSectionAction(input: unknown): Promise<ActionResult<
     const ctx = await requirePermission('taxonomy:manage');
     const data = deleteSectionSchema.parse(input);
     const raw = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
-    await service.deleteSection(ctx, data.id, 'reassignTo' in raw ? { reassignTo: data.reassignTo ?? null } : {});
+    await service.deleteSection(
+      ctx,
+      data.id,
+      'reassignTo' in raw ? { reassignTo: data.reassignTo ?? null } : {},
+    );
     refresh();
   });
 }

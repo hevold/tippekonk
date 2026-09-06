@@ -19,7 +19,7 @@ import { useT } from '@/lib/i18n/client';
 import { slugify } from '@/lib/text/slug';
 import { createSectionAction, updateSectionAction } from '@/server/taxonomy/actions';
 
-import type { SectionDto } from './types';
+import { descendantIds, type SectionDto } from './types';
 
 export type SectionDialogProps = {
   open: boolean;
@@ -60,22 +60,6 @@ function initial(section: SectionDto | null | undefined, parentId: string | null
   };
 }
 
-/** Ids of `id` and everything below it (cannot become its own parent). */
-function descendantIds(all: SectionDto[], id: string): Set<string> {
-  const out = new Set<string>([id]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const s of all) {
-      if (s.parentId && out.has(s.parentId) && !out.has(s.id)) {
-        out.add(s.id);
-        grew = true;
-      }
-    }
-  }
-  return out;
-}
-
 export function SectionDialog({ open, onOpenChange, section, parentId, all }: SectionDialogProps) {
   const t = useT();
   const [form, setForm] = useState<FormState>(() => initial(section, parentId));
@@ -105,14 +89,20 @@ export function SectionDialog({ open, onOpenChange, section, parentId, all }: Se
       seoDescription: form.seoDescription,
       ...(section ? { sortOrder: section.sortOrder } : {}),
     };
-    const result = section ? await updateSectionAction({ id: section.id, input }) : await createSectionAction(input);
+    const result = section
+      ? await updateSectionAction({ id: section.id, input })
+      : await createSectionAction(input);
     setSaving(false);
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
       toast.error(result.error);
       return;
     }
-    toast.success(editing ? t('taxonomy.sections.toast.updated', { name: result.data.name }) : t('taxonomy.sections.toast.created', { name: result.data.name }));
+    toast.success(
+      editing
+        ? t('taxonomy.sections.toast.updated', { name: result.data.name })
+        : t('taxonomy.sections.toast.created', { name: result.data.name }),
+    );
     onOpenChange(false);
   }
 
@@ -142,12 +132,22 @@ export function SectionDialog({ open, onOpenChange, section, parentId, all }: Se
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label={t('common.name')} htmlFor="section-name" required error={errors.name?.[0]}>
-            <Input id="section-name" value={form.name} onChange={(e) => patch({ name: e.target.value })} autoFocus maxLength={80} />
+            <Input
+              id="section-name"
+              value={form.name}
+              onChange={(e) => patch({ name: e.target.value })}
+              autoFocus
+              maxLength={80}
+            />
           </FormField>
           <FormField
             label={t('taxonomy.field.slug')}
             htmlFor="section-slug"
-            help={reserved ? t('taxonomy.field.slugReserved') : t('taxonomy.sections.slugHelp', { slug: effectiveSlug || '…' })}
+            help={
+              reserved
+                ? t('taxonomy.field.slugReserved')
+                : t('taxonomy.sections.slugHelp', { slug: effectiveSlug || '…' })
+            }
             error={errors.slug?.[0]}
           >
             <Input
@@ -161,16 +161,27 @@ export function SectionDialog({ open, onOpenChange, section, parentId, all }: Se
           </FormField>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label={t('taxonomy.sections.parent')} htmlFor="section-parent" error={errors.parentId?.[0]}>
+          <FormField
+            label={t('taxonomy.sections.parent')}
+            htmlFor="section-parent"
+            error={errors.parentId?.[0]}
+          >
             <NativeSelect
               id="section-parent"
               value={form.parentId}
               onChange={(e) => patch({ parentId: e.target.value })}
               placeholder={t('taxonomy.sections.noParent')}
-              options={all.filter((s) => !excluded.has(s.id)).map((s) => ({ value: s.id, label: s.parentId ? `– ${s.name}` : s.name }))}
+              options={all
+                .filter((s) => !excluded.has(s.id))
+                .map((s) => ({ value: s.id, label: s.parentId ? `– ${s.name}` : s.name }))}
             />
           </FormField>
-          <FormField label={t('taxonomy.sections.color')} htmlFor="section-color" help={t('taxonomy.sections.colorHelp')} error={errors.color?.[0]}>
+          <FormField
+            label={t('taxonomy.sections.color')}
+            htmlFor="section-color"
+            help={t('taxonomy.sections.colorHelp')}
+            error={errors.color?.[0]}
+          >
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -179,24 +190,65 @@ export function SectionDialog({ open, onOpenChange, section, parentId, all }: Se
                 onChange={(e) => patch({ color: e.target.value })}
                 className="border-border h-9 w-12 cursor-pointer rounded-md border bg-transparent p-0.5"
               />
-              <Input id="section-color" value={form.color} placeholder="#1d4ed8" onChange={(e) => patch({ color: e.target.value })} maxLength={7} />
+              <Input
+                id="section-color"
+                value={form.color}
+                placeholder="#1d4ed8"
+                onChange={(e) => patch({ color: e.target.value })}
+                maxLength={7}
+              />
             </div>
           </FormField>
         </div>
-        <FormField label={t('common.description')} htmlFor="section-description" error={errors.description?.[0]}>
-          <Textarea id="section-description" value={form.description} onChange={(e) => patch({ description: e.target.value })} rows={2} maxLength={1000} />
+        <FormField
+          label={t('common.description')}
+          htmlFor="section-description"
+          error={errors.description?.[0]}
+        >
+          <Textarea
+            id="section-description"
+            value={form.description}
+            onChange={(e) => patch({ description: e.target.value })}
+            rows={2}
+            maxLength={1000}
+          />
         </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Switch label={t('taxonomy.sections.showInMenu')} description={t('taxonomy.sections.showInMenuHelp')} checked={form.showInMenu} onCheckedChange={(v) => patch({ showInMenu: v })} />
-          <Switch label={t('taxonomy.field.isActive')} description={t('taxonomy.sections.isActiveHelp')} checked={form.isActive} onCheckedChange={(v) => patch({ isActive: v })} />
+          <Switch
+            label={t('taxonomy.sections.showInMenu')}
+            description={t('taxonomy.sections.showInMenuHelp')}
+            checked={form.showInMenu}
+            onCheckedChange={(v) => patch({ showInMenu: v })}
+          />
+          <Switch
+            label={t('taxonomy.field.isActive')}
+            description={t('taxonomy.sections.isActiveHelp')}
+            checked={form.isActive}
+            onCheckedChange={(v) => patch({ isActive: v })}
+          />
         </div>
         <fieldset className="border-border grid gap-4 rounded-md border p-3">
           <legend className="text-muted px-1 text-xs font-medium">{t('taxonomy.seo')}</legend>
           <FormField label={t('taxonomy.seoTitle')} htmlFor="section-seo-title" error={errors.seoTitle?.[0]}>
-            <Input id="section-seo-title" value={form.seoTitle} onChange={(e) => patch({ seoTitle: e.target.value })} maxLength={120} />
+            <Input
+              id="section-seo-title"
+              value={form.seoTitle}
+              onChange={(e) => patch({ seoTitle: e.target.value })}
+              maxLength={120}
+            />
           </FormField>
-          <FormField label={t('taxonomy.seoDescription')} htmlFor="section-seo-description" error={errors.seoDescription?.[0]}>
-            <Textarea id="section-seo-description" value={form.seoDescription} onChange={(e) => patch({ seoDescription: e.target.value })} rows={2} maxLength={320} />
+          <FormField
+            label={t('taxonomy.seoDescription')}
+            htmlFor="section-seo-description"
+            error={errors.seoDescription?.[0]}
+          >
+            <Textarea
+              id="section-seo-description"
+              value={form.seoDescription}
+              onChange={(e) => patch({ seoDescription: e.target.value })}
+              rows={2}
+              maxLength={320}
+            />
           </FormField>
         </fieldset>
       </form>

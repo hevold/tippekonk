@@ -19,7 +19,11 @@ export type DeadlineProps = {
 
 const OPEN: ArticleStatus[] = ['draft', 'in_review', 'approved'];
 
-export function isOverdue(deadlineAt: string | Date | null, status: ArticleStatus, now: Date = new Date()): boolean {
+export function isOverdue(
+  deadlineAt: string | Date | null,
+  status: ArticleStatus,
+  now: Date = new Date(),
+): boolean {
   if (!deadlineAt || !OPEN.includes(status)) return false;
   return new Date(deadlineAt).getTime() < now.getTime();
 }

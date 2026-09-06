@@ -25,7 +25,13 @@ import { adminPaths } from '@/config/routes';
 import { useT } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 
-import { ACTION_LABEL_KEY, availableActions, RowActions, runRowAction, type RowActionKind } from './row-actions';
+import {
+  ACTION_LABEL_KEY,
+  availableActions,
+  RowActions,
+  runRowAction,
+  type RowActionKind,
+} from './row-actions';
 import type { ArticleRowDto, ListPermissions } from './types';
 
 export type ArticleTableProps = {
@@ -56,7 +62,16 @@ function parseSort(sort: string | undefined): SortState | undefined {
   return SORT_KEYS.has(key) ? { key, dir: sort.startsWith('-') ? 'desc' : 'asc' } : undefined;
 }
 
-export function ArticleTable({ rows, query, page, pageCount, total, perm, filtered, trashView }: ArticleTableProps) {
+export function ArticleTable({
+  rows,
+  query,
+  page,
+  pageCount,
+  total,
+  perm,
+  filtered,
+  trashView,
+}: ArticleTableProps) {
   const t = useT();
   const router = useRouter();
   const now = useMemo(() => new Date(), []);
@@ -96,10 +111,13 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
       const results = await Promise.all(selectedRows.map((r) => runRowAction(kind, r.id)));
       const failed = results.filter((r) => !r.ok);
       const okCount = results.length - failed.length;
-      if (okCount > 0) toast.success(t('list.bulk.done', { count: okCount, action: t(ACTION_LABEL_KEY[kind]) }));
+      if (okCount > 0)
+        toast.success(t('list.bulk.done', { count: okCount, action: t(ACTION_LABEL_KEY[kind]) }));
       if (failed.length > 0) {
         const first = failed[0];
-        toast.error(t('list.bulk.failed', { count: failed.length }) + (first && !first.ok ? ` ${first.error}` : ''));
+        toast.error(
+          t('list.bulk.failed', { count: failed.length }) + (first && !first.ok ? ` ${first.error}` : ''),
+        );
       }
       setSelected(new Set());
       router.refresh();
@@ -110,7 +128,9 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
 
   const sort = parseSort(query.sort);
   function onSortChange(next: SortState) {
-    router.replace(listHref(withQuery(query, { sort: `${next.dir === 'desc' ? '-' : ''}${next.key}` })), { scroll: false });
+    router.replace(listHref(withQuery(query, { sort: `${next.dir === 'desc' ? '-' : ''}${next.key}` })), {
+      scroll: false,
+    });
   }
 
   const columns: ColumnDef<ArticleRowDto>[] = [
@@ -142,7 +162,7 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
       header: t('list.column.title'),
       sortable: true,
       cell: (row) => (
-        <div className="min-w-0 max-w-[32rem]">
+        <div className="max-w-[32rem] min-w-0">
           {row.kicker ? <p className="text-muted truncate text-xs">{row.kicker}</p> : null}
           <div className="flex items-center gap-2">
             <Link
@@ -154,7 +174,9 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
             </Link>
             <ArticleFlags access={row.access} isBreaking={row.isBreaking} isSponsored={row.isSponsored} />
           </div>
-          {row.contentTypeName ? <p className="text-subtle text-xs md:hidden">{row.contentTypeName}</p> : null}
+          {row.contentTypeName ? (
+            <p className="text-subtle text-xs md:hidden">{row.contentTypeName}</p>
+          ) : null}
         </div>
       ),
     },
@@ -166,7 +188,9 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
         <div className="grid gap-0.5">
           <StatusPill status={row.status} />
           {row.status === 'scheduled' && row.scheduledAt ? (
-            <span className="text-subtle text-xs whitespace-nowrap">{formatRelative(row.scheduledAt, now)}</span>
+            <span className="text-subtle text-xs whitespace-nowrap">
+              {formatRelative(row.scheduledAt, now)}
+            </span>
           ) : null}
         </div>
       ),
@@ -177,7 +201,9 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
       hideBelow: 'md',
       cell: (row) => (
         <div className="grid gap-0.5">
-          <span className="text-text truncate">{row.sectionName ?? <span className="text-subtle">–</span>}</span>
+          <span className="text-text truncate">
+            {row.sectionName ?? <span className="text-subtle">–</span>}
+          </span>
           {row.contentTypeName ? <span className="text-subtle text-xs">{row.contentTypeName}</span> : null}
         </div>
       ),
@@ -249,7 +275,11 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
       width: 44,
       align: 'right',
       cell: (row) => (
-        <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} className="inline-flex">
+        <span
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="inline-flex"
+        >
           <RowActions row={row} perm={perm} />
         </span>
       ),
@@ -257,7 +287,12 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
   ];
 
   const emptyState = trashView ? (
-    <EmptyState icon={<Trash2 />} title={t('list.empty.trash.title')} description={t('list.empty.trash.description')} compact />
+    <EmptyState
+      icon={<Trash2 />}
+      title={t('list.empty.trash.title')}
+      description={t('list.empty.trash.description')}
+      compact
+    />
   ) : filtered ? (
     <EmptyState
       icon={<FileText />}
@@ -297,7 +332,9 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
           aria-label={t('list.bulk.region')}
           className="bg-primary-soft border-primary/20 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm"
         >
-          <span className="text-primary font-medium tabular-nums">{t('list.bulk.selected', { count: selectedRows.length })}</span>
+          <span className="text-primary font-medium tabular-nums">
+            {t('list.bulk.selected', { count: selectedRows.length })}
+          </span>
           {bulkActions.map((kind) => (
             <Button
               key={kind}
@@ -329,7 +366,11 @@ export function ArticleTable({ rows, query, page, pageCount, total, perm, filter
         caption={t('list.caption', { count: total })}
       />
 
-      <Pagination page={page} pageCount={pageCount} hrefFor={(p) => listHref({ ...query, page: String(p) })} />
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        hrefFor={(p) => listHref({ ...query, page: String(p) })}
+      />
 
       <ConfirmDialog
         open={bulkConfirm !== null}

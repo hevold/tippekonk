@@ -5,14 +5,26 @@
  * attention: overdue deadlines, planned stories nobody owns, open stories
  * with no dates. Contributors only see their own stories.
  */
-import { AlertTriangle, CalendarDays, CalendarOff, ChevronLeft, ChevronRight, UserRoundX } from 'lucide-react';
+import {
+  AlertTriangle,
+  CalendarDays,
+  CalendarOff,
+  ChevronLeft,
+  ChevronRight,
+  UserRoundX,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { PlanCalendar, PlanList } from '@/components/newsroom/plan/plan-calendar';
 import { PlanCreateDialog } from '@/components/newsroom/plan/plan-create-dialog';
 import { PlanEventChip } from '@/components/newsroom/plan/plan-event-chip';
-import { toPlanArticleDto, toPlanEventDto, type PlanEventDto, type PlanPermissions } from '@/components/newsroom/plan/types';
+import {
+  toPlanArticleDto,
+  toPlanEventDto,
+  type PlanEventDto,
+  type PlanPermissions,
+} from '@/components/newsroom/plan/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -77,7 +89,9 @@ export default async function PlanPage({ searchParams }: { searchParams: SearchP
     editOwn: ctx.can('article:edit_own'),
   };
   const members = options.members;
-  const sections = options.sections.filter((s) => s.isActive).map((s) => ({ id: s.id, name: s.parentId ? `– ${s.name}` : s.name }));
+  const sections = options.sections
+    .filter((s) => s.isActive)
+    .map((s) => ({ id: s.id, name: s.parentId ? `– ${s.name}` : s.name }));
   const anchorKey = range.days[view === 'month' ? 7 : 0] ?? range.today;
 
   const attentionPanel = (
@@ -94,7 +108,9 @@ export default async function PlanPage({ searchParams }: { searchParams: SearchP
         </span>
         <CardTitle className="flex items-center gap-2 text-sm">
           {title}
-          <span className="bg-surface-2 text-muted rounded-full px-1.5 py-0.5 text-[11px] leading-none font-medium tabular-nums">{items.length}</span>
+          <span className="bg-surface-2 text-muted rounded-full px-1.5 py-0.5 text-[11px] leading-none font-medium tabular-nums">
+            {items.length}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-0 pb-0">
@@ -103,13 +119,13 @@ export default async function PlanPage({ searchParams }: { searchParams: SearchP
         ) : (
           <ul className="divide-border divide-y" role="list">
             {items.map((a) => {
-              const at = kind === 'deadline' ? a.deadlineAt : (a.plannedAt ?? a.deadlineAt ?? a.updatedAt);
+              const at = kind === 'deadline' ? a.deadlineAt : (a.plannedAt ?? a.deadlineAt);
               return (
                 <li key={a.id}>
                   <PlanEventChip
                     article={toPlanArticleDto(a)}
-                    kind={kind === 'deadline' ? 'deadline' : 'planned'}
-                    at={(at ?? a.updatedAt).toISOString()}
+                    kind={kind}
+                    at={at ? at.toISOString() : null}
                     perm={perm}
                     members={members}
                     variant="row"
@@ -129,7 +145,11 @@ export default async function PlanPage({ searchParams }: { searchParams: SearchP
       <PageHeader
         title={t('plan.title')}
         description={t('plan.description')}
-        actions={perm.create ? <PlanCreateDialog members={members} sections={sections} currentUserId={ctx.user.id} /> : undefined}
+        actions={
+          perm.create ? (
+            <PlanCreateDialog members={members} sections={sections} currentUserId={ctx.user.id} />
+          ) : undefined
+        }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -171,9 +191,23 @@ export default async function PlanPage({ searchParams }: { searchParams: SearchP
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           {view === 'list' ? (
-            <PlanList days={range.days} eventsByDay={eventsByDay} perm={perm} members={members} sections={sections} now={now} />
+            <PlanList
+              days={range.days}
+              eventsByDay={eventsByDay}
+              perm={perm}
+              members={members}
+              sections={sections}
+              now={now}
+            />
           ) : (
-            <PlanCalendar range={range} eventsByDay={eventsByDay} perm={perm} members={members} sections={sections} now={now} />
+            <PlanCalendar
+              range={range}
+              eventsByDay={eventsByDay}
+              perm={perm}
+              members={members}
+              sections={sections}
+              now={now}
+            />
           )}
           <p className="text-subtle mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             <span className="inline-flex items-center gap-1">
@@ -183,9 +217,27 @@ export default async function PlanPage({ searchParams }: { searchParams: SearchP
           </p>
         </div>
         <aside className="grid content-start gap-4" aria-label={t('plan.attention')}>
-          {attentionPanel(t('plan.attention.overdue'), <AlertTriangle />, attention.overdue, 'deadline', t('plan.attention.overdueEmpty'))}
-          {attentionPanel(t('plan.attention.unassigned'), <UserRoundX />, attention.unassigned, 'planned', t('plan.attention.unassignedEmpty'))}
-          {attentionPanel(t('plan.attention.undated'), <CalendarOff />, attention.undated, 'planned', t('plan.attention.undatedEmpty'))}
+          {attentionPanel(
+            t('plan.attention.overdue'),
+            <AlertTriangle />,
+            attention.overdue,
+            'deadline',
+            t('plan.attention.overdueEmpty'),
+          )}
+          {attentionPanel(
+            t('plan.attention.unassigned'),
+            <UserRoundX />,
+            attention.unassigned,
+            'planned',
+            t('plan.attention.unassignedEmpty'),
+          )}
+          {attentionPanel(
+            t('plan.attention.undated'),
+            <CalendarOff />,
+            attention.undated,
+            'planned',
+            t('plan.attention.undatedEmpty'),
+          )}
         </aside>
       </div>
     </>

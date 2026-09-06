@@ -46,7 +46,7 @@ export function withQuery(current: ListQuery, patch: ListQuery): ListQuery {
 
 /** Number of user-chosen filters (everything except status tab, sort and page). */
 export function activeFilterCount(query: ListQuery): number {
-  return (['q', 'sectionId', 'contentTypeId', 'tagId', 'authorId', 'assignedTo', 'access', 'from', 'to'] as const).filter(
-    (k) => Boolean(query[k]?.trim()),
-  ).length;
+  return (
+    ['q', 'sectionId', 'contentTypeId', 'tagId', 'authorId', 'assignedTo', 'access', 'from', 'to'] as const
+  ).filter((k) => Boolean(query[k]?.trim())).length;
 }
