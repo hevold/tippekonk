@@ -12,6 +12,8 @@
  * layout from the site's locale). Client components receive `locale` via the
  * `<I18nProvider>` and use `useT()` from '@/lib/i18n/client'.
  */
+import { cache } from 'react';
+
 import en from './messages/en';
 import nb from './messages/nb';
 import nn from './messages/nn';
@@ -59,18 +61,29 @@ export function createT(locale: Locale) {
 }
 export type T = ReturnType<typeof createT>;
 
-/* Request-scoped locale for server components (AsyncLocalStorage-free, simple). */
-let requestLocale: Locale = DEFAULT_LOCALE;
+/*
+ * Request-scoped locale for server components. React's `cache()` memoises
+ * per server request while rendering (layouts, pages, generateMetadata), so
+ * concurrent requests with different user locales never see each other's
+ * value. Outside a render — route handlers, scripts, tests, and the client
+ * bundle, where `cache()` degrades to a plain call — the store is a fresh
+ * object every time, so we fall back to a module-level value there.
+ */
+type LocaleStore = { locale: Locale | null };
+const requestStore = cache((): LocaleStore => ({ locale: null }));
+let fallbackLocale: Locale = DEFAULT_LOCALE;
+
 export function setRequestLocale(locale: Locale): void {
-  requestLocale = locale;
+  requestStore().locale = locale;
+  fallbackLocale = locale;
 }
 export function getRequestLocale(): Locale {
-  return requestLocale;
+  return requestStore().locale ?? fallbackLocale;
 }
 
 /** Translate using the current request locale (server) — the everyday helper. */
 export function t(key: string, vars?: TranslateVars): string {
-  return translate(requestLocale, key, vars);
+  return translate(getRequestLocale(), key, vars);
 }
 
 export function hasKey(key: string): boolean {

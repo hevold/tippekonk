@@ -44,7 +44,9 @@
     ".next-integrations/types/**/*.ts",
     ".next-integrations/dev/types/**/*.ts",
     ".next-settings/types/**/*.ts",
-    ".next-settings/dev/types/**/*.ts"
+    ".next-settings/dev/types/**/*.ts",
+    ".next-correctness/types/**/*.ts",
+    ".next-correctness/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -14,7 +14,6 @@ import { t } from '@/lib/i18n';
 import { uuidSchema } from '@/lib/validation/common';
 import { ForbiddenError, NotFoundError } from '@/server/actions';
 import { getArticleForEdit } from '@/server/articles/queries';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { getAdminContext } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';

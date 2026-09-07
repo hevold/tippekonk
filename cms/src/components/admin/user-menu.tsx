@@ -68,7 +68,6 @@ export function UserMenu({ user, role, className }: UserMenuProps) {
           {t('shell.shortcuts')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {/* INTEGRATION: /admin/logout is a route handler owned by the auth area (GET → destroy session → redirect). */}
         <DropdownMenuItem asChild icon={<LogOut />}>
           <a href={adminPaths.logout()}>{t('shell.logout')}</a>
         </DropdownMenuItem>

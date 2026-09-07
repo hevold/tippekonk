@@ -117,6 +117,7 @@ describe('redirect service', () => {
       statusCode: 302,
     });
     expect(await resolveRedirect(seed.site.id, '/finnes-ikke')).toBeNull();
+    expect(await resolveRedirect('00000000-0000-0000-0000-000000000000', '/gammel')).toBeNull();
     await sleep(50);
     const [row] = await db.select().from(redirects).where(eq(redirects.id, created.id));
     expect(row?.hits).toBe(1);

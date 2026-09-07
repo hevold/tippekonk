@@ -290,3 +290,18 @@ describe('listArticleFilterOptions', () => {
     expect(orderSectionTree(rows).map((r) => r.id)).toEqual(['a', 'b', 'c', 'd']);
   });
 });
+
+describe('searchArticlesForPicker', () => {
+  it('hides other people’s unpublished work from own-scoped users', async () => {
+    const { searchArticlesForPicker } = await import('./queries');
+    await insertArticle({ title: 'Hemmelig utkast', createdBy: seed.journalist.id });
+    await insertArticle({ title: 'Publisert sak', status: 'published', publishedAt: new Date() });
+    await insertArticle({ title: 'Mitt utkast', createdBy: seed.contributor.id });
+
+    const everyone = await searchArticlesForPicker(seed.site.id, '');
+    expect(everyone.map((a) => a.title).sort()).toEqual(['Hemmelig utkast', 'Mitt utkast', 'Publisert sak']);
+
+    const scoped = await searchArticlesForPicker(seed.site.id, '', { visibleTo: seed.contributor.id });
+    expect(scoped.map((a) => a.title).sort()).toEqual(['Mitt utkast', 'Publisert sak']);
+  });
+});

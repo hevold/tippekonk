@@ -15,7 +15,6 @@ import { ForbiddenError, NotFoundError } from '@/server/actions';
 import { canEditArticle } from '@/server/articles/mutations';
 import { getEditableArticle } from '@/server/articles/queries';
 import { listRevisions } from '@/server/articles/revisions';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { getAdminContext } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';

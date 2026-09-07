@@ -16,7 +16,6 @@ import { notifications } from '@/db/schema';
 import { setRequestLocale } from '@/lib/i18n';
 import { I18nProvider } from '@/lib/i18n/client';
 import { PERMISSIONS } from '@/lib/permissions';
-// INTEGRATION: provided by the auth area (SPEC 4.2) — redirects to /admin/login or /admin/ingen-tilgang.
 import { getAdminContext } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';

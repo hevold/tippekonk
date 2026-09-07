@@ -9,7 +9,6 @@ import { MediaLibrary, type MediaView } from '@/components/media/media-library';
 import { PageHeader } from '@/components/ui/page-header';
 import { t } from '@/lib/i18n';
 import { mediaFilterSchema } from '@/lib/validation/media';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { getAdminContext } from '@/server/auth/context';
 import { countTrashedMedia, listFolders, listMedia } from '@/server/media/queries';
 

@@ -1,11 +1,8 @@
 /**
- * Short link /a/<id>: 301 to the canonical article URL (SPEC 5.3). When the
- * article has no section the canonical *is* /a/<id>, so we render nothing
- * here and instead redirect to the section-less article page.
- *
- * INTEGRATION: articles without a section currently have no dedicated page
- * beyond this redirect target; the editor requires a section before
- * publishing (SPEC 5.4), so every published article has a canonical path.
+ * Short link /a/<id>: 301 to the canonical article URL (SPEC 5.3). Publish
+ * validation requires a section (SPEC 5.4), so every published article has
+ * a `/{section}/{slug}` canonical; a published article without one cannot
+ * exist and answers 404 here rather than looping onto itself.
  */
 import { z } from 'zod';
 

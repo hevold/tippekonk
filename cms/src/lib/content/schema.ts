@@ -78,7 +78,7 @@ export function isSafeHref(href: unknown): href is string {
 }
 
 /** Image/embed sources: http(s) or root-relative only (no data: URLs in documents). */
-function safeSrc(v: unknown): string | undefined {
+export function safeSrc(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const value = v.trim();
   if (!value || value.length > MAX_ATTR_LENGTH) return undefined;

@@ -16,7 +16,6 @@ import type { Media } from '@/db/schema';
 import { uploadFieldsSchema } from '@/lib/validation/media';
 import { ActionError } from '@/server/actions';
 import { auditFromContext } from '@/server/audit';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { getOptionalAdminContext } from '@/server/auth/context';
 import { MAX_FILE_BYTES, MAX_IMAGE_BYTES, normalizeMime } from '@/server/media/mime';
 import { ingestUpload, UploadError } from '@/server/media/processing';

@@ -11,7 +11,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { adminPaths } from '@/config/routes';
 import { t } from '@/lib/i18n';
 import { listContentTypes } from '@/server/articles/queries';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { getAdminContext } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';

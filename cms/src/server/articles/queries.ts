@@ -253,13 +253,17 @@ export type PickerArticle = { id: string; title: string; status: ArticleStatus; 
 export async function searchArticlesForPicker(
   siteId: string,
   q: string,
-  opts: { limit?: number; excludeId?: string; publishedOnly?: boolean } = {},
+  opts: { limit?: number; excludeId?: string; publishedOnly?: boolean; visibleTo?: string } = {},
 ): Promise<PickerArticle[]> {
   const limit = Math.min(Math.max(opts.limit ?? 20, 1), 50);
   const term = q.trim();
   const clauses = [eq(articles.siteId, siteId), isNull(articles.deletedAt)];
   if (opts.excludeId) clauses.push(sql`${articles.id} <> ${opts.excludeId}`);
   if (opts.publishedOnly) clauses.push(eq(articles.status, 'published'));
+  // `visibleTo`: a user without article:edit_any — published articles and their own only.
+  if (opts.visibleTo) {
+    clauses.push(or(eq(articles.status, 'published'), eq(articles.createdBy, opts.visibleTo))!);
+  }
   if (term) {
     const pattern = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
     clauses.push(

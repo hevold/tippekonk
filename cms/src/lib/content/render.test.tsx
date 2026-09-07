@@ -1,9 +1,10 @@
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Media } from '@/db/schema';
 import type { ArticleTeaser } from '@/lib/layout/engine';
 
-// INTEGRATION: the real <MediaImage> lives in the media area; here a plain <img> stands in.
+// A plain <img> stands in for <MediaImage> so the assertions stay independent of its markup.
 vi.mock('@/components/media/media-image', () => ({
   MediaImage: ({ media, sizes }: { media: { storageKey: string; alt: string | null }; sizes?: string }) => (
     // eslint-disable-next-line @next/next/no-img-element
@@ -11,8 +12,7 @@ vi.mock('@/components/media/media-image', () => ({
   ),
 }));
 
-import { docToHtml } from './html';
-import { emptyRenderContext, type RenderContext } from './render';
+import { emptyRenderContext, renderDoc, type RenderContext } from './render';
 import type { ContentDoc, ContentNode } from './types';
 
 const p = (text: string, marks?: ContentNode['marks']): ContentNode => ({
@@ -40,6 +40,11 @@ const teaser = {
   sectionSlug: 'nyheter',
 } as unknown as ArticleTeaser;
 
+/** The React renderer as static markup (the React-free string renderer is tested in html.test.ts). */
+function toHtml(doc: ContentDoc, c: RenderContext): string {
+  return renderToStaticMarkup(renderDoc(doc, c));
+}
+
 function ctx(overrides: Partial<RenderContext> = {}): RenderContext {
   return emptyRenderContext({
     media: new Map([['m1', media]]),
@@ -48,7 +53,7 @@ function ctx(overrides: Partial<RenderContext> = {}): RenderContext {
   });
 }
 
-describe('docToHtml', () => {
+describe('renderDoc', () => {
   it('renders paragraphs, headings, marks and escapes text', () => {
     const doc: ContentDoc = {
       type: 'doc',
@@ -70,7 +75,7 @@ describe('docToHtml', () => {
         },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain('<h2>Tittel &lt;b&gt;</h2>');
     expect(html).toContain('<strong>Fet</strong>');
     expect(html).toContain('<p style="text-align:center"><mark><em>Midt</em></mark></p>');
@@ -86,7 +91,7 @@ describe('docToHtml', () => {
         p('farlig', [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }]),
       ],
     };
-    const html = docToHtml(
+    const html = toHtml(
       doc,
       ctx({ linkResolver: (h) => (h.startsWith('/') ? `https://elvebyen.no${h}` : h) }),
     );
@@ -102,7 +107,7 @@ describe('docToHtml', () => {
       type: 'doc',
       content: [{ type: 'image', attrs: { mediaId: 'm1', caption: 'Egen bildetekst', size: 'wide' } }],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain('<figure class="article-image" data-size="wide">');
     expect(html).toContain('data-media-image');
     expect(html).toContain(
@@ -118,7 +123,7 @@ describe('docToHtml', () => {
         { type: 'image', attrs: { mediaId: 'missing' } },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain('<img src="https://example.org/a.jpg" alt="Alt"');
     expect((html.match(/<figure/g) ?? []).length).toBe(1);
   });
@@ -130,7 +135,7 @@ describe('docToHtml', () => {
         { type: 'gallery', attrs: { items: [{ mediaId: 'm1', caption: 'En' }, { mediaId: 'nope' }] } },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain('<div class="gallery" role="group"');
     expect((html.match(/<figure>/g) ?? []).length).toBe(1);
   });
@@ -145,7 +150,7 @@ describe('docToHtml', () => {
         },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain('<figure class="embed embed-youtube" data-aspect="16:9">');
     expect(html).toContain('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"');
     expect(html).toMatch(/sandbox="allow-scripts allow-same-origin[^"]*"/);
@@ -161,7 +166,7 @@ describe('docToHtml', () => {
         { type: 'embed', attrs: { provider: 'x', url: 'https://x.com/nrk/status/1' } },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).not.toContain('<iframe');
     expect(html).toContain(
       '<a class="embed-card" href="https://example.org/artikkel" target="_blank" rel="noopener noreferrer nofollow">',
@@ -173,7 +178,7 @@ describe('docToHtml', () => {
       type: 'doc',
       content: [{ type: 'embed', attrs: { provider: 'youtube', url: 'https://youtu.be/dQw4w9WgXcQ' } }],
     };
-    expect(docToHtml(yt, ctx({ embeds: 'placeholder' }))).not.toContain('<iframe');
+    expect(toHtml(yt, ctx({ embeds: 'placeholder' }))).not.toContain('<iframe');
   });
 
   it('never renders embed html attributes', () => {
@@ -186,7 +191,7 @@ describe('docToHtml', () => {
         },
       ],
     } as ContentDoc;
-    expect(docToHtml(doc, ctx())).not.toContain('<script>');
+    expect(toHtml(doc, ctx())).not.toContain('<script>');
   });
 
   it('renders factbox, pullquote, lists, blockquote and hr', () => {
@@ -201,7 +206,7 @@ describe('docToHtml', () => {
         { type: 'horizontalRule' },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain(
       '<aside class="factbox" aria-label="Fakta om saken"><h3 class="factbox-title">Fakta om saken</h3><p>Innhold</p></aside>',
     );
@@ -236,7 +241,7 @@ describe('docToHtml', () => {
         },
       ],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain('<div class="table-wrap"><table><thead><tr><th scope="col">');
     expect(html).toContain('<td colSpan="2">');
   });
@@ -246,7 +251,7 @@ describe('docToHtml', () => {
       type: 'doc',
       content: [{ type: 'relatedArticles', attrs: { articleIds: ['a1', 'unknown'] } }],
     };
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toContain(
       '<aside class="related" aria-label="Les også"><h3 class="related-title">Les også</h3>',
     );
@@ -258,12 +263,12 @@ describe('docToHtml', () => {
       type: 'doc',
       content: [{ type: 'relatedArticles', attrs: { articleIds: ['unknown'] } }],
     };
-    expect(docToHtml(none, ctx())).toBe('');
+    expect(toHtml(none, ctx())).toBe('');
   });
 
   it('renders live blog embeds with and without a summary', () => {
     const doc: ContentDoc = { type: 'doc', content: [{ type: 'liveBlog', attrs: { liveBlogId: 'l1' } }] };
-    expect(docToHtml(doc, ctx())).toContain('<aside class="live-blog-embed" data-live-blog-id="l1">');
+    expect(toHtml(doc, ctx())).toContain('<aside class="live-blog-embed" data-live-blog-id="l1">');
     const withSummary = ctx({
       liveBlogs: new Map([
         [
@@ -280,7 +285,7 @@ describe('docToHtml', () => {
         ],
       ]),
     });
-    const html = docToHtml(doc, withSummary);
+    const html = toHtml(doc, withSummary);
     expect(html).toContain('href="/direkte/kommunestyret"');
     expect(html).toContain('Kommunestyret direkte');
   });
@@ -295,8 +300,8 @@ describe('docToHtml', () => {
         { type: 'text' },
       ],
     } as unknown as ContentDoc;
-    const html = docToHtml(doc, ctx());
+    const html = toHtml(doc, ctx());
     expect(html).toBe('<div><p>inner</p></div>');
-    expect(docToHtml({ type: 'doc' } as unknown as ContentDoc, ctx())).toBe('');
+    expect(toHtml({ type: 'doc' } as unknown as ContentDoc, ctx())).toBe('');
   });
 });

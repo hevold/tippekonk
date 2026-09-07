@@ -29,7 +29,6 @@ export default function NoAccessPage() {
           <Button asChild variant="outline">
             <Link href={publicPaths.front()}>{t('shell.noAccess.toSite')}</Link>
           </Button>
-          {/* INTEGRATION: /admin/logout route handler is owned by the auth area. */}
           <Button asChild>
             <a href={adminPaths.logout()}>{t('shell.logout')}</a>
           </Button>

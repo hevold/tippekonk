@@ -12,7 +12,6 @@ import { db } from '@/db';
 import { articles, sections } from '@/db/schema';
 import { t } from '@/lib/i18n';
 import { runAction, type ActionResult } from '@/server/actions';
-// INTEGRATION: provided by the auth area (SPEC 4.2). Redirects to login when unauthenticated.
 import { getAdminContext } from '@/server/auth/context';
 
 import type { PaletteSearchResult } from '@/components/ui/command-palette';

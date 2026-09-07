@@ -7,14 +7,12 @@ import 'server-only';
 
 import type { Author, ContentType, LiveBlog, Media, Menu, Section, Site, Tag } from '@/db/schema';
 import { publicPaths } from '@/config/routes';
+import { docToFeedHtml } from '@/lib/content/html';
 import type { ContentDoc } from '@/lib/content/types';
 import type { ArticleTeaser } from '@/lib/layout/engine';
 import type { SiteSettings } from '@/lib/validation/site';
 import { mediaSrcSet, mediaUrl } from '@/server/media/urls';
 import type { LivePostView } from '@/server/live';
-// The content area's docToHtml() pulls in react-dom/server, which Next 16 refuses in route handlers;
-// the public area's React-free serialiser produces the same markup with absolute URLs.
-import { docToFeedHtml } from '@/server/public/html';
 
 import type { ApiArticle, ApiByline, ApiTeaser } from './queries';
 

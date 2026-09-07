@@ -97,14 +97,29 @@ export type SeedOptions = {
 /*  Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
-/** Europe/Oslo is UTC+2 in September; the seed only needs plausible local hours. */
-const OSLO_OFFSET_HOURS = 2;
+/** UTC offset of Europe/Oslo (in hours) at the given instant: +1 in winter, +2 in summer. */
+function osloOffsetHours(d: Date): number {
+  const part = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Oslo', timeZoneName: 'longOffset' })
+    .formatToParts(d)
+    .find((p) => p.type === 'timeZoneName')?.value;
+  const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(part ?? '');
+  if (!m) return 1;
+  return (m[1] === '-' ? -1 : 1) * (Number(m[2]) + Number(m[3] ?? 0) / 60);
+}
+
+/** The instant of `hour:minute` Europe/Oslo on the calendar day `dayOffset` days from `now`'s Oslo date. */
+function osloTime(now: Date, dayOffset: number, hour: number, minute = 0): Date {
+  const d = new Date(now);
+  d.setUTCDate(d.getUTCDate() + dayOffset);
+  d.setUTCHours(hour - osloOffsetHours(d), minute, 0, 0);
+  // Re-check the offset on the target day (DST switch between now and then).
+  d.setUTCHours(hour - osloOffsetHours(d), minute, 0, 0);
+  return d;
+}
 
 /** A timestamp `daysAgo` days back at `hour` local time; never in the future. */
 function at(now: Date, daysAgo: number, hour: number, minute = 0): Date {
-  const d = new Date(now);
-  d.setUTCDate(d.getUTCDate() - daysAgo);
-  d.setUTCHours(hour - OSLO_OFFSET_HOURS, minute, 0, 0);
+  const d = osloTime(now, -daysAgo, hour, minute);
   if (d.getTime() > now.getTime() - 60_000) d.setUTCDate(d.getUTCDate() - 1);
   return d;
 }
@@ -489,9 +504,10 @@ export async function runSeed(opts: SeedOptions): Promise<SeedSummary | null> {
         } else if (spec.status === 'archived') {
           updatedAt = addDays(base, 2);
         } else if (spec.status === 'scheduled') {
-          scheduledAt = new Date(now);
-          scheduledAt.setUTCDate(scheduledAt.getUTCDate() + (spec.scheduleInDays ?? 1));
-          scheduledAt.setUTCHours(8 - OSLO_OFFSET_HOURS, 0, 0, 0);
+          // Clearly in the future at seed time (tomorrow 08:00 Europe/Oslo at the earliest), so the
+          // scheduler leaves it alone for at least six hours; tests must not count on it staying
+          // scheduled forever nor on an exact number of published articles.
+          scheduledAt = osloTime(now, Math.max(1, spec.scheduleInDays ?? 1), 8);
         }
         const createdAt = addHours(base, -3);
         return { publishedAt, updatedAt, unpublishedAt, scheduledAt, createdAt };

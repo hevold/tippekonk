@@ -6,11 +6,11 @@
  */
 import 'server-only';
 
+import { docToFeedHtml } from '@/lib/content/html';
 import { t } from '@/lib/i18n';
 
 import { getPublicPageContext } from './context';
 import { buildRss } from './feeds';
-import { docToFeedHtml } from './html';
 import { getSectionBySlug, listFeedArticles, listSitemapArticles, type FeedArticle } from './queries';
 import { buildRobots, buildSitemap, buildUrlSet, articleEntries } from './sitemap';
 

@@ -321,6 +321,8 @@ export async function searchArticlesForPickerAction(input: unknown): Promise<Act
       limit: data.limit,
       excludeId: data.excludeId ?? undefined,
       publishedOnly: data.publishedOnly,
+      // Contributors and viewers only see published work plus their own drafts (SPEC 5.1).
+      visibleTo: ctx.can('article:edit_any') || ctx.can('article:review') ? undefined : ctx.user.id,
     });
   });
 }

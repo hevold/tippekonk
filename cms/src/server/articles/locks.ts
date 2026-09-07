@@ -15,7 +15,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { articles, users, type Article } from '@/db/schema';
-import { NotFoundError } from '@/server/actions';
+import { ForbiddenError, NotFoundError } from '@/server/actions';
 import type { AdminContext } from '@/server/auth/context';
 
 export const LOCK_STALE_MS = 90_000;
@@ -36,7 +36,7 @@ export type LockState = {
 
 export type AcquireResult = { ok: true } | { ok: false; lockedBy: LockHolder; lockedAt: Date };
 
-type LockRow = Pick<Article, 'id' | 'lockedBy' | 'lockedAt'>;
+type LockRow = Pick<Article, 'id' | 'lockedBy' | 'lockedAt' | 'createdBy'>;
 
 export function isLockStale(lockedAt: Date | null, now: Date = new Date()): boolean {
   if (!lockedAt) return true;
@@ -45,12 +45,23 @@ export function isLockStale(lockedAt: Date | null, now: Date = new Date()): bool
 
 async function loadLockRow(ctx: AdminContext, id: string): Promise<LockRow> {
   const [row] = await db
-    .select({ id: articles.id, lockedBy: articles.lockedBy, lockedAt: articles.lockedAt })
+    .select({
+      id: articles.id,
+      lockedBy: articles.lockedBy,
+      lockedAt: articles.lockedAt,
+      createdBy: articles.createdBy,
+    })
     .from(articles)
     .where(and(eq(articles.id, id), eq(articles.siteId, ctx.site.id)))
     .limit(1);
   if (!row) throw new NotFoundError('Fant ikke saken.');
   return row;
+}
+
+/** Only someone who may edit the article can hold its lock (SPEC 5.1: contributors → own articles). */
+function assertMayLock(ctx: AdminContext, row: LockRow): void {
+  const own = ctx.can('article:edit_own') && row.createdBy === ctx.user.id;
+  if (!ctx.can('article:edit_any') && !own) throw new ForbiddenError('Du kan ikke redigere denne saken.');
 }
 
 async function holderName(userId: string): Promise<string> {
@@ -90,6 +101,7 @@ export async function acquireLock(
 ): Promise<AcquireResult> {
   const now = opts.now ?? new Date();
   const row = await loadLockRow(ctx, id);
+  assertMayLock(ctx, row);
   const heldByOther = row.lockedBy !== null && row.lockedBy !== ctx.user.id;
   if (heldByOther && !isLockStale(row.lockedAt, now)) {
     const mayTakeOver = opts.takeover === true && ctx.can('article:edit_any');

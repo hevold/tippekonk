@@ -125,7 +125,45 @@ export const seoSectionSchema = z.object({
 export type SeoSectionInput = z.input<typeof seoSectionSchema>;
 export type SeoSectionOutput = z.output<typeof seoSectionSchema>;
 
-export const analyticsSectionSchema = z.object({ analytics: analyticsSchema });
+/** '' or an https:// URL — analytics scripts are loaded on every public page, so no http/javascript/data. */
+const httpsUrlOrEmpty = z
+  .string()
+  .trim()
+  .max(500, 'Adressen er for lang')
+  .refine((v) => {
+    if (!v) return true;
+    try {
+      return new URL(v).protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, 'Må være en https-adresse');
+
+/** '' or a bare hostname such as "avisa.no" (no scheme, path or quotes). */
+const hostnameOrEmpty = z
+  .string()
+  .trim()
+  .max(253, 'Domenet er for langt')
+  .refine(
+    (v) => !v || /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(v),
+    'Skriv bare domenet, f.eks. avisa.no',
+  );
+
+const idOrEmpty = z
+  .string()
+  .trim()
+  .max(120, 'Verdien er for lang')
+  .refine((v) => /^[A-Za-z0-9_-]*$/.test(v), 'Bare bokstaver, tall, bindestrek og understrek');
+
+export const analyticsSectionSchema = z.object({
+  analytics: analyticsSchema.extend({
+    plausibleDomain: hostnameOrEmpty,
+    umamiScriptUrl: httpsUrlOrEmpty,
+    umamiWebsiteId: idOrEmpty,
+    matomoUrl: httpsUrlOrEmpty,
+    matomoSiteId: idOrEmpty,
+  }),
+});
 export type AnalyticsSectionInput = z.input<typeof analyticsSectionSchema>;
 export type AnalyticsSectionOutput = z.output<typeof analyticsSectionSchema>;
 

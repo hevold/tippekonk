@@ -2,7 +2,8 @@
  * Section page: a published `section:<id>` layout when the desk has made
  * one, otherwise an automatic listing — section header, child-section
  * chips, a card grid of the newest articles (including child sections)
- * paginated with ?side=2.
+ * paginated with ?side=2. An unknown slug consults the redirects table
+ * (SPEC 5.3) before it 404s, so single-segment legacy paths redirect too.
  */
 import { Rss } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -18,6 +19,7 @@ import { t } from '@/lib/i18n';
 import { getPublicPageContext, pageParam } from '@/server/public/context';
 import { breadcrumbJsonLd } from '@/server/public/json-ld';
 import { listMetadata } from '@/server/public/metadata';
+import { redirectIfMoved } from '@/server/public/moved';
 import { countTeasers, getSectionBySlug, getSectionLayout, listTeasers } from '@/server/public/queries';
 import { absoluteUrl } from '@/server/public/urls';
 
@@ -64,7 +66,10 @@ export default async function SectionPage({ params, searchParams }: Props) {
   const sp = await searchParams;
   const ctx = await getPublicPageContext();
   const section = await getSectionBySlug(ctx.site.id, slug);
-  if (!section) notFound();
+  if (!section) {
+    await redirectIfMoved(ctx.site.id, publicPaths.section(slug));
+    notFound();
+  }
 
   const all = ctx.chrome.sections;
   const parent = section.parentId ? all.find((s) => s.id === section.parentId) : null;

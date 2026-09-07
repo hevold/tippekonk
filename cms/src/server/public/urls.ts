@@ -13,10 +13,17 @@ import type { Site } from '@/db/schema';
 import { env } from '@/env';
 import { normalizeHost } from '@/server/sites';
 
-/** Pure: pick a base URL from what we know about the request and the site. */
+/**
+ * Pure: pick a base URL from what we know about the request and the site.
+ * The request host is only echoed when it is one of the site's configured
+ * domains; an arbitrary Host header must never end up in canonical links,
+ * feeds or the sitemap (public responses are cached by CDNs).
+ */
 export function baseUrlFor(site: Pick<Site, 'domains'>, host: string | null, proto: string | null): string {
   const normalized = normalizeHost(host);
-  if (normalized) {
+  const domains = site.domains.map((d) => normalizeHost(d)).filter((d): d is string => Boolean(d));
+  const www = normalized?.startsWith('www.') ? normalized.slice(4) : normalized ? `www.${normalized}` : null;
+  if (normalized && (domains.includes(normalized) || (www !== null && domains.includes(www)))) {
     const port = host && /:(\d+)$/.exec(host.trim())?.[1];
     const isLocal = normalized === 'localhost' || normalized === '127.0.0.1' || normalized.endsWith('.local');
     const scheme = proto === 'https' || proto === 'http' ? proto : isLocal ? 'http' : 'https';
@@ -26,8 +33,8 @@ export function baseUrlFor(site: Pick<Site, 'domains'>, host: string | null, pro
         : '';
     return `${scheme}://${normalized}${portSuffix}`;
   }
-  const domain = site.domains.map((d) => normalizeHost(d)).find((d): d is string => Boolean(d));
-  if (domain && domain !== 'localhost' && domain !== '127.0.0.1') return `https://${domain}`;
+  const domain = domains.find((d) => d !== 'localhost' && d !== '127.0.0.1' && !d.endsWith('.local'));
+  if (domain) return `https://${domain}`;
   return env.APP_URL.replace(/\/+$/, '');
 }
 

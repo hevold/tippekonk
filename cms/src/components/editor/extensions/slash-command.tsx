@@ -48,14 +48,23 @@ declare module '@tiptap/core' {
 
 const KEYS = new Set(['ArrowUp', 'ArrowDown', 'Enter', 'Escape', 'Tab']);
 
-function slashStorage(editor: Editor): SlashCommandStorage {
-  return editor.storage.slashCommand as SlashCommandStorage;
+/**
+ * Extension storage, or null once the editor is destroyed: React effects of a
+ * remounting <ArticleEditor> can still fire against the old instance, whose
+ * `storage` has been cleared, so every access has to tolerate its absence.
+ */
+function slashStorage(editor: Editor): SlashCommandStorage | null {
+  if (editor.isDestroyed) return null;
+  const storage = (editor.storage as Partial<Record<'slashCommand', SlashCommandStorage>>).slashCommand;
+  return storage ?? null;
 }
 function setSlashOpen(editor: Editor, open: boolean): void {
-  slashStorage(editor).open = open;
+  const storage = slashStorage(editor);
+  if (storage) storage.open = open;
 }
 function setSlashKeyHandler(editor: Editor, handler: SlashCommandStorage['onKeyDown']): void {
-  slashStorage(editor).onKeyDown = handler;
+  const storage = slashStorage(editor);
+  if (storage) storage.onKeyDown = handler;
 }
 
 export const SlashCommand = Extension.create({
@@ -315,9 +324,10 @@ export function SlashCommandMenu({
 
   // Track editor transactions to open/close and position the menu.
   useEffect(() => {
-    const storage = slashStorage(editor);
     const sync = () => {
-      if (!storage.open) {
+      // Storage is gone once the editor is destroyed (remount); treat that as closed.
+      const storage = slashStorage(editor);
+      if (!storage?.open) {
         setState((s) => (s.open ? { ...s, open: false, query: '' } : s));
         return;
       }
@@ -338,23 +348,27 @@ export function SlashCommandMenu({
       setState({ open: true, query, top, left });
       setIndex(0);
     };
-    editor.on('transaction', sync);
-    editor.on('blur', () => {
+    const onBlur = () => {
       // Delay so clicks inside the menu register before it closes.
       setTimeout(() => {
-        if (!editor.isFocused) {
+        if (!editor.isDestroyed && !editor.isFocused) {
           setSlashOpen(editor, false);
           sync();
         }
       }, 150);
-    });
+    };
+    editor.on('transaction', sync);
+    editor.on('blur', onBlur);
     return () => {
       editor.off('transaction', sync);
+      editor.off('blur', onBlur);
     };
   }, [editor, containerRef]);
 
   const execute = (item: SlashItem) => {
-    const from = slashStorage(editor).from;
+    const storage = slashStorage(editor);
+    if (!storage) return;
+    const from = storage.from;
     const to = editor.state.selection.head;
     setSlashOpen(editor, false);
     editor.chain().focus().deleteRange({ from, to }).run();

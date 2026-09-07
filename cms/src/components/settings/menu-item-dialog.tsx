@@ -182,7 +182,7 @@ export function MenuItemDialog({
           control={control}
           name="kind"
           render={({ field }) => (
-            <FormField label={t('settings.menus.type')}>
+            <FormField group label={t('settings.menus.type')}>
               <RadioGroup
                 inline
                 value={field.value}

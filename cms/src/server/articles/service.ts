@@ -246,8 +246,7 @@ export async function createArticle(
     return { article, contentTypeKey: contentType.key };
   });
 
-  // Audit outside the transaction: the embedded PGlite driver serialises queries on
-  // one connection, so a `db` query inside an open transaction would deadlock.
+  // Audit after the transaction so a failed create leaves no trace.
   await auditFromContext(ctx, {
     action: 'article.create',
     entityType: 'article',

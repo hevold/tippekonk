@@ -14,7 +14,6 @@ import { db } from '@/db';
 import { notifications, type Site } from '@/db/schema';
 import { t } from '@/lib/i18n';
 import { ForbiddenError, runAction, type ActionResult } from '@/server/actions';
-// INTEGRATION: both provided by the auth area (SPEC 4.2).
 import { getAdminContext } from '@/server/auth/context';
 import { SITE_COOKIE } from '@/server/auth/session';
 

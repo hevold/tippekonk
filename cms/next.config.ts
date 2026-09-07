@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
   poweredByHeader: false,
   reactStrictMode: true,
+  /** `next dev` only accepts HMR/RSC requests from the origins it knows; the seed maps 127.0.0.1 too. */
+  allowedDevOrigins: ['127.0.0.1'],
   serverExternalPackages: ['@electric-sql/pglite', 'sharp', '@node-rs/argon2', 'postgres', 'nodemailer'],
   images: { unoptimized: true },
   experimental: {

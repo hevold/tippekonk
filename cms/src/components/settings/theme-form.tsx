@@ -120,7 +120,7 @@ export function ThemeSettingsForm({
                 control={control}
                 name="theme.fontHeading"
                 render={({ field }) => (
-                  <FormField label={t('settings.theme.fontHeading')}>
+                  <FormField group label={t('settings.theme.fontHeading')}>
                     <RadioGroup
                       value={field.value ?? 'serif'}
                       onValueChange={field.onChange}
@@ -136,7 +136,7 @@ export function ThemeSettingsForm({
                 control={control}
                 name="theme.fontBody"
                 render={({ field }) => (
-                  <FormField label={t('settings.theme.fontBody')}>
+                  <FormField group label={t('settings.theme.fontBody')}>
                     <RadioGroup
                       value={field.value ?? 'sans'}
                       onValueChange={field.onChange}

@@ -117,6 +117,8 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
       if (result.reason === 'inactive') return { error: t('auth.login.inactive'), values };
       return { error: t('auth.login.invalid'), values };
     }
+    // Rotate: whatever session the browser already carried is dropped before a new one is issued.
+    await destroySession();
     await createSession(result.user.id, { mfaVerified: !result.mfaRequired, ...meta });
     const next = safeNextPath(input.next);
     target = result.mfaRequired ? `/admin/2fa?next=${encodeURIComponent(next)}` : next;

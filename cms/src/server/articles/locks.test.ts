@@ -39,12 +39,44 @@ beforeEach(async () => {
   seed = await seedMinimal(db);
   const [row] = await db
     .insert(articles)
-    .values({ siteId: seed.site.id, contentTypeId: seed.contentType.id, title: 'Låst sak', slug: 'last-sak' })
+    .values({
+      siteId: seed.site.id,
+      contentTypeId: seed.contentType.id,
+      title: 'Låst sak',
+      slug: 'last-sak',
+      createdBy: seed.contributor.id,
+    })
     .returning({ id: articles.id });
   articleId = row!.id;
 });
 
 describe('edit locks', () => {
+  it('only lets people who may edit the article lock it', async () => {
+    const contributor = ctxFor(seed.contributor, 'contributor');
+    const viewer = ctxFor(seed.journalist, 'viewer');
+    const [other] = await db
+      .insert(articles)
+      .values({
+        siteId: seed.site.id,
+        contentTypeId: seed.contentType.id,
+        title: 'Redaktørens sak',
+        slug: 'redaktorens-sak',
+        createdBy: seed.editor.id,
+      })
+      .returning({ id: articles.id });
+    // Someone else's article: a contributor cannot park a lock on it, a viewer cannot lock anything.
+    await expect(acquireLock(contributor, other!.id)).rejects.toMatchObject({ code: 'forbidden' });
+    await expect(acquireLock(viewer, other!.id)).rejects.toMatchObject({ code: 'forbidden' });
+    await expect(acquireLock(viewer, articleId)).rejects.toMatchObject({ code: 'forbidden' });
+    const [row] = await db
+      .select({ lockedBy: articles.lockedBy })
+      .from(articles)
+      .where(eq(articles.id, other!.id));
+    expect(row!.lockedBy).toBeNull();
+    // Their own article is fine.
+    expect(await acquireLock(contributor, articleId)).toEqual({ ok: true });
+  });
+
   it('acquires a free lock, refuses others while fresh, and heartbeats', async () => {
     const editor = ctxFor(seed.editor, 'editor');
     const journalist = ctxFor(seed.journalist, 'journalist');

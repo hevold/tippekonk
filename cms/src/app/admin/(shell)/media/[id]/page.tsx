@@ -22,7 +22,6 @@ import { adminPaths } from '@/config/routes';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { t } from '@/lib/i18n';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { getAdminContext } from '@/server/auth/context';
 import { formatBytes } from '@/server/media/mime';
 import { getMedia, listFolders, mediaUsage } from '@/server/media/queries';

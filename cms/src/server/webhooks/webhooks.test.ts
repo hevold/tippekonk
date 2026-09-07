@@ -20,6 +20,7 @@ import {
   enqueueEvent,
   enqueueWebhookEvent,
   isAllowedWebhookUrl,
+  isInternalHost,
   listDeliveries,
   MAX_ATTEMPTS,
   redeliver,
@@ -84,6 +85,46 @@ describe('webhooks: pure helpers', () => {
     expect(isAllowedWebhookUrl('http://localhost:4000/x', 'http://localhost:3000')).toBe(true);
     expect(isAllowedWebhookUrl('ftp://example.com', 'http://localhost:3000')).toBe(false);
     expect(isAllowedWebhookUrl('not a url', 'http://localhost:3000')).toBe(false);
+  });
+
+  it('refuses internal and private targets in production (SSRF)', () => {
+    const prod = 'https://avis.no';
+    for (const url of [
+      'https://localhost/hook',
+      'https://api.localhost/hook',
+      'https://127.0.0.1/hook',
+      'https://127.1.2.3:8443/hook',
+      'https://10.0.0.5/hook',
+      'https://172.16.4.4/hook',
+      'https://192.168.1.1/hook',
+      'https://169.254.169.254/latest/meta-data/',
+      'https://100.64.0.1/hook',
+      'https://0.0.0.0/hook',
+      'https://2130706433/hook', // 127.0.0.1 as a decimal literal
+      'https://[::1]/hook',
+      'https://[::ffff:127.0.0.1]/hook',
+      'https://[fd12::1]/hook',
+      'https://[fe80::1]/hook',
+      'https://metadata.google.internal/computeMetadata/v1/',
+      'https://printer.local/hook',
+    ]) {
+      expect(isAllowedWebhookUrl(url, prod), url).toBe(false);
+    }
+    expect(isAllowedWebhookUrl('https://hooks.example.com/x', prod)).toBe(true);
+    expect(isAllowedWebhookUrl('https://8.8.8.8/x', prod)).toBe(true);
+    expect(isAllowedWebhookUrl('https://[2001:db8::1]/x', prod)).toBe(true);
+    // Local development may talk to itself.
+    expect(isAllowedWebhookUrl('https://127.0.0.1/hook', 'http://localhost:3000')).toBe(true);
+  });
+
+  it('classifies internal hosts', () => {
+    expect(isInternalHost('localhost')).toBe(true);
+    expect(isInternalHost('LOCALHOST.')).toBe(true);
+    expect(isInternalHost('[::ffff:a00:1]')).toBe(true); // ::ffff:10.0.0.1 as the URL parser serialises it
+    expect(isInternalHost('[64:ff9b::7f00:1]')).toBe(true);
+    expect(isInternalHost('example.com')).toBe(false);
+    expect(isInternalHost('11.0.0.1')).toBe(false);
+    expect(isInternalHost('172.32.0.1')).toBe(false);
   });
 
   it('derives delivery status', () => {

@@ -6,7 +6,7 @@
  * carry the lead (SPEC 5.6).
  *
  * Pure: the route hands in the articles, the base URL and a body renderer
- * (docToHtml) so this module has no React or database dependency and can be
+ * (docToFeedHtml) so this module has no React or database dependency and can be
  * unit-tested with plain string assertions.
  */
 import type { Media, Site } from '@/db/schema';

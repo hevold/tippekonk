@@ -55,7 +55,10 @@ function load() {
     throw new Error(`Ugyldig miljøkonfigurasjon:\n${issues}`);
   }
   const env = parsed.data;
-  if (env.NODE_ENV === 'production') {
+  // `next build` evaluates route modules with NODE_ENV=production while collecting page data,
+  // long before deployment secrets exist; the production check belongs to boot, not to the build.
+  const building = process.env.NEXT_PHASE === 'phase-production-build';
+  if (env.NODE_ENV === 'production' && !building) {
     if (env.APP_SECRET === DEV_FALLBACK_SECRET || env.APP_SECRET.length < 32) {
       throw new Error('APP_SECRET må settes til en tilfeldig streng på minst 32 tegn i produksjon.');
     }

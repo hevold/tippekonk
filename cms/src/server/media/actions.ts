@@ -18,7 +18,6 @@ import { mediaFilterSchema, mediaUpdateSchema } from '@/lib/validation/media';
 import { uuidSchema } from '@/lib/validation/common';
 import { NotFoundError, runAction, type ActionResult } from '@/server/actions';
 import { auditFromContext } from '@/server/audit';
-// INTEGRATION: provided by the auth area (SPEC 4.2).
 import { requirePermission } from '@/server/auth/guards';
 import { revalidatePublic } from '@/server/cache';
 

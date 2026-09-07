@@ -19,7 +19,7 @@ import { t } from '@/lib/i18n';
 import type { ArticleTeaser, LiveBlogSummary } from '@/lib/layout/engine';
 
 import { displayHost, EMBED_PROVIDER_LABELS, embedInfo, isEmbedProvider } from './embed';
-import { isSafeHref } from './schema';
+import { isSafeHref, safeSrc } from './schema';
 import type { ContentDoc, ContentNode, EmbedProvider, Mark } from './types';
 
 export type RenderContext = {
@@ -35,6 +35,8 @@ export type RenderContext = {
   embeds?: 'full' | 'placeholder';
   /** `sizes` attribute for body images. */
   imageSizes?: string;
+  /** Target width for the fallback `src` rendition in `docToHtml()` (default 1280). */
+  imageWidth?: number;
 };
 
 export { EMBED_PROVIDER_LABELS };
@@ -148,7 +150,7 @@ function renderImage(node: ContentNode, ctx: RenderContext, key: string): ReactN
   const a = attrs(node);
   const mediaId = s(a.mediaId);
   const media = mediaId ? ctx.media.get(mediaId) : undefined;
-  const src = s(a.src);
+  const src = safeSrc(a.src) ?? '';
   const alt = s(a.alt) || (media?.alt ?? '');
   const caption = s(a.caption) || (media?.caption ?? '');
   const credit = s(a.credit) || (media?.credit ?? '');
@@ -157,7 +159,6 @@ function renderImage(node: ContentNode, ctx: RenderContext, key: string): ReactN
   return (
     <figure key={key} className="article-image" data-size={size}>
       {media ? (
-        // INTEGRATION: <MediaImage> from '@/components/media/media-image' (media area, SPEC 4.4).
         <MediaImage media={media} sizes={ctx.imageSizes ?? DEFAULT_IMAGE_SIZES} aspect="auto" />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element -- external/legacy src without a media row
@@ -177,7 +178,7 @@ function renderGallery(node: ContentNode, ctx: RenderContext, key: string): Reac
     const item = raw as Attrs;
     const mediaId = s(item.mediaId);
     const media = mediaId ? ctx.media.get(mediaId) : undefined;
-    const src = s(item.src);
+    const src = safeSrc(item.src) ?? '';
     if (!media && !src) return;
     const alt = s(item.alt) || (media?.alt ?? '');
     figures.push(

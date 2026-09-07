@@ -6,7 +6,7 @@
  * the pageview beacon.
  */
 import type { Metadata } from 'next';
-import { notFound, permanentRedirect, redirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
 
 import { ArticlePage } from '@/components/public/article-page';
@@ -17,8 +17,8 @@ import { t } from '@/lib/i18n';
 import { getPublicPageContext } from '@/server/public/context';
 import { breadcrumbJsonLd, newsArticleJsonLd } from '@/server/public/json-ld';
 import { articleMetadata } from '@/server/public/metadata';
+import { redirectIfMoved } from '@/server/public/moved';
 import { getArticleByPath, getArticleBySlug, getRelated } from '@/server/public/queries';
-import { findRedirect } from '@/server/public/redirects';
 import { absoluteUrl } from '@/server/public/urls';
 
 export const dynamic = 'force-dynamic';
@@ -35,11 +35,7 @@ async function resolveArticle(siteId: string, section: string, slug: string) {
   if (article) return article;
 
   const path = `/${section}/${slug}`;
-  const hit = await findRedirect(siteId, path);
-  if (hit) {
-    if (hit.statusCode === 301 || hit.statusCode === 308) permanentRedirect(hit.toPath);
-    redirect(hit.toPath);
-  }
+  await redirectIfMoved(siteId, path);
   const moved = await getArticleBySlug(siteId, slug);
   if (moved) {
     const canonical = publicPaths.article(moved.section?.slug, moved.section ? moved.slug : moved.id);

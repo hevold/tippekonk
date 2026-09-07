@@ -92,7 +92,64 @@ export function generateWebhookSecret(): string {
   return randomToken(32);
 }
 
-/** https is mandatory unless the installation itself runs over plain http (local development). */
+function ipv4Octets(host: string): number[] | null {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!m) return null;
+  const octets = m.slice(1).map(Number);
+  return octets.every((o) => o <= 255) ? octets : null;
+}
+
+function isInternalIpv4(host: string): boolean {
+  const o = ipv4Octets(host);
+  if (!o) return false;
+  const [a, b] = o as [number, number, number, number];
+  return (
+    a === 0 || // "this" network
+    a === 10 || // RFC 1918
+    a === 127 || // loopback
+    (a === 100 && b >= 64 && b <= 127) || // CGNAT
+    (a === 169 && b === 254) || // link-local, cloud metadata (169.254.169.254)
+    (a === 172 && b >= 16 && b <= 31) || // RFC 1918
+    (a === 192 && b === 168) || // RFC 1918
+    a >= 224 // multicast, reserved, broadcast
+  );
+}
+
+function isInternalIpv6(host: string): boolean {
+  const h = host.replace(/^\[|\]$/g, '').toLowerCase();
+  if (h === '::' || h === '::1') return true;
+  // IPv4-mapped (::ffff:10.0.0.1) and NAT64 (64:ff9b::10.0.0.1) forms embed a v4 address;
+  // the URL parser serialises the mapped address as two hex groups (::ffff:a00:1).
+  const dotted = /^(?:::ffff:|64:ff9b::)(\d{1,3}(?:\.\d{1,3}){3})$/.exec(h);
+  if (dotted) return isInternalIpv4(dotted[1]!);
+  const hex = /^(?:::ffff:|64:ff9b::)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(h);
+  if (hex) {
+    const hi = Number.parseInt(hex[1]!, 16);
+    const lo = Number.parseInt(hex[2]!, 16);
+    return isInternalIpv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  return /^f[cd][0-9a-f]{2}:/.test(h) || /^fe[89ab][0-9a-f]:/.test(h); // ULA fc00::/7, link-local fe80::/10
+}
+
+/**
+ * Hosts a webhook must never target: the machine itself, private networks,
+ * link-local ranges (cloud metadata services) and local-only DNS suffixes.
+ * Keeps an admin from using the delivery log as an SSRF probe.
+ */
+export function isInternalHost(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase().replace(/\.$/, '');
+  if (!host) return true;
+  if (host === 'localhost' || host.endsWith('.localhost')) return true;
+  if (host.endsWith('.local') || host.endsWith('.internal') || host.endsWith('.home.arpa')) return true;
+  if (host.startsWith('[') || host.includes(':')) return isInternalIpv6(host);
+  return isInternalIpv4(host);
+}
+
+/**
+ * https is mandatory unless the installation itself runs over plain http
+ * (local development); outside development the target must also be a public
+ * host (see `isInternalHost`).
+ */
 export function isAllowedWebhookUrl(value: string, appUrl: string = env.APP_URL): boolean {
   let url: URL;
   try {
@@ -100,8 +157,9 @@ export function isAllowedWebhookUrl(value: string, appUrl: string = env.APP_URL)
   } catch {
     return false;
   }
-  if (url.protocol === 'https:') return true;
-  if (url.protocol === 'http:') return appUrl.startsWith('http://');
+  const development = appUrl.startsWith('http://');
+  if (url.protocol === 'https:') return development || !isInternalHost(url.hostname);
+  if (url.protocol === 'http:') return development;
   return false;
 }
 
@@ -360,6 +418,10 @@ export async function sendDelivery(
   delivery: Pick<WebhookDelivery, 'id' | 'event' | 'payload'>,
   fetchImpl: FetchLike = fetch,
 ): Promise<DeliveryOutcome> {
+  // Re-checked at send time so rows stored before the target rules tightened never reach an internal host.
+  if (!isAllowedWebhookUrl(webhook.url)) {
+    return { ok: false, statusCode: null, error: 'Adressen er ikke tillatt (intern eller usikker adresse).' };
+  }
   const body = JSON.stringify(delivery.payload);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
